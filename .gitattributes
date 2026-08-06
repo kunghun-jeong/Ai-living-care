@@ -1,0 +1,23 @@
+# 텍스트는 저장소에 LF로 정규화한다.
+# OneDrive/Windows 체크아웃에서 CRLF churn(98파일 헛변경)이 생기던 것을 막는다.
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.pgm  binary
+*.ico  binary
+*.ttf  binary
+*.pt   binary
+*.pptx binary
+*.pdf  binary
+*.dae  binary
+*.stl  binary
+*.obj  binary
+*.tga  binary
