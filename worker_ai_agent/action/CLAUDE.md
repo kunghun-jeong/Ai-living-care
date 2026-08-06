@@ -42,7 +42,7 @@ from nav2_msgs.action  import NavigateToPose
 
 ## ⚠️ G-4 — `look_around` / patrol 미구현
 
-`tools/scenarios/check_obj_state.json`이 `look_around`·`is_looking_around`·`interrupt_look_around`를
+`limo-MCP/Scenarios/check_obj_state.json`이 `look_around`·`is_looking_around`·`interrupt_look_around`를
 참조하지만 여기에 없다. **해당 시나리오는 실행 불가.**
 (두 번째 사유도 있다 — `check_object_state`에 `detections` 인자를 넘기는데 RF가 받지 않는다)
 

@@ -35,6 +35,10 @@ python3 sot_audit.py      # 현재 통과 상태인지. 실패한 채로 시작�
 
 ### D-1. 문서에 적은 경로가 실재하는가 — **가장 자주 깨지는 항목**
 
+> ⚠️ 아래 검사기는 `cd`를 추적하지 않는다. `cd worker_ai_agent/limo-MCP && ros2 launch Simulation/...`
+> 처럼 **cd 이후 상대경로**는 오탐으로 잡힌다. 오탐이면 무시하고, 저장소 루트 기준 경로가
+> 틀린 것만 고친다. 검사기를 개선하면 이 주석을 지운다. `TODO(확인 필요)`
+
 ```bash
 python3 - <<'EOF'
 import re, os, glob, sys

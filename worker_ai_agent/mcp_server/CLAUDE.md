@@ -44,7 +44,7 @@ tools/call cancel_task           → 취소
 `from mcp.server.mcpserver import Image, MCPServer` — 구 `fastmcp.FastMCP`가 아닌 새 이름이지만
 **이것만으로 최신 SDK라고 판단할 수 없다.** 반대 증거:
 
-- `tools/scenarios/*.py`가 **`await session.initialize()`를 호출한다** — 2026-07-28이 제거했다는 핸드셰이크가 살아 있다
+- `limo-MCP/Scenarios/*.py`가 **`await session.initialize()`를 호출한다** — 2026-07-28이 제거했다는 핸드셰이크가 살아 있다
 - `requirements.txt`가 `mcp[cli]`로 **버전 미고정**
 - 이 import는 limo_slam에서 **그대로 복사한 패턴**이라 의도적 채택 흔적이 아니다
 
