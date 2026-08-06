@@ -35,11 +35,13 @@
 | 설계 결정 `D-1~D-8` | spec §0.2 | `docs/decisions.md` (색인만) | |
 | 구조 결정 `D-9~D-14` | `SOT.md` §6 | spec §0.2, `docs/decisions.md` (색인만) | **양쪽 동시 갱신** |
 | 미결정 `U-*` | spec §12 | `docs/status.md` | ID 중복 정의 금지 |
-| 표준화 항목 `S-*` | spec §11.1 | `interfaces/*/CLAUDE.md` | 귀속 오류 주의 (S-4 vs S-7) |
+| 표준화 항목 `S-*` | spec §11.1 | `interfaces/*/CLAUDE.md` | S-4=A2A-over-MCP 바인딩, S-7=세션 키. **혼동 이력 있음** (F-15, 해소) |
 | Phase 0 작업 번호 `0-*` | spec §10.4 | `docs/status.md`, 컴포넌트 `CLAUDE.md` | |
-| 설계 원칙 `P-1~P-6` | spec §1.2 | 루트 `CLAUDE.md`, `docs/conventions.md` | **`SOT.md` §4와 접두 충돌 — 그쪽은 `SP-*`** |
+| 설계 원칙 `P-1~P-6` | spec §1.2 | 루트 `CLAUDE.md`, `docs/conventions.md` | `SOT.md` §4는 `SP-*`로 분리 완료 (F-14 해소) |
 | 배치 규칙 `SP-1~SP-6` | `SOT.md` §4 | `docs/harness/docs-and-structure.md` | |
-| 감사 규칙 `R-1~R-10` | `SOT.md` §5 | **`sot_audit.py`** | **표와 구현이 집합 일치해야 함** |
+| 감사 규칙 `AR-1~AR-10` | `SOT.md` §5 | **`sot_audit.py`** | **표와 구현이 집합 일치해야 함** |
+| 문서 정합성 장치 `DA-*` | **`doc_audit.py`** | `docs/doc-map.md` §3, `harness/docs-and-structure.md` | 코드가 정본 |
+| 하네스 체크 `HM/HW/HG/HS/HD-*` | 각 하네스 파일 | 없음 (복제 금지) | 접두 `H`로 전역 네임스페이스와 분리 |
 | 코딩 규약 | `docs/conventions.md` | 컴포넌트 `CLAUDE.md`의 ⚠️ 항목 | 코드에서 관찰된 것만 |
 | 수치 (커버리지·지연·rate) | **실행 출력** | spec §10.1, `tools/*/CLAUDE.md`, `docs/status.md` | **출처·한정어 없이 인용 금지** |
 | 실행 명령 | 해당 디렉터리 `CLAUDE.md` | 루트 `CLAUDE.md`, `README.md` | `cd` 기준을 명시 |
@@ -91,21 +93,41 @@
 
 ---
 
-## 3. 기계 검사
+## 3. 기계 검사 — `doc_audit.py`
 
-전파 누락은 사람이 못 잡는다. 아래는 `sot_audit.py` 또는 별도 `doc_audit.py`에 넣을 후보다.
+**전파 누락은 사람이 못 잡는다.** 이 절은 원래 "넣을 후보" 목록이었다.
+후보로 남겨 둔 동안 `SOT.md` §2 트리에서 두 디렉터리가 사라졌고 아무도 몰랐다 (F-20).
+**지금은 전부 `doc_audit.py`에 구현돼 있고, 하네스 2단계·V-5에서 실행된다.**
 
-| 검사 | 내용 | 상태 |
+```bash
+python3 sot_audit.py      # 구조      — AR-1~AR-10
+python3 doc_audit.py      # 문서 정합성 — DA-1~DA-10
+python3 doc_audit.py DA-3 # 장치 하나만
+```
+
+| 원래 후보 | 구현 | 무엇을 강제하나 |
 |---|---|---|
-| DM-1 | MCP tool 목록(AST로 `@mcp.tool()` 추출)이 `docs/api-spec.md`·`mcp_server/CLAUDE.md`와 **집합 일치** | 미구현 |
-| DM-2 | `SOT.md` §2 트리 토큰 = `sot_audit.py`의 `COMPONENTS+CHILDREN+INTERFACES+NON_COMPONENT+PRESERVED` | 미구현 |
-| DM-3 | `SOT.md` §5 규칙 표 = `sot_audit.py`가 보고하는 규칙 집합 | 미구현 |
-| DM-4 | `G-*`·`U-*`·`D-*`·`S-*`·`0-*`가 정의처에 **정확히 1회** 정의되고, 참조된 ID가 전부 존재 | 미구현 |
-| DM-5 | `architecture.md`의 컴포넌트 표 = 실제 디렉터리 집합 | 미구현 |
-| DM-6 | 문서 코드블록의 경로 실재 (하네스 D-1) | ✅ 하네스에 있음 |
-| DM-7 | 금지 경로가 문서에 없음 (하네스 D-2) | ✅ 하네스에 있음 |
+| DM-1 | **DA-1** | `@mcp.tool()` 집합 = `docs/api-spec.md` · `mcp_server/CLAUDE.md` (§1 「코드가 정본」) |
+| DM-2 | **DA-3** | `SOT.md` §2 트리 = `sot_audit.py` 검사 대상 = 실제 디렉터리 **3자 집합 일치** |
+| DM-3 | **DA-3** | §2.1 대응표의 경로가 전부 실재 |
+| DM-4 | **DA-5** | `F/G/U/S/D/N/SP/AR/P/V/IF-*` 참조가 전부 정의처에 존재 |
+| DM-5 | **DA-10** | `architecture.md`의 다이어그램·표 = 실제 컴포넌트 집합 |
+| DM-6 | **DA-7** | 문서가 적은 경로 실재. **인라인 코드와 `cd` 상대경로까지 해석한다** |
+| DM-7 | **DA-7** | 금지 경로는 실재하지 않으므로 같은 장치가 잡는다 |
+| — | **DA-2** | **부모 `CLAUDE.md` ⊇ 실제 자식 디렉터리** ← 하위 작업 시 상위 노후화 방지 |
+| — | **DA-4** | 「tool 6종」류 개수 리터럴 = 정본 개수 |
+| — | **DA-6** | 보존 대상(D-14) blob = `27b0f30`. **작업 트리를 본다** — 커밋 전에 걸린다 |
+| — | **DA-8** | 폐기 생성기가 `ROOT_PY_ALLOW`로 되살아나지 않음 |
+| — | **DA-9** | `CLAUDE.md` 헤더 규약 · `@`참조 실재 · 루트 50줄 |
 
-**DM-1과 DM-2가 가장 값어치 있다** — 포렌식이 찾은 결함 중 가장 많은 유형을 자동으로 막는다.
+### 기계가 못 잡는 것 (사람이 해야 한다)
+
+- **수치의 한정어** — "93.6%"가 기하 시뮬 결과인지 실측인지 (HD-1)
+- **상태 열거값의 소비자 전수** — 값을 읽는 코드가 아직 없어 대조 대상이 없다 (V-4)
+- **구조 결정의 양쪽 기록** — spec §0.2 ↔ `SOT.md` §6 (D-14에서 실제로 누락됐다)
+- **`Scenarios/*.json`의 tool 이름** — DSL 실행기가 없어 정본이 정해지지 않았다 (HM-6)
+
+> **장치를 하나 추가할 때마다 이 표에 행을 넣는다.** 표에 없는 검사는 아무도 실행하지 않는다.
 
 ---
 
@@ -121,7 +143,7 @@
 | `status` 열거값 | spec §5.2, `report_interpreter/CLAUDE.md`, `docs/api-spec.md` | 〃 |
 | A2A↔MCP 객체 매핑 | spec §6.2, `if04/CLAUDE.md` | `if04/`를 정본으로, spec은 요약+링크 |
 | TaskState 정렬 | spec §6.3, `if04/CLAUDE.md`, MAA `CLAUDE.md` | 〃 |
-| dispatch-mode 5종 | spec §7.1, `worker_selector/CLAUDE.md` | spec 유지, CLAUDE.md는 링크 |
+| dispatch-mode 5종 | spec §7.3, `worker_selector/CLAUDE.md` | spec 유지, CLAUDE.md는 링크. 개수는 DA-4가 감시 |
 | IF-1~IF-8 표 | spec §3, `SOT.md` §3, `interfaces/CLAUDE.md`, `architecture.md` | **4중 복제.** spec을 정본으로 나머지는 요약 |
 | G-1~G-6 | spec §10.3, `docs/status.md`, 루트 `CLAUDE.md`, 각 컴포넌트 | status.md를 추적처로, 루트는 링크만 |
 

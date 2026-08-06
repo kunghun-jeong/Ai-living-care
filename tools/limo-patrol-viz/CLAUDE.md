@@ -1,6 +1,6 @@
 # limo-patrol-viz — 순찰 로직 검증 도구 (원본 보존)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `../../docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
 > **상위**: `tools/` · **Phase**: 0 · **구현 상태**: 동작 — 원본 그대로 보존
 
 > **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다.

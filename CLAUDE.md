@@ -14,6 +14,7 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 ## 주요 명령어
 
 - 구조 감사: `python3 sot_audit.py`
+- 문서 정합성 감사: `python3 doc_audit.py`
 - 순찰 검증(경량, ROS2만 필요): `cd tools/limo-patrol-viz && ./run_coverage.sh`
 - 전체 시뮬: `cd worker_ai_agent/limo-MCP && ros2 launch Simulation/sim_bringup.launch.py`
 - MCP 왕복: `cd worker_ai_agent/limo-MCP && python3 Scenarios/send_goal.py 1.0 0.0`
@@ -42,5 +43,5 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 
 ## ⚠️ 착수 전 필독
 
-`python3 sot_audit.py` 의 104/104는 **구조만** 검사한다 — **실행 가능성을 전혀 보증하지 않는다.**
+`sot_audit.py`는 **구조**를, `doc_audit.py`는 **문서 정합성**을 본다 — 둘 다 초록이어도 **실행 가능성은 전혀 보증되지 않는다.**
 크리티컬 갭 6건(G-1~G-6), 안전 결함, 선결 조건은 @docs/status.md 에 있다.

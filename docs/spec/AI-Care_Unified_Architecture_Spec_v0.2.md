@@ -57,6 +57,7 @@
 | **D-11** *(SOT)* | PF/RF/AF 디렉터리에서 `_function` 접미사를 뺀다 (`perception/` 등) | 명명 규칙 N-1의 명시적 예외. 상위 `worker_ai_agent/`가 문맥을 준다 |
 | **D-12** *(SOT)* | `service_functions/` 중간 계층을 **두지 않는다** | §2.2에서 "Service Functions"는 컴포넌트가 아니라 **행 레이블**. 실제 컴포넌트는 PF/RF/AF 셋 |
 | **D-13** *(SOT)* | 컴포넌트 디렉터리에 정식 명칭 전체를 쓴다 (`manager_ai_core`, `core` 아님) | 파일 하나만 열려 있어도 소속이 드러나야 하고, 축약형은 Manager/Worker 양쪽에서 충돌한다 |
+| **D-14** *(SOT)* | `limo-MCP/`·`limo-patrol-viz/`를 **원본 그대로 보존**하고 각각 `worker_ai_agent/`·`tools/` 아래에 통째로 배치한다 | 기존 저장소 작업자가 영향 없이 계속 작업하기 위함. **컴포넌트 디렉터리는 규범을, 구현체는 코드를 갖는다.** `doc_audit.py` DA-6이 `27b0f30` 대비 blob 무변경을 강제한다 |
 
 
 > **D-9 ~ D-13은 저장소 구조 정본 `SOT.md`에서 온 결정이다.** 구조 규범과 기계 검사는 `SOT.md` / `sot_audit.py`가 관할한다.
@@ -662,6 +663,8 @@ join(sub_reports, mode) →
   and-all:  전부 completed → completed
             하나라도 abnormal → abnormal (request[] 합집합)
             하나라도 failed → partial
+  sequential: 후보를 순서대로 1개씩 시도, 최초 non-failed 채택
+            → 후보 소진 시 failed (재시도 상한은 MAA가 건다)
   split:    파티션 커버리지 계산 → 미커버 영역 있으면 partial
 ```
 
@@ -700,7 +703,7 @@ slide 13이 규정한 것: **mTLS/IPsec + Session Key**, 프로토콜 REST/NETCO
 | 인가 | 없음 (단일 Worker) | Skill 단위 권한. `AUTH_REQUIRED` TaskState 활용 |
 | 감사 | IAD 전 계층 기록 | 동일 + 무결성 체인 |
 
-> Action Function이 "Session Key Check"를 수행하도록 slide 18에 명시돼 있다 — **키 검증이 Core뿐 아니라 실제 액추에이션 직전에도 한 번 더 일어나는 이중 검증 구조**다. 이 설계는 유지할 것 (표준화 항목 S-4의 근거).
+> Action Function이 "Session Key Check"를 수행하도록 slide 18에 명시돼 있다 — **키 검증이 Core뿐 아니라 실제 액추에이션 직전에도 한 번 더 일어나는 이중 검증 구조**다. 이 설계는 유지할 것 (표준화 항목 **S-7**의 근거 — S-4는 A2A-over-MCP 바인딩이다. F-15 정정).
 
 ---
 

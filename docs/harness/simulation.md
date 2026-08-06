@@ -63,12 +63,12 @@ EOF
 
 | # | 검증 | 방법 |
 |---|---|---|
-| S-1 | **경량 경로가 완주하는가** | `cd tools/limo-patrol-viz && ./run_coverage.sh` — ROS2·GUI 불필요, 수십 초. `커버리지` 출력 확인 |
-| S-2 | **커버리지 회귀 감시** | 위 출력에서 % 를 뽑아 하한(예: 90%)을 건다. 좌표·`CAM_RANGE`를 바꿨다면 필수 |
-| S-3 | **프로세스 누수** | `./run_patrol.sh & sleep 20; kill %1; sleep 2; pgrep -f "patrol_viz.py\|robot_state_publisher"` — **현재는 통과 못 한다.** `exec rviz2`가 EXIT 트랩을 무력화한다 |
-| S-4 | **Gazebo 기동 대기** | `sim_bringup.launch.py`는 spawn +20초, nav2 +35초 타이머를 갖는다. RTF 0.04라 실제 대기는 수 분이다. **Nav2 준비 전에 클라이언트를 치면 무한 루프한다** |
-| S-5 | **카메라 프레임 실측** | `ros2 topic hz /camera/image_raw` — 자료마다 30/10/2~3.8 Hz로 갈린다. **실제 값을 재서 기록한다** (작업 0-0) |
-| S-6 | **좌표 변경 시** | `PATROL` 상수를 바꿨으면 맵 범위 안인지 확인. A* `snap()`은 범위 검사가 없어 **음수 인덱스면 numpy가 조용히 반대편 끝을 읽는다** |
+| HS-1 | **경량 경로가 완주하는가** | `cd tools/limo-patrol-viz && ./run_coverage.sh` — ROS2·GUI 불필요, 수십 초. `커버리지` 출력 확인 |
+| HS-2 | **커버리지 회귀 감시** | 위 출력에서 % 를 뽑아 하한(예: 90%)을 건다. 좌표·`CAM_RANGE`를 바꿨다면 필수 |
+| HS-3 | **프로세스 누수** | `./run_patrol.sh & sleep 20; kill %1; sleep 2; pgrep -f "patrol_viz.py\|robot_state_publisher"` — **현재는 통과 못 한다.** `exec rviz2`가 EXIT 트랩을 무력화한다 |
+| HS-4 | **Gazebo 기동 대기** | `sim_bringup.launch.py`는 spawn +20초, nav2 +35초 타이머를 갖는다. RTF 0.04라 실제 대기는 수 분이다. **Nav2 준비 전에 클라이언트를 치면 무한 루프한다** |
+| HS-5 | **카메라 프레임 실측** | `ros2 topic hz /camera/image_raw` — 자료마다 30/10/2~3.8 Hz로 갈린다. **실제 값을 재서 기록한다** (작업 0-0) |
+| HS-6 | **좌표 변경 시** | `PATROL` 상수를 바꿨으면 맵 범위 안인지 확인. A* `snap()`은 범위 검사가 없어 **음수 인덱스면 numpy가 조용히 반대편 끝을 읽는다** |
 
 ## 4. 알려진 함정 (재발 방지)
 

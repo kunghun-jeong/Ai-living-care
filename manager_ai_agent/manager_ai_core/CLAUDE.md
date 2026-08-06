@@ -7,6 +7,16 @@
 
 논문 Fig.1과 slide 17의 표는 `Manager Controller`로 표기 — **별칭으로만 인정**한다 (spec §2.1).
 
+## 구성
+
+| 디렉터리 | 책임 |
+|---|---|
+| `intent_extraction/` | L0 자연어 → 어구 분해 |
+| `kg_mapping/` | 어구 → KG element=value 바인딩 (IF-1) |
+| `query_composing/` | 바인딩 → L1 Intent Query JSON |
+| `policy_generation/` | L1 → L2 High-level Policy (ECA) |
+| `session_key_manager/` | IF-4 세션 키 발급·갱신 (파이프라인과 직교) |
+
 ## 파이프라인
 
 ```

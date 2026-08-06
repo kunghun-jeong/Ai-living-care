@@ -63,6 +63,12 @@
 │   ├── perception/                     PF
 │   ├── reasoning/                      RF
 │   ├── action/                         AF
+│   ├── mcp_server/                     A2A Server + Agent Executor — IF-4 Worker 측 종단점
+│   └── limo-MCP/                       ★ 원본 보존 (D-14) — LIMO Worker 구현체
+│       ├── Worker_functions/           PF·RF·AF 구현 (Perceptions/Reasonings/Actions.py)
+│       ├── MCP_server/                 MCP stdio 서버 진입점
+│       ├── Simulation/                 Gazebo 브링업
+│       └── Scenarios/                  MCP 왕복 클라이언트
 │
 ├── interfaces/                         IF-1 ~ IF-8 (스펙 §3)
 │   ├── if01_database/
@@ -159,12 +165,12 @@
 
 | ID | 규칙 |
 |---|---|
-| **P-1** | 컴포넌트 디렉터리에는 **그 컴포넌트의 구현만** 둔다. 다른 컴포넌트가 쓰는 공용 코드는 `contracts/`나 `interfaces/`로 올린다. |
-| **P-2** | **컴포넌트 경계를 넘는 직접 호출을 만들지 않는다.** 반드시 IF-1~IF-8을 경유한다. 경유하지 않는 호출이 필요하면 인터페이스를 새로 정의하고 스펙 §3에 추가한다. |
-| **P-3** | `sim/` `tools/`에 **비즈니스 로직을 두지 않는다.** 컴포넌트를 호출만 한다. |
-| **P-4** | 스키마 변경은 **`contracts/` 먼저 → 스펙 반영 → 코드** 순서. 코드가 스펙을 앞서면 SOT가 깨진다. |
-| **P-5** | 모든 컴포넌트·인터페이스 디렉터리에 **`CLAUDE.md`가 있어야 한다.** 없으면 그 디렉터리는 미정의 상태로 간주한다. |
-| **P-6** | 각 `CLAUDE.md` 헤더는 **SOT와 스펙을 모두 참조**해야 한다. |
+| **SP-1** | 컴포넌트 디렉터리에는 **그 컴포넌트의 구현만** 둔다. 다른 컴포넌트가 쓰는 공용 코드는 `contracts/`나 `interfaces/`로 올린다. |
+| **SP-2** | **컴포넌트 경계를 넘는 직접 호출을 만들지 않는다.** 반드시 IF-1~IF-8을 경유한다. 경유하지 않는 호출이 필요하면 인터페이스를 새로 정의하고 스펙 §3에 추가한다. |
+| **SP-3** | `sim/` `tools/`에 **비즈니스 로직을 두지 않는다.** 컴포넌트를 호출만 한다. |
+| **SP-4** | 스키마 변경은 **`contracts/` 먼저 → 스펙 반영 → 코드** 순서. 코드가 스펙을 앞서면 SOT가 깨진다. |
+| **SP-5** | 모든 컴포넌트·인터페이스 디렉터리에 **`CLAUDE.md`가 있어야 한다.** 없으면 그 디렉터리는 미정의 상태로 간주한다. |
+| **SP-6** | 각 `CLAUDE.md` 헤더는 **SOT와 스펙을 모두 참조**해야 한다. |
 
 ---
 
@@ -172,20 +178,21 @@
 
 | ID | 검사 |
 |---|---|
-| **R1** | §2.1의 컴포넌트 디렉터리 11개가 정확한 이름으로 존재 |
-| **R2** | 금지 별칭 디렉터리 부재 — `manager/` `worker/` `a2a/` `*/core` `*/analyzer` `*/mgmt_system` `*/service_functions` `*/intent_audit_db` |
-| **R3** | `interfaces/if01_…`~`if08_…` 8개 존재 |
-| **R4** | 모든 컴포넌트·인터페이스 디렉터리에 `CLAUDE.md` 존재 (P-5) |
-| **R5** | 코드 파일이 SOT가 정한 위치에 존재 |
-| **R6** | 비컴포넌트 4종(`docs` `sim` `tools` `contracts`)이 루트에 존재 |
-| **R7** | 경로 참조 무결성 — `mcp_server`의 `sys.path`가 실재 디렉터리를 가리키고, scenarios의 `SERVER_PATH`가 실재 파일을 가리킴 |
-| **R8** | `CLAUDE.md`가 SOT를 참조 (P-6) |
-| **R10** | D-14 원본 보존 대상이 존재하고 내부 구조가 원형인지 |
-| **R9** | 컴포넌트 디렉터리 밖에 떠도는 `.py` 부재. 루트 허용은 SOT 관리 스크립트 `sot_audit.py` · `sot_migrate.py` 둘뿐 |
+| **AR-1** | §2.1의 컴포넌트 디렉터리 11개가 정확한 이름으로 존재 |
+| **AR-2** | 금지 별칭 디렉터리 부재 — `manager/` `worker/` `a2a/` `*/core` `*/analyzer` `*/mgmt_system` `*/service_functions` `*/intent_audit_db` |
+| **AR-3** | `interfaces/if01_…`~`if08_…` 8개 존재 |
+| **AR-4** | 모든 컴포넌트·인터페이스 디렉터리에 `CLAUDE.md` 존재 (SP-5) |
+| **AR-5** | 코드 파일이 SOT가 정한 위치에 존재 |
+| **AR-6** | 비컴포넌트 3종(`docs` `tools` `contracts`)이 루트에 존재. **`sim/`은 금지 경로다** — 시뮬레이션은 `worker_ai_agent/limo-MCP/Simulation/`에 있다 (F-13 해소) |
+| **AR-7** | 경로 참조 무결성 — `mcp_server`의 `sys.path`가 실재 디렉터리를 가리키고, scenarios의 `SERVER_PATH`가 실재 파일을 가리킴 |
+| **AR-8** | `CLAUDE.md`가 SOT를 참조 (SP-6) |
+| **AR-10** | D-14 원본 보존 대상이 존재하고 내부 구조가 원형인지 |
+| **AR-9** | 컴포넌트 디렉터리 밖에 떠도는 `.py` 부재. 루트 허용은 감사 스크립트 `sot_audit.py` · `doc_audit.py` 둘뿐 (`sot_migrate.py` · `sot_preserve.py`는 **폐기** — 실행하면 42개 `CLAUDE.md`를 되돌린다) |
 
 ```bash
-python3 sot_audit.py          # 검사만
+python3 sot_audit.py          # 구조 검사 (AR-1~AR-10)
 python3 sot_audit.py --plan   # 위반 해소용 git mv 계획 출력
+python3 doc_audit.py          # 문서 정합성 검사 (DA-1~DA-9) — 둘 다 통과해야 커밋
 ```
 
 ---
@@ -200,5 +207,7 @@ python3 sot_audit.py --plan   # 위반 해소용 git mv 계획 출력
 | **D-12** | `service_functions/` 중간 계층을 **두지 않는다** | 스펙 §2.2에서 "Service Functions"는 컴포넌트가 아니라 **행 레이블**이다. 실제 컴포넌트는 PF/RF/AF 셋. IF-5·IF-6이 이들을 집합으로 지칭하는 것은 `interfaces/if05_sf_facing/`이 문서로 다룬다 |
 | **D-14** | **`limo-MCP/` 와 `limo-patrol-viz/` 는 원본을 그대로 보존한다.** 각각 `worker_ai_agent/limo-MCP/`, `tools/limo-patrol-viz/` 에 통째로 배치하고 내부를 분해하지 않는다 | 기존 저장소 작업자가 영향 없이 계속 작업하게 하기 위함. 컴포넌트 디렉터리는 **규범**을 보유하고 코드는 구현체에 둔다 — 규범과 구현의 분리 |
 | **D-13** | 컴포넌트 디렉터리에 정식 명칭 전체를 쓴다 (`manager_ai_core`, `core` 아님) | N-1. 파일 하나만 열려 있어도 소속이 드러나야 하고, 축약형은 Manager/Worker 양쪽에서 충돌한다 |
+| **D-15** | **배치 규칙은 `SP-*`, 감사 규칙은 `AR-*`, 하네스 로컬 체크는 `H*-`로 접두를 분리한다** | spec §1.2의 설계 원칙 `P-*`, §11.1의 표준화 `S-*`와 충돌하면 "P-4를 지켰나"라는 문장의 의미가 결정되지 않는다 (F-14·F-23). `doc_audit.py` DA-5가 재발을 막는다 |
+| **D-16** | **`SOT.md` §2 트리 · `sot_audit.py` 검사 대상 · 실제 디렉터리는 항상 집합 일치한다** | 셋 중 하나만 고치면 정본이 파생물보다 낡는다 — 실제로 발생했다 (F-20). `doc_audit.py` DA-3가 강제한다 |
 
 > D-9 ~ D-13은 **스펙 §0.2 결정표에 반영해야 한다.** (미반영 상태)

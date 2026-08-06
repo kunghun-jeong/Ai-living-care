@@ -1,6 +1,6 @@
 # docs — 문서 저장소
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
 
 | 경로 | 내용 | 신뢰도 |
 |---|---|---|

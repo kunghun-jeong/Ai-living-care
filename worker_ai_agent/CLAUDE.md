@@ -1,6 +1,6 @@
 # Worker AI Agent
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `../docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
 > **상위**: 저장소 루트 · **Phase**: 0 · **구현 상태**: 구현체 동작 — 프레임워크 계층 미착수
 
 Manager가 만든 **고수준 정책(L2)** 을 받아 디바이스별 **저수준 정책(L3)** 으로 번역하고,

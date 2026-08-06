@@ -69,13 +69,13 @@ stdio 트랜스포트는 stdout을 JSON-RPC에만 쓴다. **서버 코드에 `pr
 
 | # | 검증 | 방법 |
 |---|---|---|
-| M-1 | **스키마 덤프 확인** | `tools/list` 결과를 출력해 새 tool의 파라미터 타입·default·required가 의도대로인지 눈으로 확인. `default: null` + `type: number` 조합이 없어야 한다 |
-| M-2 | **stdout 무결성** | tool 함수 안에 일부러 `print("x")`를 넣고 클라이언트가 JSON 파싱 에러 없이 동작하는지 확인 → 확인 후 제거 |
-| M-3 | **잘못된 인자 전수** | 새 tool에 정수 대신 실수, 필수 키 누락, 빈 리스트, 타입 불일치를 각각 넣고 **매번 사유가 담긴 dict가 즉시 오는지**, 그 후 `get_status`가 정상인지 |
-| M-4 | **의존 서비스 부재** | Nav2/Gazebo를 **끈 상태로** 클라이언트를 돌려 **유한 시간 안에 명확한 에러로 끝나는지.** 현재 `send_goal.py`는 무한 루프한다 |
-| M-5 | **동시 호출** | 같은 tool을 동시에 2번 호출해 두 번째가 거부되는지 (`{"started": false, "reason": ...}`) |
-| M-6 | **시나리오 JSON 대조** | tool을 추가·개명했으면 `Scenarios/check_obj_state.json`이 참조하는 이름·인자와 대조한다. 현재 이 파일은 없는 tool 3종을 참조하는 사문서다 |
-| M-7 | **왕복 스모크** | `rclpy`를 `sys.modules` 스텁으로 대체하면 ROS2 없이 서버 기동 + `initialize` + `tools/list` + `call_tool` 왕복을 검증할 수 있다. **CI에 넣으면 SDK 버전 리스크가 영구히 잡힌다** |
+| HM-1 | **스키마 덤프 확인** | `tools/list` 결과를 출력해 새 tool의 파라미터 타입·default·required가 의도대로인지 눈으로 확인. `default: null` + `type: number` 조합이 없어야 한다 |
+| HM-2 | **stdout 무결성** | tool 함수 안에 일부러 `print("x")`를 넣고 클라이언트가 JSON 파싱 에러 없이 동작하는지 확인 → 확인 후 제거 |
+| HM-3 | **잘못된 인자 전수** | 새 tool에 정수 대신 실수, 필수 키 누락, 빈 리스트, 타입 불일치를 각각 넣고 **매번 사유가 담긴 dict가 즉시 오는지**, 그 후 `get_status`가 정상인지 |
+| HM-4 | **의존 서비스 부재** | Nav2/Gazebo를 **끈 상태로** 클라이언트를 돌려 **유한 시간 안에 명확한 에러로 끝나는지.** 현재 `send_goal.py`는 무한 루프한다 |
+| HM-5 | **동시 호출** | 같은 tool을 동시에 2번 호출해 두 번째가 거부되는지 (`{"started": false, "reason": ...}`) |
+| HM-6 | **시나리오 JSON 대조** | tool을 추가·개명했으면 `Scenarios/check_obj_state.json`이 참조하는 이름·인자와 대조한다. 현재 이 파일은 없는 tool 3종을 참조하는 사문서다 |
+| HM-7 | **왕복 스모크** | `rclpy`를 `sys.modules` 스텁으로 대체하면 ROS2 없이 서버 기동 + `initialize` + `tools/list` + `call_tool` 왕복을 검증할 수 있다. **CI에 넣으면 SDK 버전 리스크가 영구히 잡힌다** |
 
 ## 5. 결정 기록
 

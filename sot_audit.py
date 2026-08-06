@@ -4,7 +4,8 @@
     python3 sot_audit.py            # 검사
     python3 sot_audit.py --plan     # 위반 해소용 git mv 계획 출력
 
-저장소 루트에서 실행. SOT.md §5의 R1~R9를 검사한다.
+저장소 루트에서 실행. SOT.md §5의 AR-1~AR-10을 검사한다.
+문서 정합성(정본이 파생물과 갈라졌는지)은 doc_audit.py 가 본다. 둘 다 통과해야 커밋한다.
 """
 import os
 import re
@@ -17,6 +18,7 @@ MANAGER = "manager_ai_agent"
 WORKER = "worker_ai_agent"
 
 # ── SOT §2.1 컴포넌트 (정식명칭, 디렉터리, 약칭) ──────────────────────────────
+# 이 목록을 고치면 SOT.md §2 트리도 같이 고쳐야 한다 — doc_audit.py DA-3 이 집합 일치를 강제한다.
 COMPONENTS = [
     ("Manager AI Core",               f"{MANAGER}/manager_ai_core",              "MAC"),
     ("Manager AI Analyzer",           f"{MANAGER}/manager_ai_analyzer",          "MAA"),
@@ -84,8 +86,10 @@ CODE = {
     "CLAUDE.md":                                           "루트 진입점",
 }
 
-# SOT 관리 스크립트는 루트에 두는 것이 규범이다 (SOT.md §5 R9)
-ROOT_PY_ALLOW = {"sot_audit.py", "sot_migrate.py", "sot_preserve.py"}
+# 감사 스크립트만 루트에 둔다 (SOT.md §5 AR-9).
+# sot_migrate.py · sot_preserve.py 는 폐기됐다 — 여기 다시 넣지 말 것.
+# 실행하면 42개 CLAUDE.md 를 내장 템플릿으로 전면 덮어써 방금 고친 문서를 되돌린다.
+ROOT_PY_ALLOW = {"sot_audit.py", "doc_audit.py"}
 
 # D-14 원본 보존 대상 — 내부 구조를 바꾸지 않는다
 PRESERVED = ["worker_ai_agent/limo-MCP", "tools/limo-patrol-viz"]
@@ -128,35 +132,35 @@ def isdir(p):
 def audit():
     # R1 컴포넌트 디렉터리
     for name, d, ab in COMPONENTS:
-        chk("R1", isdir(d), f"{name} ({ab}) → {d}/")
+        chk("AR-1", isdir(d), f"{name} ({ab}) → {d}/")
     for d in CHILDREN:
-        chk("R1", isdir(d), f"child → {d}/")
+        chk("AR-1", isdir(d), f"child → {d}/")
 
     # R2 금지 별칭
     for d in FORBIDDEN:
-        chk("R2", not exists(d), f"금지 경로 부재: {d}/")
+        chk("AR-2", not exists(d), f"금지 경로 부재: {d}/")
 
     # R3 인터페이스
     for ifid, d, name in INTERFACES:
-        chk("R3", isdir(d), f"{ifid} {name} → {d}/")
+        chk("AR-3", isdir(d), f"{ifid} {name} → {d}/")
 
     # R4 CLAUDE.md
     for _, d, _ in COMPONENTS:
-        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+        chk("AR-4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
     for d in CHILDREN:
-        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+        chk("AR-4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
     for _, d, _ in INTERFACES:
-        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+        chk("AR-4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
     for d in (MANAGER, WORKER, "interfaces"):
-        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+        chk("AR-4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
 
     # R5 코드 위치
     for p, what in CODE.items():
-        chk("R5", exists(p), f"{what} → {p}")
+        chk("AR-5", exists(p), f"{what} → {p}")
 
     # R6 비컴포넌트
     for d in NON_COMPONENT:
-        chk("R6", isdir(d), f"{d}/")
+        chk("AR-6", isdir(d), f"{d}/")
 
     # R7 경로 참조 무결성
     p = os.path.join(R, WORKER, "limo-MCP", "MCP_server", "MCP_server.py")
@@ -164,15 +168,15 @@ def audit():
         s = open(p, encoding="utf-8").read()
         m = re.findall(r'os\.path\.join\(_ROOT,\s*([^)]+)\)', s)
         base = os.path.abspath(os.path.join(os.path.dirname(p), "..", ".."))
-        chk("R7", "Worker_functions" in s,
+        chk("AR-7", "Worker_functions" in s,
             "MCP_server.py sys.path -> ../Worker_functions (원본 그대로)")
     else:
-        chk("R7", False, "MCP_server.py 부재로 sys.path 검사 불가")
+        chk("AR-7", False, "MCP_server.py 부재로 sys.path 검사 불가")
 
     for n in ("send_goal.py", "capture_and_detect.py"):
         p = os.path.join(R, WORKER, "limo-MCP", "Scenarios", n)
         if not os.path.exists(p):
-            chk("R7", False, f"limo-MCP/Scenarios/{n} 부재")
+            chk("AR-7", False, f"limo-MCP/Scenarios/{n} 부재")
             continue
         s = open(p, encoding="utf-8").read()
         m = re.search(r'SERVER_PATH\s*=\s*os\.path\.join\((.+?)\)\s*$', s, re.M)
@@ -181,7 +185,7 @@ def audit():
             parts = [x.strip().strip('"\'') for x in m.group(1).split(",")]
             parts = [x for x in parts if x != "os.path.dirname(__file__)"]
             target = os.path.normpath(os.path.join(os.path.dirname(p), *parts))
-        chk("R7", bool(target) and os.path.isfile(target),
+        chk("AR-7", bool(target) and os.path.isfile(target),
             f"limo-MCP/Scenarios/{n} SERVER_PATH → {os.path.relpath(target, R) if target else '?'}")
 
     # R8 CLAUDE.md가 SOT 참조
@@ -193,20 +197,20 @@ def audit():
             s = open(os.path.join(dirpath, "CLAUDE.md"), encoding="utf-8").read()
             if "SOT.md" not in s:
                 missing.append(rel if rel != "." else "(root)")
-    chk("R8", not missing,
+    chk("AR-8", not missing,
         "모든 CLAUDE.md가 SOT.md 참조" + (f" — 미참조 {len(missing)}개: {', '.join(missing[:6])}…" if missing else ""))
 
     # R10 원본 보존 (D-14)
     for d in PRESERVED:
-        chk("R10", isdir(d), f"원본 보존: {d}/")
-    chk("R10", all(isdir(f"worker_ai_agent/limo-MCP/" + x)
+        chk("AR-10", isdir(d), f"원본 보존: {d}/")
+    chk("AR-10", all(isdir(f"worker_ai_agent/limo-MCP/" + x)
                    for x in ("Worker_functions", "Simulation", "Scenarios", "MCP_server")),
         "limo-MCP 내부 구조 원형 유지")
 
     # R9 떠도는 .py
     stray = [f for f in os.listdir(R)
              if f.endswith(".py") and f not in ROOT_PY_ALLOW and os.path.isfile(os.path.join(R, f))]
-    chk("R9", not stray, "루트 떠돌이 .py 부재" + (f" — {stray}" if stray else ""))
+    chk("AR-9", not stray, "루트 떠돌이 .py 부재" + (f" — {stray}" if stray else ""))
 
 
 def report():
