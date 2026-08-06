@@ -1,0 +1,3536 @@
+
+
+==============================================================================
+### FILE: sot_audit.py  (256 lines)
+==============================================================================
+#!/usr/bin/env python3
+"""SOT.md 규범에 대한 저장소 구조 감사.
+
+    python3 sot_audit.py            # 검사
+    python3 sot_audit.py --plan     # 위반 해소용 git mv 계획 출력
+
+저장소 루트에서 실행. SOT.md §5의 R1~R9를 검사한다.
+"""
+import os
+import re
+import sys
+
+R = os.path.dirname(os.path.abspath(__file__))
+SPEC = "docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md"
+
+MANAGER = "manager_ai_agent"
+WORKER = "worker_ai_agent"
+
+# ── SOT §2.1 컴포넌트 (정식명칭, 디렉터리, 약칭) ──────────────────────────────
+COMPONENTS = [
+    ("Manager AI Core",               f"{MANAGER}/manager_ai_core",              "MAC"),
+    ("Manager AI Analyzer",           f"{MANAGER}/manager_ai_analyzer",          "MAA"),
+    ("Manager AI Management System",  f"{MANAGER}/manager_ai_management_system", "MAMS"),
+    ("Knowledge Graph",               f"{MANAGER}/knowledge_graph",              "KG"),
+    ("Intent Audit Database",         f"{MANAGER}/intent_audit_database",        "IAD"),
+    ("Worker AI Core",                f"{WORKER}/worker_ai_core",                "WAC"),
+    ("Worker AI Analyzer",            f"{WORKER}/worker_ai_analyzer",            "WAA"),
+    ("Worker AI Management System",   f"{WORKER}/worker_ai_management_system",   "WAMS"),
+    ("Perception Function",           f"{WORKER}/perception",                    "PF"),
+    ("Reasoning Function",            f"{WORKER}/reasoning",                     "RF"),
+    ("Action Function",               f"{WORKER}/action",                        "AF"),
+]
+
+CHILDREN = [
+    f"{MANAGER}/manager_ai_core/intent_extraction",
+    f"{MANAGER}/manager_ai_core/kg_mapping",
+    f"{MANAGER}/manager_ai_core/query_composing",
+    f"{MANAGER}/manager_ai_core/policy_generation",
+    f"{MANAGER}/manager_ai_core/session_key_manager",
+    f"{MANAGER}/manager_ai_analyzer/report_interpreter",
+    f"{MANAGER}/manager_ai_analyzer/assurance_loop",
+    f"{MANAGER}/manager_ai_management_system/agent_registry",
+    f"{MANAGER}/manager_ai_management_system/worker_selector",
+    f"{MANAGER}/mcp_client",
+    f"{WORKER}/worker_ai_core/policy_translator",
+    f"{WORKER}/worker_ai_core/session_key_handler",
+    f"{WORKER}/worker_ai_management_system/agent_card",
+    f"{WORKER}/mcp_server",
+]
+
+INTERFACES = [
+    ("IF-1", "interfaces/if01_database",           "Database Interface"),
+    ("IF-2", "interfaces/if02_analytics",          "Analytics Interface"),
+    ("IF-3", "interfaces/if03_registration",       "Registration Interface"),
+    ("IF-4", "interfaces/if04_secure_a2a_channel", "Secure A2A Channel"),
+    ("IF-5", "interfaces/if05_sf_facing",          "SF-Facing Interface"),
+    ("IF-6", "interfaces/if06_agent_monitoring",   "Agent Monitoring Interface"),
+    ("IF-7", "interfaces/if07_ams_facing",         "AMS-Facing Interface"),
+    ("IF-8", "interfaces/if08_analyzer_facing",    "Analyzer-Facing Interface"),
+]
+
+NON_COMPONENT = ["docs", "tools", "contracts"]
+
+# 금지 별칭 (SOT §5 R2) : 존재하면 위반
+FORBIDDEN = [
+    "manager", "worker", "a2a", "sim", "tools/scenarios", "tools/patrol_viz",
+    f"{WORKER}/service_functions",
+    f"{MANAGER}/intent_audit_db",
+    f"{MANAGER}/core", f"{MANAGER}/analyzer", f"{MANAGER}/mgmt_system",
+    f"{WORKER}/core", f"{WORKER}/analyzer", f"{WORKER}/mgmt_system",
+]
+
+# SOT가 정한 코드 위치 (R5)
+CODE = {
+    f"{WORKER}/limo-MCP/Worker_functions/Perceptions.py":  "PF 구현 (원본 보존)",
+    f"{WORKER}/limo-MCP/Worker_functions/Reasonings.py":   "RF 구현 (원본 보존)",
+    f"{WORKER}/limo-MCP/Worker_functions/Actions.py":      "AF 구현 (원본 보존)",
+    f"{WORKER}/limo-MCP/MCP_server/MCP_server.py":         "A2A Server / MCP 종단점 (원본 보존)",
+    f"{WORKER}/limo-MCP/Simulation/sim_bringup.launch.py": "시뮬 브링업 (원본 보존)",
+    f"{WORKER}/limo-MCP/Scenarios/send_goal.py":           "MCP 왕복 클라이언트 (원본 보존)",
+    f"{WORKER}/limo-MCP/requirements.txt":                 "의존성 (원본 보존)",
+    "tools/limo-patrol-viz/patrol_viz.py":                 "순찰 검증 도구 (원본 보존)",
+    "SOT.md":                                              "구조 정본",
+    "CLAUDE.md":                                           "루트 진입점",
+}
+
+# SOT 관리 스크립트는 루트에 두는 것이 규범이다 (SOT.md §5 R9)
+ROOT_PY_ALLOW = {"sot_audit.py", "sot_migrate.py", "sot_preserve.py"}
+
+# D-14 원본 보존 대상 — 내부 구조를 바꾸지 않는다
+PRESERVED = ["worker_ai_agent/limo-MCP", "tools/limo-patrol-viz"]
+
+# 현재 구조 → SOT (R2/R5 위반 해소용 이동 계획)
+MIGRATION = [
+    ("manager/core",                        f"{MANAGER}/manager_ai_core"),
+    ("manager/analyzer",                    f"{MANAGER}/manager_ai_analyzer"),
+    ("manager/mgmt_system",                 f"{MANAGER}/manager_ai_management_system"),
+    ("manager/knowledge_graph",             f"{MANAGER}/knowledge_graph"),
+    ("manager/intent_audit_db",             f"{MANAGER}/intent_audit_database"),
+    ("manager/CLAUDE.md",                   f"{MANAGER}/CLAUDE.md"),
+    ("worker/core",                         f"{WORKER}/worker_ai_core"),
+    ("worker/analyzer",                     f"{WORKER}/worker_ai_analyzer"),
+    ("worker/mgmt_system",                  f"{WORKER}/worker_ai_management_system"),
+    ("worker/service_functions/perception",  f"{WORKER}/perception"),
+    ("worker/service_functions/reasoning",   f"{WORKER}/reasoning"),
+    ("worker/service_functions/action",      f"{WORKER}/action"),
+    ("worker/CLAUDE.md",                    f"{WORKER}/CLAUDE.md"),
+    ("a2a/server",                          f"{WORKER}/mcp_server"),
+    ("a2a/client",                          f"{MANAGER}/mcp_client"),
+    ("a2a/binding",                         "interfaces/if04_secure_a2a_channel"),
+]
+
+results = []
+
+
+def chk(rule, ok, msg):
+    results.append((rule, ok, msg))
+
+
+def exists(p):
+    return os.path.exists(os.path.join(R, p))
+
+
+def isdir(p):
+    return os.path.isdir(os.path.join(R, p))
+
+
+def audit():
+    # R1 컴포넌트 디렉터리
+    for name, d, ab in COMPONENTS:
+        chk("R1", isdir(d), f"{name} ({ab}) → {d}/")
+    for d in CHILDREN:
+        chk("R1", isdir(d), f"child → {d}/")
+
+    # R2 금지 별칭
+    for d in FORBIDDEN:
+        chk("R2", not exists(d), f"금지 경로 부재: {d}/")
+
+    # R3 인터페이스
+    for ifid, d, name in INTERFACES:
+        chk("R3", isdir(d), f"{ifid} {name} → {d}/")
+
+    # R4 CLAUDE.md
+    for _, d, _ in COMPONENTS:
+        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+    for d in CHILDREN:
+        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+    for _, d, _ in INTERFACES:
+        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+    for d in (MANAGER, WORKER, "interfaces"):
+        chk("R4", exists(f"{d}/CLAUDE.md"), f"{d}/CLAUDE.md")
+
+    # R5 코드 위치
+    for p, what in CODE.items():
+        chk("R5", exists(p), f"{what} → {p}")
+
+    # R6 비컴포넌트
+    for d in NON_COMPONENT:
+        chk("R6", isdir(d), f"{d}/")
+
+    # R7 경로 참조 무결성
+    p = os.path.join(R, WORKER, "limo-MCP", "MCP_server", "MCP_server.py")
+    if os.path.exists(p):
+        s = open(p, encoding="utf-8").read()
+        m = re.findall(r'os\.path\.join\(_ROOT,\s*([^)]+)\)', s)
+        base = os.path.abspath(os.path.join(os.path.dirname(p), "..", ".."))
+        chk("R7", "Worker_functions" in s,
+            "MCP_server.py sys.path -> ../Worker_functions (원본 그대로)")
+    else:
+        chk("R7", False, "MCP_server.py 부재로 sys.path 검사 불가")
+
+    for n in ("send_goal.py", "capture_and_detect.py"):
+        p = os.path.join(R, WORKER, "limo-MCP", "Scenarios", n)
+        if not os.path.exists(p):
+            chk("R7", False, f"limo-MCP/Scenarios/{n} 부재")
+            continue
+        s = open(p, encoding="utf-8").read()
+        m = re.search(r'SERVER_PATH\s*=\s*os\.path\.join\((.+?)\)\s*$', s, re.M)
+        target = None
+        if m:
+            parts = [x.strip().strip('"\'') for x in m.group(1).split(",")]
+            parts = [x for x in parts if x != "os.path.dirname(__file__)"]
+            target = os.path.normpath(os.path.join(os.path.dirname(p), *parts))
+        chk("R7", bool(target) and os.path.isfile(target),
+            f"limo-MCP/Scenarios/{n} SERVER_PATH → {os.path.relpath(target, R) if target else '?'}")
+
+    # R8 CLAUDE.md가 SOT 참조
+    missing = []
+    for dirpath, dirnames, filenames in os.walk(R):
+        dirnames[:] = [d for d in dirnames if d not in (".git", "_to_delete", "node_modules")]
+        if "CLAUDE.md" in filenames:
+            rel = os.path.relpath(dirpath, R)
+            s = open(os.path.join(dirpath, "CLAUDE.md"), encoding="utf-8").read()
+            if "SOT.md" not in s:
+                missing.append(rel if rel != "." else "(root)")
+    chk("R8", not missing,
+        "모든 CLAUDE.md가 SOT.md 참조" + (f" — 미참조 {len(missing)}개: {', '.join(missing[:6])}…" if missing else ""))
+
+    # R10 원본 보존 (D-14)
+    for d in PRESERVED:
+        chk("R10", isdir(d), f"원본 보존: {d}/")
+    chk("R10", all(isdir(f"worker_ai_agent/limo-MCP/" + x)
+                   for x in ("Worker_functions", "Simulation", "Scenarios", "MCP_server")),
+        "limo-MCP 내부 구조 원형 유지")
+
+    # R9 떠도는 .py
+    stray = [f for f in os.listdir(R)
+             if f.endswith(".py") and f not in ROOT_PY_ALLOW and os.path.isfile(os.path.join(R, f))]
+    chk("R9", not stray, "루트 떠돌이 .py 부재" + (f" — {stray}" if stray else ""))
+
+
+def report():
+    by = {}
+    for rule, ok, msg in results:
+        by.setdefault(rule, []).append((ok, msg))
+    total_ok = sum(1 for _, ok, _ in results if ok)
+    print("=" * 74)
+    print(f"  SOT AUDIT   기준: SOT.md §5   저장소: {os.path.basename(R)}")
+    print("=" * 74)
+    for rule in sorted(by):
+        items = by[rule]
+        nok = sum(1 for ok, _ in items if ok)
+        head = "PASS" if nok == len(items) else "FAIL"
+        print(f"\n[{head}] {rule}  ({nok}/{len(items)})")
+        for ok, msg in items:
+            if not ok:
+                print(f"    ✗ {msg}")
+        if nok == len(items):
+            print(f"    ✓ {len(items)}개 항목 모두 통과")
+    print("\n" + "-" * 74)
+    print(f"  총 {total_ok}/{len(results)} 통과, {len(results) - total_ok} 위반")
+    print("-" * 74)
+    return len(results) - total_ok
+
+
+def plan():
+    print("# SOT 위반 해소 이동 계획 (git mv)\n")
+    n = 0
+    for src, dst in MIGRATION:
+        if exists(src) and not exists(dst):
+            print(f'mkdir -p "$(dirname {dst})" && git mv "{src}" "{dst}"')
+            n += 1
+    print(f"\n# 신규 생성 필요")
+    for ifid, d, name in INTERFACES:
+        if not isdir(d):
+            print(f'mkdir -p {d}   # {ifid} {name}')
+            n += 1
+    print(f"\n# 이동 {n}건")
+
+
+if __name__ == "__main__":
+    if "--plan" in sys.argv:
+        plan()
+    else:
+        audit()
+        sys.exit(1 if report() else 0)
+
+
+==============================================================================
+### FILE: sot_migrate.py  (1374 lines)
+==============================================================================
+#!/usr/bin/env python3
+"""SOT.md 규범으로 저장소를 이행한다.
+
+    python3 sot_migrate.py move      # git mv + interfaces/ 신설 + 폐기 디렉터리 격리
+    python3 sot_migrate.py claudemd  # CLAUDE.md 전면 재생성 (SOT 기준 경로)
+    python3 sot_migrate.py fixpath   # 경로 참조 수정
+    python3 sot_migrate.py spec      # D-9~D-13을 스펙 §0.2 결정표에 반영
+
+저장소 루트에서 실행. 각 단계는 멱등하다.
+"""
+import os
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+SPEC = "docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md"
+MA, WA = "manager_ai_agent", "worker_ai_agent"
+TRASH = "_to_delete/obsolete"
+
+
+def sh(cmd, check=False):
+    return subprocess.run(cmd, shell=True, cwd=ROOT, capture_output=True, text=True)
+
+
+def clr():
+    for f in (".git/index.lock", ".git/HEAD.lock", ".git/objects/maintenance.lock"):
+        p = os.path.join(ROOT, f)
+        if os.path.exists(p):
+            os.makedirs(os.path.join(ROOT, "_to_delete/gitlocks"), exist_ok=True)
+            try:
+                os.replace(p, os.path.join(ROOT, "_to_delete/gitlocks",
+                                           os.path.basename(f) + f".{os.getpid()}"))
+            except OSError:
+                pass
+
+
+def gmv(src, dst):
+    s, d = os.path.join(ROOT, src), os.path.join(ROOT, dst)
+    if not os.path.exists(s):
+        return print(f"  - skip {src}")
+    if os.path.exists(d):
+        return print(f"  - skip {src} (대상 존재)")
+    os.makedirs(os.path.dirname(d), exist_ok=True)
+    r = sh(f'git mv "{src}" "{dst}"')
+    clr()
+    if r.returncode == 0:
+        print(f"  git mv  {src} -> {dst}")
+    else:
+        os.replace(s, d)
+        print(f"  mv      {src} -> {dst}")
+
+
+def trash(rel):
+    s = os.path.join(ROOT, rel)
+    if not os.path.exists(s):
+        return
+    t = os.path.join(ROOT, TRASH)
+    os.makedirs(t, exist_ok=True)
+    os.replace(s, os.path.join(t, rel.replace("/", "__")))
+    print(f"  폐기    {rel} -> {TRASH}/")
+
+
+MOVES = [
+    ("manager/core",                        f"{MA}/manager_ai_core"),
+    ("manager/analyzer",                    f"{MA}/manager_ai_analyzer"),
+    ("manager/mgmt_system",                 f"{MA}/manager_ai_management_system"),
+    ("manager/knowledge_graph",             f"{MA}/knowledge_graph"),
+    ("manager/intent_audit_db",             f"{MA}/intent_audit_database"),
+    ("manager/CLAUDE.md",                   f"{MA}/CLAUDE.md"),
+    ("worker/core",                         f"{WA}/worker_ai_core"),
+    ("worker/analyzer",                     f"{WA}/worker_ai_analyzer"),
+    ("worker/mgmt_system",                  f"{WA}/worker_ai_management_system"),
+    ("worker/service_functions/perception", f"{WA}/perception"),
+    ("worker/service_functions/reasoning",  f"{WA}/reasoning"),
+    ("worker/service_functions/action",     f"{WA}/action"),
+    ("worker/CLAUDE.md",                    f"{WA}/CLAUDE.md"),
+    ("a2a/server",                          f"{WA}/mcp_server"),
+    ("a2a/client",                          f"{MA}/mcp_client"),
+    ("a2a/binding",                         "interfaces/if04_secure_a2a_channel"),
+]
+
+IFDIRS = ["if01_database", "if02_analytics", "if03_registration", "if04_secure_a2a_channel",
+          "if05_sf_facing", "if06_agent_monitoring", "if07_ams_facing", "if08_analyzer_facing"]
+
+
+def stage_move():
+    print("[move] SOT 정규 경로로 이동")
+    clr()
+    for s, d in MOVES:
+        gmv(s, d)
+    # Agent Executor는 SOT §2.2에서 mcp_server 소속 -> 별도 디렉터리 폐기
+    trash(f"{WA}/worker_ai_core/agent_executor")
+    # 폐기 디렉터리
+    for rel in ("worker/service_functions/CLAUDE.md", "a2a/CLAUDE.md"):
+        trash(rel)
+    for rel in ("worker/service_functions", "worker", "manager", "a2a"):
+        p = os.path.join(ROOT, rel)
+        if os.path.isdir(p) and not os.listdir(p):
+            trash(rel)
+        elif os.path.isdir(p):
+            print(f"  ! {rel}/ 비어있지 않음: {os.listdir(p)[:5]}")
+    for d in IFDIRS:
+        os.makedirs(os.path.join(ROOT, "interfaces", d), exist_ok=True)
+    print(f"  + interfaces/ {len(IFDIRS)}개 확보")
+    clr()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+C = {}
+
+
+def comp(path, title, parent, phase, state, body):
+    C[path] = (f"# {title}\n\n"
+               f"> **구조 정본**: `SOT.md` · **설계 정본**: `{SPEC}`\n"
+               f"> **상위**: {parent} · **Phase**: {phase} · **구현 상태**: {state}\n\n"
+               f"{body.strip()}\n")
+
+
+def iface(d, ifid, name, ends, phase, state, body):
+    C[f"interfaces/{d}"] = (
+        f"# {ifid} — {name}\n\n"
+        f"> **구조 정본**: `SOT.md` §3 · **설계 정본**: `{SPEC}` §3\n"
+        f"> **종단점**: {ends} · **Phase**: {phase} · **구현 상태**: {state}\n\n"
+        f"{body.strip()}\n")
+
+
+C[""] = f"""# AI-Care Edge System
+
+스마트홈 거주자의 **자연어 의도**를 기계 판독 가능한 **고수준 정책**으로 번역하고,
+A2A로 이기종 IoT **Worker AI Agent**에 배포해 각자 독립 실행·보고하게 하며,
+그 보고를 해석해 재시도·전환·에스컬레이션을 결정하는 **의도 기반 폐루프 리빙케어 프레임워크**.
+
+> | 문서 | 관할 |
+> |---|---|
+> | `{SPEC}` | **설계** — 무엇을 만드는가, 용어, 스키마, 인터페이스 의미 |
+> | **`SOT.md`** | **구조** — 어디에 두는가, 디렉터리 이름, 배치 규칙 |
+> | `sot_audit.py` | **집행** — `python3 sot_audit.py` 로 기계 검사 |
+>
+> 우선순위는 **spec > SOT > 코드**. 코드가 앞서면 SOT를 고치고, SOT가 앞서면 spec에 반영한다.
+
+## 상위 과제
+
+IITP RS-2024-00398199 「AI 에이전트 기반 능동형 생활지원을 위한 지능형 리빙케어 프레임워크」 (SKKU 정재훈)
+산출물 3종: **프로토타입** · **IITP 표준화 과제 제안서** · **매거진 논문**
+
+## 디렉터리 = 컴포넌트 (스펙 §2)
+
+| 디렉터리 | 정규화 명칭 | 약칭 |
+|---|---|---|
+| `{MA}/manager_ai_core/` | Manager AI Core | MAC |
+| `{MA}/manager_ai_analyzer/` | Manager AI Analyzer | MAA |
+| `{MA}/manager_ai_management_system/` | Manager AI Management System | MAMS |
+| `{MA}/knowledge_graph/` | Knowledge Graph | KG |
+| `{MA}/intent_audit_database/` | Intent Audit Database | IAD |
+| `{MA}/mcp_client/` | A2A Client (IF-4 Manager 측) | — |
+| `{WA}/worker_ai_core/` | Worker AI Core | WAC |
+| `{WA}/worker_ai_analyzer/` | Worker AI Analyzer | WAA |
+| `{WA}/worker_ai_management_system/` | Worker AI Management System | WAMS |
+| `{WA}/perception/` | Perception Function | PF |
+| `{WA}/reasoning/` | Reasoning Function | RF |
+| `{WA}/action/` | Action Function | AF |
+| `{WA}/mcp_server/` | A2A Server + Agent Executor (IF-4 Worker 측) | — |
+| `interfaces/if01…if08/` | 인터페이스 카탈로그 IF-1~IF-8 | — |
+| `contracts/` | L1~L3 · Report 페이로드 스키마 | — |
+| `sim/` `tools/` `docs/` | 비컴포넌트 | — |
+
+## Intent-Policy Continuum (L0~L4)
+
+```
+L0 Intent (자연어)     "할머니 괜찮은지 확인해줘"
+   ↓ Extraction + KG Mapping + Composing      [{MA}/manager_ai_core/]
+L1 Intent Query (JSON)                        [contracts/intent_query/]
+   ↓ LLM + Schema Prompt                      [{MA}/manager_ai_core/policy_generation/]
+L2 High-level Policy (ECA XML)                [contracts/high_level_policy/]
+   ↓ IF-4 Secure A2A Channel                  [interfaces/if04_secure_a2a_channel/]
+   ↓ Policy Translation                       [{WA}/worker_ai_core/policy_translator/]
+L3 Low-level Policy                           [contracts/low_level_policy/]
+   ↓ IF-5 SF-Facing
+L4 Function Call                              [{WA}/{{perception,reasoning,action}}/]
+```
+
+## 설계 원칙 (스펙 §1.2)
+
+- **P-1 대칭성** — Manager와 Worker는 동일한 3원 구조(Core + Analyzer + Management System)
+- **P-2 정책 계층 분리** — 각 계층은 바로 아래 계층만 안다. 계층 간 계약은 스키마로만
+- **P-3 판단 위치 최소화** — LLM/VLM은 ①의도 해석 ②최종 상태 판정 ③장애물 차단 시 대체 경로 선택 **세 지점에만**
+- **P-4 실패 안전** — 유효한 정책·경로·응답이 없으면 정지 상태를 유지
+- **P-5 감사 가능성** — L0~L4 전 계층 변환과 모든 A2A 메시지를 `intent_id`로 상관해 IAD에 기록
+- **P-6 전송 독립성** — A2A 의미론은 고정, 전송(stdio / Streamable HTTP)은 배치에 따라 선택
+
+## 현재 Phase: **0 — 단일 Worker 왕복**
+
+최종 목표는 다중 Worker 병렬 + Worker↔Worker 통신이나, 지금은 Manager 1 + Worker 1 + Skill 1 왕복을 닫는 것이 목표다.
+
+### 착수 전 반드시 확인할 것
+
+| # | 항목 | 왜 |
+|---|---|---|
+| **0-0** | 대화형 WSL 터미널에서 **small_house 카메라 재검증** + 실제 프레임 rate 측정 | 검증 실적은 `turtlebot3_world` 기준. 현재 월드에서 프레임 확보 자체가 미검증 |
+| **U-1** | 설치된 `mcp` SDK 프로토콜 리비전 확인 | 클라이언트가 `session.initialize()` 호출 중 → 구 핸드셰이크 잔존 가능성 |
+| **U-12** | ROS2 배포판 통일 | 코드·문서 전부 Jazzy 기준. 실물 LIMO는 통상 Foxy/Humble이고 **ROS2는 배포판 간 통신을 보장하지 않음** |
+| **U-14** | Gazebo RTF 0.04~0.06 대응 전략 합의 | 6.3분 시나리오가 벽시계 2시간 |
+
+### 크리티컬 갭 (스펙 §10.3)
+
+| ID | 갭 | 위치 |
+|---|---|---|
+| **G-1** | 프레임 pinning 부재 — 최신 1장만 캐시. 과거 `frame_id` 조회 불가 | `{WA}/perception/` |
+| **G-2** | `pose`가 항상 `None` | `{WA}/perception/` |
+| **G-3** | person-scan API 5종이 MCP tool로 미노출 | `{WA}/mcp_server/` |
+| **G-4** | `look_around` / patrol 미구현 | `{WA}/action/` |
+| **G-5** | stale 콜백 가드 없음 | `{WA}/action/` |
+| **G-6** | 장소 룩업(KG 연결점) 부재 | `{MA}/knowledge_graph/` |
+
+**G-1과 G-2는 시나리오 1의 핵심 경로를 끊는다.**
+
+## 작업 규칙
+
+1. **용어는 스펙 §2, 배치는 SOT를 따른다.** 축약 디렉터리(`core/` `analyzer/`)를 만들지 않는다.
+2. **컴포넌트 경계를 넘는 직접 호출을 만들지 않는다.** 반드시 `interfaces/`의 IF-1~IF-8을 경유한다.
+3. **스키마를 바꾸면 `contracts/` 먼저 고치고 스펙에 반영한다.**
+4. **`sim/` `tools/`는 컴포넌트가 아니다.** 비즈니스 로직을 두지 않는다.
+5. 구조를 바꾸면 `python3 sot_audit.py`를 돌려 통과시킨다.
+
+## 실행
+
+```bash
+source /opt/ros/jazzy/setup.bash
+ros2 launch sim/sim_bringup.launch.py
+python3 tools/scenarios/send_goal.py 1.0 0.0
+cd tools/patrol_viz && ./run_coverage.sh
+python3 sot_audit.py
+```
+"""
+
+C["docs"] = f"""# docs — 문서 저장소
+
+> **구조 정본**: `SOT.md` · **설계 정본**: `spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+
+| 경로 | 내용 | 신뢰도 |
+|---|---|---|
+| `spec/` | **설계 정본.** 정규화 용어, IF-1~IF-8, L0~L4, A2A-over-MCP 바인딩, 로드맵, 표준화 항목 | **정본** |
+| `context/` | 배경 — A2A 개념 매핑, RCP/MCP 결정 기록, ViLaR-IMO 연계, 연구 자료 계보 | 참고 |
+| `handoff/` | 세션 인수인계 — 왜 그렇게 했는지, 다시 겪지 않아도 될 함정 | 참고 |
+| `audit/` | IETF-125/126 승계 판정 | **참고 전용, 결정 아님** |
+| `slides/` | UKC2026 발표 덱 (42MB, git 제외) | 원본 |
+
+## 읽는 순서
+
+1. 루트 `CLAUDE.md` — 전체 그림과 현재 Phase
+2. `../SOT.md` — 구조·명명 규범
+3. `spec/` §1~§5 — 설계 원칙, 컴포넌트, 인터페이스, 정책 계층, Report
+4. `spec/` §10 — 기존 자산, 시뮬 환경, 크리티컬 갭, Phase 계획
+5. `handoff/` — 실제로 겪은 함정
+6. 담당 컴포넌트의 `CLAUDE.md`
+
+## 주의
+
+- **`spec/`이 설계 정본이다.** 어긋나면 spec을 따르고, spec이 틀렸으면 spec을 고친다.
+- **`audit/IETF승계issue.md`는 참고 자료다.** 판정이 스펙에 반영되지 않았다.
+- **슬라이드와 UKC 논문에는 용어 불일치가 있다.** spec §2.4와 부록 B 대조표를 먼저 볼 것.
+"""
+
+# ── Manager ──────────────────────────────────────────────────────────────────
+comp(MA, "Manager AI Agent", "저장소 루트", "0", "미착수", f"""
+사용자의 자연어 의도를 해석해 **고수준 정책(L2)** 을 만들고, 적절한 Worker를 선택해 A2A로 배포하며,
+돌아온 Report를 해석해 재시도·전환·에스컬레이션을 결정한다.
+
+## 구성 (P-1 대칭성)
+
+| 디렉터리 | 정규화 명칭 | 약칭 |
+|---|---|---|
+| `manager_ai_core/` | Manager AI Core | MAC |
+| `manager_ai_analyzer/` | Manager AI Analyzer | MAA |
+| `manager_ai_management_system/` | Manager AI Management System | MAMS |
+| `knowledge_graph/` | Knowledge Graph | KG |
+| `intent_audit_database/` | Intent Audit Database | IAD |
+| `mcp_client/` | A2A Client — IF-4 Manager 측 종단점 | — |
+
+> **KG와 IAD는 별개다.** 원 자료(slide 16·17·21, 논문 Fig.1)에서 이 자리에 박스가 하나만 그려져 있고
+> 자료마다 이름이 다르지만, 접근 패턴과 수명이 달라 두 저장소로 분리했다 (spec §2.3).
+
+## 인터페이스
+
+IF-1(→KG/IAD) · IF-2(↔MAA) · IF-3(↔MAMS) · **IF-4**(↔WAC) · IF-7(↔WAMS, P2) · IF-8(↔WAA, P2)
+정의는 `interfaces/`에 있다.
+
+## 주의
+
+docx는 Manager를 "우리 스코프 아님"으로 두었으나 **2026-08-06 결정으로 구현 범위에 포함**됐다.
+KG는 그래프DB가 아니라 JSON 룩업으로 간소 구현한다 (D-6).
+""")
+
+comp(f"{MA}/manager_ai_core", "Manager AI Core (MAC)", f"`{MA}/`", "0", "미착수", f"""
+**Intent Translator + Session Key Manager.** L0(자연어) → L1(Intent Query) → L2(High-level Policy) 변환의 주체.
+
+논문 Fig.1과 slide 17의 표는 `Manager Controller`로 표기 — **별칭으로만 인정**한다 (spec §2.1).
+
+## 파이프라인
+
+```
+"Check if Grandma is okay"
+  → intent_extraction/     ["Grandma", "check", "is okay"]
+  → kg_mapping/            IF-1로 KG 조회 → phrase별 element=value 바인딩
+  → query_composing/       L1 Intent Query JSON
+  → policy_generation/     LLM + Schema Prompt → L2 ECA XML
+```
+
+`session_key_manager/`는 직교하며 IF-4의 세션 키를 발급·갱신한다.
+생성된 L2는 `../mcp_client/`가 IF-4로 실어 보낸다.
+
+## 반드시 지킬 것
+
+- **L2에 디바이스 이름을 넣지 않는다.** device-agnostic이어야 다중 Worker fan-out이 성립한다 (spec §4.3).
+- **`bindings`를 반드시 남긴다.** 어느 어구가 어떤 값으로 해소됐는지 없으면 오역 디버깅이 불가능하다 (P-5).
+- **LLM 실패 경로를 설계에 포함한다** (P-4). 정상 파싱 → 필드 정규화 → 규칙 기반 폴백 3단 구조 권장.
+
+## 작업 (Phase 0)
+
+- [ ] 0-3 L0→L2 파이프라인 전체
+- [ ] LLM 선택 확정 (U-3)
+- [ ] L2 직렬화 형식 확정 (U-2 — 내부 JSON / 표준 문서 XML 양방향 변환 권고)
+""")
+
+comp(f"{MA}/manager_ai_core/intent_extraction", "Intent Extraction", "`manager_ai_core/`", "0", "미착수", """
+자연어 발화에서 의미 어구를 뽑는다. **여기서 의미를 해소하지 않는다** — 해소는 `kg_mapping/`의 일이다.
+
+```
+extract(utterance: str) -> list[str]
+# "Check if Grandma is okay" -> ["Grandma", "check", "is okay"]
+```
+
+## 주의
+
+- 어구 경계는 KG의 `phrase_bindings` 키와 맞아야 매핑이 성립한다. 두 컴포넌트를 함께 바꿀 것.
+- 추출 결과는 L1의 `bindings[].phrase`로 그대로 흘러간다 (P-5).
+""")
+
+comp(f"{MA}/manager_ai_core/kg_mapping", "KG Mapping", "`manager_ai_core/`", "0", "미착수", """
+추출된 어구를 KG에 조회해 `element = value` 바인딩으로 해소한다. **IF-1 경유** (`interfaces/if01_database/`).
+
+```
+resolve(phrase: str, context: dict) -> list[Binding]
+Binding = {"element": str, "value": any, "confidence": float, "source": str}
+```
+
+slide 21의 KG mapping 표:
+
+| PHRASE | ELEMENT → RETRIEVED VALUE |
+|---|---|
+| "Grandma" | `target = elder`, `place = living_room` |
+| "check" | `task = safety_check`, `mobile = [LIMO_1, LIMO_2]` |
+| "is okay" | `condition = realtime`, `sensor = camera` |
+
+## 주의
+
+- **KG를 직접 파일로 읽지 말 것.** IF-1 계약으로만 접근해야 후일 그래프DB로 무중단 교체할 수 있다 (D-6).
+- `confidence`를 반드시 채운다. 낮은 신뢰도 바인딩은 사용자 확인(MRTR)으로 승격될 수 있다.
+""")
+
+comp(f"{MA}/manager_ai_core/query_composing", "Intent Query Composing", "`manager_ai_core/`", "0", "미착수", """
+바인딩을 모아 **L1 Intent Query(JSON)** 를 만든다. 아직 정책이 아니다 — 구조화된 의도다.
+
+스키마: `contracts/intent_query/`
+
+| 필드 | 출처 |
+|---|---|
+| `intent`·`target`·`task`·`condition`·`place`·`devices` | slide 21 원본 |
+| `sensors` | KG 매핑표엔 있으나 composed JSON에서 누락된 것을 복원 |
+| `intent_id`·`raw_utterance`·`issued_by`·`issued_at`·`bindings` | 스펙이 추가 (P-5) |
+
+## 주의
+
+`devices`는 **후보 힌트**일 뿐이다. 확정은 MAMS의 Worker 선택이 한다 (spec §7.2).
+여기서 정한 디바이스가 L2로 넘어가면 안 된다.
+""")
+
+comp(f"{MA}/manager_ai_core/policy_generation", "High-level Policy Generation", "`manager_ai_core/`", "0", "미착수", """
+L1 + Schema Prompt를 LLM에 넣어 **L2 High-level Policy (ECA XML)** 를 생성한다.
+
+스키마: `contracts/high_level_policy/`
+
+```xml
+<living-care-policy>
+  <policy-id/> <intent-id/> <policy-name/> <issued-by/> <issued-at/>
+  <rule>
+    <rule-name/>
+    <event><event-type/><trigger/></event>
+    <condition><target-role/><place/><modality/></condition>
+    <action><action-type/><required-skill/>…<dispatch-mode/></action>
+  </rule>
+  <assurance><deadline-sec/><report-mode/><escalation-on/></assurance>
+</living-care-policy>
+```
+
+## 반드시 지킬 것
+
+- **디바이스 이름 금지** (P-2). `<required-skill>`이 Worker 선택의 유일한 기준이다.
+- **`<assurance>`를 비우지 않는다.** `not_found`·`timeout` 후속 액션이 여기서 선언적으로 정해진다.
+- **스키마 검증 실패 출력은 정책으로 승격하지 않는다** (P-4). 재생성 → 폴백 → 사용자 확인 순.
+
+## 주의
+
+Ollama를 쓸 경우 `format: "json"`으로 출력 형식을 강제할 수 있다.
+LLM 실패 폴백 설계는 `docs/audit/IETF승계issue.md` §4.1 참조 (참고 자료, 미채택).
+""")
+
+comp(f"{MA}/manager_ai_core/session_key_manager", "Session Key Manager", "`manager_ai_core/`", "1", "미착수", f"""
+IF-4의 세션 키를 발급·검증·갱신한다. Worker 측 대응은 `{WA}/worker_ai_core/session_key_handler/`.
+
+| Phase | 범위 |
+|---|---|
+| 0 | stdio 로컬 — OS 프로세스 격리에 의존. 키 발급만 인메모리 |
+| 1+ | mTLS over Streamable HTTP, rekeying 주기 정책화 |
+| 2+ | Skill 단위 권한, `AUTH_REQUIRED` TaskState 활용 |
+
+## 주의
+
+slide 16·18은 **Action Function이 실제 액추에이션 직전에 Session Key Check를 한 번 더** 수행하도록
+명시한다. 키 검증이 Core에만 있지 않은 **이중 검증 구조**다. 유지할 것 (표준화 항목 S-4의 근거).
+""")
+
+comp(f"{MA}/manager_ai_analyzer", "Manager AI Analyzer (MAA)", f"`{MA}/`", "0", "미착수", """
+Worker Report를 해석해 **임무 달성 여부를 판정**하고 재시도·Worker 전환·에스컬레이션을 결정한다.
+Intent Assurance 폐루프의 상태 전이 함수다.
+
+slide 21은 `Edge AI Analyzer`로 표기 — **`Manager AI Analyzer`가 정식 명칭**이다.
+`Edge`는 배치 위치일 뿐 컴포넌트 이름이 아니다 (D-1).
+
+| 하위 | 책임 |
+|---|---|
+| `report_interpreter/` | Report의 `status`·`observation`·`confidence` 해석 |
+| `assurance_loop/` | Assured / Retry / Reselect / Escalated / 잔여 정책 재발행 결정 |
+
+## 인터페이스
+
+IF-2(↔MAC) · IF-1(→IAD, 전이 감사 기록) · IF-8(↔WAA, Phase 2)
+
+## 주의
+
+**A2A TaskState와 report.status는 다른 축이다.** 전자는 전송 계층의 작업 수명주기,
+후자는 임무의 의미론적 결과다. `COMPLETED` ≠ 정상 — Task가 성공해도 관측은 `abnormal`일 수 있다.
+이 분리를 흐리면 **"할머니가 쓰러졌는데 성공으로 보고"** 같은 서술 오류가 난다.
+""")
+
+comp(f"{MA}/manager_ai_analyzer/report_interpreter", "Report Interpreter", "`manager_ai_analyzer/`", "0", "미착수", """
+Worker Report(JSON)를 읽어 임무 결과를 판정한다. 스키마: `contracts/worker_report/`
+
+| status | 의미 | 기본 처리 |
+|---|---|---|
+| `completed` | 정상 수행, 이상 없음 | 사용자에게 정상 피드백 |
+| `abnormal` | 수행 성공, **관측 결과가 이상** | `request[]` 에스컬레이션 |
+| `not_found` | 수행했으나 대상 미발견 | 다른 Worker 전환 → 소진 시 에스컬레이션 |
+| `failed` | SF 오류·하드웨어 실패 | 재시도 → 임계 초과 시 다른 Worker |
+| `partial` | 일부만 수행 | 잔여분 후속 정책 발행 |
+| `rejected` | Worker가 수락 거부 | 즉시 재선택 |
+| `timeout` | `deadline-sec` 초과 | Task cancel 후 재선택 |
+
+## 주의
+
+`not_found`는 docx의 열린 질문("4곳을 다 봐도 못 찾으면?")을 닫는 값이다.
+`request: [caregiver_notify]`를 붙여 `abnormal`과 같은 경로를 타게 한다.
+""")
+
+comp(f"{MA}/manager_ai_analyzer/assurance_loop", "Intent Assurance Loop", "`manager_ai_analyzer/`", "0", "미착수", """
+판정에 따라 다음 행동을 결정하는 상태기계. 모든 전이는 IF-1로 IAD에 기록된다 (P-5).
+
+```
+IntentReceived → PolicyGenerated → WorkerSelected → Dispatched → Executing → Reported
+Reported ─ completed ──────────────→ Assured
+         ├ abnormal / not_found(소진) → Escalated
+         ├ failed / timeout ─────────→ Retry ─ (<N) → Dispatched
+         │                                   └ (≥N) → Reselect
+         ├ rejected / not_found(잔존) → Reselect ─ 잔존 → WorkerSelected
+         │                                        └ 소진 → Escalated
+         └ partial ──────────────────→ PolicyGenerated (잔여 정책 재생성)
+```
+
+## 주의
+
+**루프 수렴을 반드시 확인할 것.** 재시도 상한과 후보 소진 조건이 없으면
+`failed → Retry → Dispatched → failed`가 무한히 돈다. Phase 0부터 상한을 넣는다.
+""")
+
+comp(f"{MA}/manager_ai_management_system", "Manager AI Management System (MAMS)", f"`{MA}/`", "0", "미착수", """
+Worker의 등록·상태·수명주기를 관리하고 **Agent Registry 역할을 겸한다.**
+
+slide 21은 `Edge AI's Mgmt System`으로 표기 — 정식 명칭은 `Manager AI Management System` (D-1).
+
+| 하위 | 책임 | Phase |
+|---|---|---|
+| `agent_registry/` | Worker 주소·Skill·자원 상태 보관·조회 | 0(고정) → 2(동적) |
+| `worker_selector/` | `required-skill` 기준 필터링·점수화·선택 | 2 |
+
+## 왜 표준화 항목인가 (S-3)
+
+A2A는 Agent Discovery 방식은 제시하지만 **레지스트리 데이터 모델과 Worker 선택 로직은 구현자 몫**으로 남긴다.
+게다가 Agent Card만으로는 CPU·메모리·대역폭 등 **실시간 자원 상태를 반영하기 어렵다**
+(Duan & Lu, arXiv:2508.15819). **MAMS + IF-7이 정확히 그 공백을 메운다.**
+""")
+
+comp(f"{MA}/manager_ai_management_system/agent_registry", "Agent Registry", "`manager_ai_management_system/`", "0", "미착수", """
+Worker의 접속 정보와 능력을 보관·조회한다. A2A Agent Card의 수집처. IF-3·IF-7 경유.
+
+```
+register(agent_id, agent_card) -> None
+lookup(required_skills: list[str]) -> list[AgentRef]
+update_resources(agent_id, resources) -> None   # IF-7, Phase 2
+```
+
+## 주의
+
+**Registry는 후보를 제공할 뿐 최종 선택을 하지 않는다.** 선택은 `worker_selector/`의 책임이다 (A2A 명세 경계).
+Phase 0에서는 Worker 주소를 고정 설정으로 둬도 된다.
+""")
+
+comp(f"{MA}/manager_ai_management_system/worker_selector", "Worker Selector", "`manager_ai_management_system/`", "2", "미착수", """
+L2 정책의 `<required-skill>`을 만족하는 Worker를 골라 배포 대상을 확정한다.
+
+```
+1. Registry 조회: required-skill 전부를 공시한 Worker 집합 C
+2. 필터: 가용(alive) ∧ 자원 충족 ∧ 세션 유효
+3. 점수화: score(w) = α·capability_match + β·proximity(place)
+                    + γ·availability − δ·recent_failure_rate
+4. dispatch-mode에 따라 상위 1개(or-fallback) 또는 상위 k개(or-race, k ≤ max-parallel)
+5. rejected 수신 시 해당 Worker 제외하고 재선택
+```
+
+| dispatch-mode | 완료 조건 | 예 |
+|---|---|---|
+| `and-all` | 전부 `completed` | "전등 다 끄고 문 잠가줘" |
+| `or-race` | 최초 성공. **나머지 취소** | **시나리오 1** — LIMO_1/LIMO_2 |
+| `or-fallback` | 순차 시도 | 동시 기동 자원 부족 시 |
+| `sequential` | 마지막 단계 완료 | "찾아서 확인하고 이상하면 디스펜서 열어" |
+| `split` | 모든 파티션 완료 | "1층 LIMO_1, 2층 LIMO_2" |
+
+## 주의
+
+α·β·γ·δ 가중치는 미정 (U-4). Phase 2에서 실측으로 정한다.
+""")
+
+comp(f"{MA}/knowledge_graph", "Knowledge Graph (KG)", f"`{MA}/`", "0", "미착수 — **G-6**", """
+사용자·공간·디바이스의 **관계와 능력**을 보유한다 — 누가 무엇을 할 수 있는가.
+`intent_audit_database/`(감사 이력)와는 별개다 (spec §2.3). 접근은 **IF-1 경유**.
+
+## Phase 0: JSON 룩업으로 간소 구현 (D-6)
+
+인터페이스 계약을 **고정**해 후일 그래프DB로 무중단 교체한다.
+
+```json
+{
+  "entities": {
+    "grandma":     {"type":"person","role":"elder","usual_place":"living_room"},
+    "living_room": {"type":"space","map_frame":"map","pose":{"x":…,"y":…,"yaw":…}},
+    "LIMO_1":      {"type":"device","skills":["navigate","person-scan","state-check"],
+                    "sensors":["camera","lidar"],"agent_uri":"stdio://limo_1"}
+  },
+  "phrase_bindings": { "grandma": [...], "check": [...], "is okay": [...] }
+}
+```
+
+## G-6 — 채워야 할 공백
+
+현재 코드에 `list_locations` / `locations.json`이 **없다.** `plan_and_navigate`는 좌표만 받는다.
+L2의 `<location-label>living_room`을 좌표로 해소할 경로가 없다.
+**좌표 ↔ 방 이름 매핑을 만드는 것이 곧 G-6 해소이자 `entities.<space>` 채우기다** (작업 0-10).
+
+## 주의 (중요)
+
+- 저장소에서 좌표에 **의미 있는 이름이 붙은 것은 두 개뿐**이다:
+  `(8.10, 1.71)`="식탁 구역", `(-7.77, 0.56)`="좌상단 방" (`tools/patrol_viz/`).
+  **나머지 5개 순찰 좌표에는 방 이름이 부여된 바 없다. 임의로 붙이지 말 것.**
+- docx의 `locations.json`(`living_room = (1.2, 0.4)`)은 **별개 출처이며 small_house 좌표계와 무관하다.**
+- `phrase_bindings`는 데모용 지름길이다. Phase 1에서 그래프 순회 + 임베딩 유사도로 대체하고
+  이 표는 회귀 테스트 정답셋으로 전환한다.
+""")
+
+comp(f"{MA}/intent_audit_database", "Intent Audit Database (IAD)", f"`{MA}/`", "1", "미착수", """
+intent·policy 이력, 스키마 프롬프트, 검증 규칙을 보관한다. **Intent Validator 기능을 포함**한다.
+
+| | Knowledge Graph | **Intent Audit Database** |
+|---|---|---|
+| 담는 것 | elder는 보통 living_room에 있다 | 14:03 intent#a1b2 → policy#p7 → LIMO_1 → abnormal |
+| 접근 | KG Mapping, 읽기 위주 | 전 계층, **쓰기 위주** + 스키마/프롬프트 읽기 |
+| 표준화 | 도메인 데이터 모델 | **감사·보증 데이터 모델 (S-5)** |
+
+## P-5를 실현하는 곳
+
+L0~L4 전 계층 변환과 모든 A2A 메시지가 `intent_id`로 상관되어 기록된다.
+**end-to-end 블랙박스 정책 대비 이 프레임워크의 핵심 장점**이므로 논문·제안서의 논거이기도 하다.
+
+## 승계 검토 중인 계약
+
+IETF-125 `k8s_server.py`의 엔드포인트를 계약 그대로 승계하는 안:
+`POST /inference` (JSON+base64 이미지 → `logs/json/`, `logs/images/`) · `POST /receive_policy` (YAML)
+
+**ViLaR-IMO 트랙이 지금도 `/inference`를 쓰므로, 유지하면 두 트랙이 같은 감사 저장소를 공유한다.**
+판정은 `docs/audit/IETF승계issue.md` §5 (참고 자료, 미채택).
+""")
+
+comp(f"{MA}/mcp_client", "A2A Client (IF-4 Manager 측 종단점)", f"`{MA}/`", "0", "미착수", f"""
+MAC이 만든 L2 정책을 Worker에 전달하고 Task 상태·Artifact를 수신한다.
+`{WA}/mcp_server/`의 대응 짝이며, 바인딩 정의는 `interfaces/if04_secure_a2a_channel/`에 있다.
+
+## 흐름
+
+```
+MAMS 조회 (required-skill)          → Worker 후보
+server/discover + agentcard://self  → Agent Card 확인
+tools/call execute_policy(L2)       → {{task_id, accepted}}
+tasks/get(task_id) 폴링              → COMPLETED + Artifact(Report + 증거 이미지)
+```
+
+## 주의
+
+- **Worker 선택은 Client의 책임이 아니다.** MAMS의 `worker_selector/`가 정한다.
+  Client는 정해진 상대에게 보내고 받는 것만 한다.
+- Task 상태 전달 방식(폴링 vs `notifications/progress`)은 미정 (U-5). Phase 0은 폴링.
+- 배치 근거: `docs/context/AI-Care_A2A_Core_Context(2).md` §4가 A2A Client를 **Manager AI Agent**에 배정 (D-9).
+""")
+
+# ── Worker ───────────────────────────────────────────────────────────────────
+comp(WA, "Worker AI Agent", "저장소 루트", "0", "부분 구현 — SF 3종 동작", """
+Manager가 만든 **고수준 정책(L2)** 을 받아 디바이스별 **저수준 정책(L3)** 으로 번역하고,
+실제로 수행한 뒤 결과를 Report로 되돌린다.
+
+## 구성 (P-1 대칭성)
+
+| 디렉터리 | 정규화 명칭 | 상태 |
+|---|---|---|
+| `worker_ai_core/` | Worker AI Core (WAC) | 미착수 — Policy Translator 없음 |
+| `worker_ai_analyzer/` | Worker AI Analyzer (WAA) | 미착수 |
+| `worker_ai_management_system/` | Worker AI Management System (WAMS) | 미착수 |
+| `perception/` | Perception Function (PF) | **구현됨** (G-1·G-2) |
+| `reasoning/` | Reasoning Function (RF) | **구현 완성도 최고** |
+| `action/` | Action Function (AF) | **구현됨** (G-5, 단일 웨이포인트만 검증) |
+| `mcp_server/` | A2A Server + Agent Executor | **동작** — L4만 노출 (G-3) |
+
+논문 Fig.1과 slide 18 표는 Core를 `Worker Controller (Policy Translator)`,
+RF를 `Reasoning Function (Rule Based)`로 표기 — 별칭으로만 인정한다.
+`(Rule Based)`는 Phase 3에서 RL 기반 선택으로 대체될 예정이라 정식 명칭에서 뺐다.
+
+## 인터페이스
+
+**IF-4**(↔MAC, `mcp_server/`) · **IF-5**(→PF/RF/AF) · **IF-6**(←PF/RF/AF) · IF-3(↔WAMS) · IF-7(↔MAMS, P2)
+
+## 현재 실행 경로
+
+```
+mcp_server/MCP_server.py  (LimoGatewayNode)
+  ├─ PerceptionModule   → /camera/image_raw 구독
+  ├─ ReasoningModule    → detect / plan / person-scan / check_object_state
+  └─ ActionModule       → Nav2 NavigateToPose
+```
+
+## 주의
+
+**`ReasoningModule`은 ROS2에 의존하지 않는다.** 백엔드를 생성자로 주입받고 미주입 시 no-op으로 동작해
+로봇 없이 단독 테스트가 가능하다. **이 저장소에서 가장 잘 분리된 설계이므로 훼손하지 말 것.**
+""")
+
+comp(f"{WA}/worker_ai_core", "Worker AI Core (WAC)", f"`{WA}/`", "0", "미착수", f"""
+**Policy Translator + Session Key Handler.** L2를 받아 L3로 번역하고 SF에 IF-5로 내린다.
+
+| 하위 | 책임 |
+|---|---|
+| `policy_translator/` | L2 → L3 번역 (A2A 문서의 Policy Handler) |
+| `session_key_handler/` | MAC이 발급한 세션 키 검증 |
+
+> **Agent Executor는 여기 없다.** A2A 문서 §4가 Agent Executor를 **Worker AI Agent** 레벨에 배정하므로
+> `../mcp_server/`에 둔다 (D-9).
+
+## 지금 없는 것
+
+현재 `../mcp_server/`가 노출하는 tool 6종은 **전부 L4(함수 호출) 수준**이다.
+A2A 종단점이 되려면 그 위에 **L2 정책을 통째로 받는 `execute_policy`** 가 얹혀야 하고,
+그 정책을 L3로 번역하는 것이 이 컴포넌트의 일이다. 두 층위는 공존한다 — 아래층은 디버깅용으로 남긴다.
+
+## 작업 (Phase 0)
+
+- [ ] 0-5 `execute_policy` / `get_task_report` / `cancel_task`
+- [ ] 0-6 Policy Translator (L2→L3)
+""")
+
+comp(f"{WA}/worker_ai_core/policy_translator", "Policy Translator", "`worker_ai_core/`", "0", "미착수", """
+L2 `<living-care-policy>` → L3 `<limo-agent-policy>` 번역. 스키마는 `contracts/`.
+
+| L2 | → L3 | 해소 주체 |
+|---|---|---|
+| `<place>living_room` | `<waypoint><x/><y/>` | KG 조회 (G-6) |
+| `<required-skill>person-scan` | `<perception>` 블록 | 디바이스 능력 |
+| `<action-type>inspect-and-report` | 실행 시퀀스 | 시나리오 선택 |
+| `<assurance><deadline-sec>` | `<report><timeout-sec>` | 그대로 전달 |
+
+## Phase 3 — RL의 위치 (오독 주의)
+
+docx의 강화학습은 **정책 생성이 아니라, 사전 저장된 시나리오 배열 중 정책에 맞는 것을 고르는 선택 문제**다.
+즉 **이 컴포넌트 내부의 선택 모듈**이며, L2→L3 번역을 규칙 기반에서 학습 기반으로 대체하는 것이다.
+논문에서 이 위치를 흐리면 "정책 생성을 RL로 한다"로 오독된다. (Search-R1, arXiv:2503.09516)
+""")
+
+comp(f"{WA}/worker_ai_core/session_key_handler", "Session Key Handler", "`worker_ai_core/`", "1", "미착수", """
+MAC의 `session_key_manager/`가 발급한 세션 키를 검증한다.
+
+## 주의
+
+**Action Function이 실제 액추에이션 직전에 한 번 더 검증한다** (slide 16·18 명시).
+Core에서 통과했다고 AF의 검증을 생략하지 말 것 — 이중 검증이 설계 의도다 (S-4).
+""")
+
+comp(f"{WA}/worker_ai_analyzer", "Worker AI Analyzer (WAA)", f"`{WA}/`", "0", "미착수", """
+SF 실행 상태를 **IF-6**로 수집해 **Worker Report**를 만들고, A2A Task Status / Artifact로 변환해 상향 보고한다.
+자가진단도 담당한다. 스키마: `contracts/worker_report/`
+
+```json
+{
+  "report_id","task_id","policy_id","intent_id","agent_id","reported_at",
+  "status":"abnormal",
+  "observation":{"found","place","posture","motion":{"state","duration_sec"},"frame_id","pose"},
+  "confidence":0.86,
+  "evidence":{"type":"image/jpeg","ref":"iad://evidence/f_47","bbox":[...]},
+  "request":["emergency_call","audio_check"],
+  "diagnostics":{"elapsed_sec","rooms_visited","sf_errors"}
+}
+```
+
+## 지금 못 채우는 필드
+
+- **`observation.pose`** — PF가 pose를 채우지 않는다 (G-2). "어느 방에서 발견했는지" 보고 불가.
+- **`evidence`** — 프레임 pinning이 없어 증거 이미지를 확보할 수 없다 (G-1).
+
+**두 갭이 Report의 핵심 필드를 비운다.** Phase 0의 0-7·0-8이 이것을 푼다.
+""")
+
+comp(f"{WA}/worker_ai_management_system", "Worker AI Management System (WAMS)", f"`{WA}/`", "1", "미착수", """
+자기 등록(registration)과 SF 컨테이너 수명주기를 담당한다. IF-3(↔WAC) · **IF-7(↔MAMS)**.
+
+- `agent_card/` — Worker의 접속 정보와 Skill을 외부에 공개
+
+## 주의
+
+**IF-7이 이 프레임워크의 차별점이다.** A2A의 Agent Card는 정적 능력만 공시해 실시간 자원 상태를
+반영하지 못한다. WAMS가 주기적으로 자원 상태를 MAMS에 갱신하는 경로가 그 공백을 메운다 (S-3).
+
+SF의 Kubernetes 컨테이너화는 UKC 논문이 제시한 방향이나, Phase 0에서는 단일 프로세스 내 모듈로 두고
+컨테이너화는 Phase 2 이후로 미룬다.
+""")
+
+comp(f"{WA}/worker_ai_management_system/agent_card", "Agent Card", "`worker_ai_management_system/`", "1", "미착수", """
+Worker가 공개하는 디지털 명함. Manager는 여기서 이름·주소·지원 통신 방식·제공 Skill을 확인한다.
+
+| A2A | MCP 대응 |
+|---|---|
+| AgentCard 코어 | `server/discover` 결과 |
+| 확장 필드 (자원 상태·배터리·위치) | MCP resource `agentcard://self` |
+| AgentSkill | `tools/list` 항목 1개 = Skill 1개 |
+
+권장 명명: `skill.<domain>.<verb>` (예: `skill.livingcare.person-scan`)
+
+## 주의
+
+**Skill은 내부 함수 목록이 아니다.** Manager가 작업을 맡길 때 이해할 수 있는 **고수준 능력**이어야 한다.
+`start_person_scan`은 함수이고, `person-scan`이 Skill이다.
+""")
+
+comp(f"{WA}/perception", "Perception Function (PF)", f"`{WA}/`", "0",
+     "구현됨 — **크리티컬 결함 2건**", f"""
+디바이스 데이터 획득과 상태 모델링. `/camera/image_raw`를 구독해 최신 프레임을 캐시한다.
+IF-5(←WAC) · IF-6(→WAA).
+
+**파일**: `Perceptions.py` — `PerceptionModule(node, topic="/camera/image_raw")`
+`ReasoningModule`이 기대하는 `FrameSource` 시그니처를 만족한다:
+`(frame_id=None) -> {{"frame_id","frame","stamp","pose"}}`
+
+## ⚠️ G-1 — 프레임 pinning 부재 (크리티컬)
+
+```python
+self._latest: Optional[dict] = None          # 슬롯 1개뿐
+...
+if frame_id is not None and item["frame_id"] != frame_id:
+    return None                              # 과거 프레임 조회 불가
+```
+
+`PersonScan`이 `f_47`에서 사람을 잡아도, LLM이 `check_object_state(frame_id="f_47")`를 부를 때쯤엔
+최신이 `f_53`이라 **증거 이미지를 얻을 수 없다.** 시나리오 1의 결론부가 끊긴다.
+
+**0-7**: N프레임 링버퍼 + `pin(frame_id)`.
+단 pin만으로는 부족하다 — `check_object_state`가 pin된 프레임에도 YOLO를 **다시 돌리므로**,
+`PersonScan`이 이미 확보한 `hit["bbox"]`를 전달하는 경로도 함께 뚫어야 한다.
+
+## ⚠️ G-2 — `pose`가 항상 `None`
+
+`_on_image`가 `"pose": None`을 하드코딩한다. Report의 `observation.pose`를 채울 수 없다.
+**0-8**: TF(`map` ← `base_link`) 조회를 프레임에 스탬프.
+
+## ⚠️ 인코딩 검사 없음 (실물 LIMO 이행 시)
+
+```python
+frame = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.width, 3)
+```
+
+`msg.encoding`을 보지 않는다. 시뮬 카메라 SDF가 `R8G8B8`(rgb8)인 가정이다.
+실물 LIMO는 Orbbec 계열이라 보통 **bgr8**이고, `yolo_detect`의 `frame[:, :, ::-1]`과 겹쳐
+**YOLO가 RGB를 보게 되어 정확도가 떨어진다**. depth(16UC1)나 mono8이면 **크래시하거나 쓰레기 배열**이 된다.
+
+## 주의
+
+프레임 rate가 자료마다 다르다 — 스펙 30 Hz / d3d12 시 10 Hz / **실측 ~2·~3.8 Hz**.
+**작업 0-0에서 실제 rate를 먼저 측정할 것.** G-1의 위험도가 여기에 좌우된다.
+""")
+
+comp(f"{WA}/reasoning", "Reasoning Function (RF)", f"`{WA}/`", "0",
+     "**구현 완성도 최고**", f"""
+관측으로부터 상태를 판단한다. 정책 규칙·컨텍스트·디바이스 지식을 다룬다. IF-5 · IF-6.
+
+**파일**: `Reasonings.py` — `ReasoningModule` + `PersonScan` + `yolo_detect`
+
+## 왜 이 파일이 기준인가
+
+**ROS2에 의존하지 않는 순수 로직**이다. 백엔드(YOLO·Nav2·크롭)를 생성자로 주입받고
+미주입 시 no-op으로 동작하므로 **로봇 없이 단독 테스트가 가능하다.**
+이 저장소에서 가장 잘 분리된 설계이므로 다른 컴포넌트를 만들 때 이 패턴을 따를 것.
+
+```python
+DetectFn    = Callable[[object], list]          # frame -> [{{"class","conf","bbox"}}]
+PlanFn      = Callable[[dict, dict], list]      # start, goal -> [{{"x","y","yaw"}}]
+CropFn      = Callable[[object, list], bytes]   # frame, bbox -> jpeg bytes
+FrameSource = Callable[..., Optional[dict]]
+```
+
+## `PersonScan` — P-3의 "코드 자율 구간"
+
+1 Hz로 최신 프레임에 YOLO를 돌려 **사람 유무(O/X)만** 판별한다. **상태 판정은 하지 않는다.**
+사람이 잡히면 frame_id·pose·bbox만 기록하고, "괜찮은지"는 상위 LLM이 크롭 이미지를 보고 정한다.
+
+**이 분리가 P-3의 실체다.** 픽셀이 LLM에 올라가는 유일한 순간은 `check_object_state`가 크롭 1장을
+돌려줄 때다. 컨텍스트 보호와 비용 절감이 동시에 된다.
+
+## ⚠️ G-3 — API 5종이 MCP tool로 미노출
+
+`start_person_scan` · `wait_for_person` · `check_object_state` · `stop_person_scan` · `get_scan_status`가
+**구현돼 있으나** `../mcp_server/MCP_server.py`에 tool 데코레이터가 없다.
+시나리오 1의 탐색·판정 경로를 외부에서 호출할 수 없다. **구현이 아니라 노출만 하면 되는 저비용 작업 (0-9).**
+
+## 주의
+
+`yolo_detect`는 `ultralytics`를 **함수 안에서만 import**한다 — 이 모듈을 그냥 import했을 때
+torch 등 무거운 의존성을 물지 않게 하기 위함이다. 이 lazy import를 최상단으로 올리지 말 것.
+""")
+
+comp(f"{WA}/action", "Action Function (AF)", f"`{WA}/`", "0",
+     "구현됨 — 단일 웨이포인트만 검증", f"""
+결정에 따른 물리 행동. 세션 키 검증 후 디바이스를 제어한다. IF-5 · IF-6.
+
+**파일**: `Actions.py` — `ActionModule(node, nav_action="navigate_to_pose")`
+
+## ROS2 의존 표면 (전부)
+
+```python
+from action_msgs.msg   import GoalStatus
+from geometry_msgs.msg import PoseStamped
+from nav2_msgs.action  import NavigateToPose
+```
+
+**로봇 비의존이다.** Nav2만 돌면 turtlebot3든 실물 LIMO든 수정 없이 동작한다.
+
+## 검증 실적 (과신 금지)
+
+기록된 검증은 `plan_and_navigate(x=1.0, y=0.0)` **단일 웨이포인트 1회**뿐이다
+(`sequence_result: {{"completed":1,"total":1}}`, `/odom` `(0,0)` → `(0.764, 0.009)`).
+**다중 웨이포인트 순차 이동 · `cancel_goal_sequence` · `cancel`은 실행 기록이 없다.**
+게다가 이 검증은 `turtlebot3_world`에서 이뤄졌고 **small_house 재검증은 없다.**
+
+## ⚠️ G-5 — stale 콜백 가드 없음
+
+- `_on_result`가 토큰 검사 없이 `self.status`를 덮어쓴다
+- `cancel_goal`이 Nav2 취소 승인을 안 기다리고 낙관적으로 `"cancelled"`로 쓴다
+- `_on_feedback`도 무조건 `"navigating"`을 쓴다 → stale feedback이 대기 루프를 풀 수 있다
+
+**0-12**: `_goal_token` 도입 + 취소 승인 대기.
+
+## ⚠️ G-4 — `look_around` / patrol 미구현
+
+`tools/scenarios/check_obj_state.json`이 `look_around`·`is_looking_around`·`interrupt_look_around`를
+참조하지만 여기에 없다. **해당 시나리오는 실행 불가.**
+(두 번째 사유도 있다 — `check_object_state`에 `detections` 인자를 넘기는데 RF가 받지 않는다)
+
+## 주의
+
+첫 웨이포인트는 `prev_xy`가 없어 `yaw_deg = 0.0`으로 떨어진다.
+**현재 로봇 자세를 읽지 않으므로** 필요하면 명시적으로 줄 것.
+""")
+
+comp(f"{WA}/mcp_server", "A2A Server + Agent Executor (IF-4 Worker 측 종단점)", f"`{WA}/`", "0",
+     "동작 — L4만 노출", f"""
+**파일**: `MCP_server.py` — `LimoGatewayNode` + MCP tool. stdio 트랜스포트.
+바인딩 정의는 `interfaces/if04_secure_a2a_channel/`에 있다.
+
+> **배치 근거 (D-9)**: `docs/context/AI-Care_A2A_Core_Context(2).md` §4가 **A2A Server와 Agent Executor를
+> Worker AI Agent 레벨**에 배정한다. 스펙 §10.1도 `MCP_server.py`를 "Worker AI Core / A2A 종단점"으로 매핑.
+> **최상위 `a2a/` 디렉터리는 두 문서 어디에도 근거가 없어 폐기했다.**
+
+## 현재 노출된 tool 6종 (전부 L4)
+
+| tool | 계층 | Phase 0 처리 |
+|---|---|---|
+| `plan_and_navigate`·`navigate_waypoints`·`cancel` | L4 Action | 유지. `execute_policy` 내부에서 호출 |
+| `get_camera_snapshot`·`detect_objects` | L4 Perception/Reasoning | 유지 |
+| `get_status` | L4 상태 | `get_task_report`로 승격 (task_id 상관 추가) |
+| — | **L2** | **`execute_policy` 신설** ← 0-5 |
+| — | L4 | **person-scan 5종 노출** ← 0-9 (G-3) |
+
+## Phase 0 최소 A2A 집합
+
+```
+server/discover                  → 프로토콜 버전·능력·정체성 (= Agent Card 코어)
+tools/list                       → 공개 Skill 목록
+resources/read agentcard://self  → 확장 Agent Card
+tools/call execute_policy        → L2 수락. {{task_id, accepted, reject_reason?}}
+tools/call get_task_report       → 상태·최종 Report
+tools/call cancel_task           → 취소
+```
+
+## ⚠️ MCP SDK 버전 (U-1)
+
+`from mcp.server.mcpserver import Image, MCPServer` — 구 `fastmcp.FastMCP`가 아닌 새 이름이지만
+**이것만으로 최신 SDK라고 판단할 수 없다.** 반대 증거:
+
+- `tools/scenarios/*.py`가 **`await session.initialize()`를 호출한다** — 2026-07-28이 제거했다는 핸드셰이크가 살아 있다
+- `requirements.txt`가 `mcp[cli]`로 **버전 미고정**
+- 이 import는 limo_slam에서 **그대로 복사한 패턴**이라 의도적 채택 흔적이 아니다
+
+**작업 0-0에서 설치된 `mcp` 패키지 버전을 직접 확인할 것.**
+
+## 주의
+
+**stdout을 오염시키지 말 것.** stdio 트랜스포트는 stdout을 JSON-RPC 전용으로 쓴다.
+YOLO 가중치 다운로드 진행표시줄이 실제로 프로토콜을 깼고, `contextlib.redirect_stdout(sys.stderr)`로
+감싼 warm-up으로 해결했다 — **그 코드를 제거하지 말 것.**
+
+`sys.path`로 `{WA}/{{perception,reasoning,action}}`을 추가해 모듈명(`Perceptions`/`Reasonings`/`Actions`)
+그대로 import한다. 패키지화는 Phase 1 정리 항목이다.
+""")
+
+# ── interfaces ───────────────────────────────────────────────────────────────
+C["interfaces"] = f"""# interfaces — 인터페이스 카탈로그 (IF-1 ~ IF-8)
+
+> **구조 정본**: `SOT.md` §3 · **설계 정본**: `{SPEC}` §3
+
+스펙 §3은 *"각 인터페이스가 곧 표준화 문서의 한 절이 된다"* 고 적는다.
+**IF-1~IF-8은 표준화 산출물(S-6)이므로 1급 디렉터리를 갖는다** (D-10).
+
+| 디렉터리 | 인터페이스 | 종단점 | Phase |
+|---|---|---|---|
+| `if01_database/` | Database Interface | MAC ↔ KG/IAD, MAA ↔ IAD | 0 |
+| `if02_analytics/` | Analytics Interface | MAC ↔ MAA, WAC ↔ WAA | 0 |
+| `if03_registration/` | Registration Interface | MAC ↔ MAMS, WAC ↔ WAMS | 0 |
+| `if04_secure_a2a_channel/` | **Secure A2A Channel** | MAC ↔ WAC | 0 |
+| `if05_sf_facing/` | SF-Facing Interface | WAC → PF/RF/AF | 0 |
+| `if06_agent_monitoring/` | Agent Monitoring Interface | PF/RF/AF → WAA | 0 |
+| `if07_ams_facing/` | AMS-Facing Interface | MAMS ↔ WAMS | 2 |
+| `if08_analyzer_facing/` | Analyzer-Facing Interface | MAA ↔ WAA | 2 |
+
+## `interfaces/` 와 `contracts/` 의 차이
+
+- **`interfaces/`** = **누가 누구에게 어떻게 말하는가.** 종단점·호출 규약·전송·수명주기.
+- **`contracts/`** = **무엇을 말하는가.** 그 위를 흐르는 페이로드 스키마(L1·L2·L3·Report).
+
+예: IF-4는 "MAC이 WAC에 `tools/call execute_policy`로 보내고 `tasks/get`으로 폴링한다"를 정하고,
+`contracts/high_level_policy/`는 "그 안에 실리는 `<living-care-policy>`가 어떤 필드를 갖는가"를 정한다.
+
+## 규칙
+
+**컴포넌트 경계를 넘는 직접 호출을 만들지 않는다** (P-2). 필요하면 인터페이스를 새로 정의하고
+스펙 §3 표에 추가한 뒤 여기에 디렉터리를 만든다.
+"""
+
+iface("if01_database", "IF-1", "Database Interface",
+      "MAC ↔ KG/IAD, MAA ↔ IAD", "0", "미착수", """
+KG 조회, intent·policy 감사 레코드 쓰기, KB audit을 담당한다.
+
+## 계약 (초안)
+
+```
+resolve(phrase: str, context: dict) -> list[Binding]     # KG 읽기
+audit(record: AuditRecord) -> None                        # IAD 쓰기
+prompt(schema_id: str) -> str                             # IAD 스키마 프롬프트 읽기
+```
+
+## 왜 하나의 인터페이스인가
+
+KG와 IAD는 별개 저장소지만 접근 계층은 같다. 하나로 두면 **MAC이 저장소 구현을 몰라도 된다** —
+KG를 JSON 룩업에서 그래프DB로 바꿔도 이 계약이 고정이면 무중단 교체가 된다 (D-6).
+
+## 주의
+
+**P-5(감사 가능성)를 실현하는 인터페이스다.** L0~L4 전 계층의 변환 결과가 여기를 통해 기록된다.
+어느 한 계층이라도 감사 레코드를 빠뜨리면 end-to-end 상관이 끊긴다.
+""")
+
+iface("if02_analytics", "IF-2", "Analytics Interface",
+      "MAC ↔ MAA, WAC ↔ WAA", "0", "미착수", """
+해석된 report와 완료/재시도/전환 판정을 주고받는다. **Manager와 Worker 양쪽에 대칭으로 존재한다** (P-1).
+
+| 방향 | 내용 |
+|---|---|
+| MAA → MAC | 임무 판정 (Assured / Retry / Reselect / Escalated / 잔여 정책) |
+| WAA → WAC | SF 실행 요약, 자가진단 결과 |
+
+## 주의
+
+**IF-8(Analyzer-Facing)과 혼동하지 말 것.**
+IF-2는 **같은 에이전트 안**의 Core↔Analyzer, IF-8은 **에이전트를 넘는** MAA↔WAA다.
+IF-8은 제어 평면과 분리된 관측 평면이며 Phase 2다.
+""")
+
+iface("if03_registration", "IF-3", "Registration Interface",
+      "MAC ↔ MAMS, WAC ↔ WAMS", "0", "미착수", """
+Worker 등록·조회·상태를 주고받는다. Manager와 Worker 양쪽에 대칭으로 존재한다 (P-1).
+
+| 방향 | 내용 |
+|---|---|
+| MAC → MAMS | `required-skill`로 Worker 후보 조회 |
+| WAC → WAMS | 자기 등록, SF 수명주기 상태 |
+
+## 주의
+
+**Registry는 후보만 제공하고 최종 선택은 MAMS의 `worker_selector/`가 한다.**
+A2A 명세는 Worker 자동 선택을 하지 않으며, 선택 로직은 Manager의 책임이라고 명시한다.
+Phase 0에서는 Worker 주소를 고정 설정으로 둬도 된다.
+""")
+
+iface("if04_secure_a2a_channel", "IF-4", "Secure A2A Channel",
+      "MAC ↔ WAC", "0", "부분 — MCP 서버 동작, A2A 의미론 미구현", f"""
+**L2 고수준 정책, Task 상태, Artifact**를 전달하는 에이전트 간 채널.
+**A2A 의미론을 유지하면서 전송·직렬화는 MCP를 재사용한다.**
+
+종단점 구현: Manager 측 `{MA}/mcp_client/` · Worker 측 `{WA}/mcp_server/`
+이 디렉터리에는 **바인딩 정의**(어느 쪽 소유도 아닌 공유 자산)를 둔다.
+
+## 왜 이 바인딩인가 (★핵심 기여 — 표준화 항목 S-4)
+
+업계 통념은 "MCP는 agent↔tool, A2A는 agent↔agent"로 역할이 갈린다는 것이다. 근거:
+
+1. **엣지 로컬성** — 같은 엣지 배치가 다수. stdio 로컬 IPC가 지연·전력에서 유리
+2. **툴체인 단일화** — Worker 내부 SF 호출(L4)이 이미 MCP tool. 외부까지 통일하면 **서버 구현 하나**
+3. **2026-07-28 MCP 개정이 격차를 없앰** — A2A 핵심 객체 전부가 현행 MCP에 대응물을 가짐
+
+> **포지셔닝**: "A2A를 MCP로 대체한다"가 아니라 **"A2A 의미론의 MCP 전송 바인딩을 정의한다"**.
+> A2A 명세가 이미 JSON-RPC / gRPC / HTTP+JSON 3종 바인딩을 인정하므로
+> **제4의 바인딩을 제안하는 형태**가 표준화 트랙에서 가장 방어 가능하다.
+
+## 객체 매핑 (스펙 §6.2)
+
+| A2A v1.0 | MCP 2026-07-28 |
+|---|---|
+| AgentCard | `server/discover` + resource `agentcard://self` |
+| AgentSkill | `tools/list` 항목 1개 |
+| Message / `message/send` | `tools/call` |
+| Task + TaskState | `io.modelcontextprotocol/tasks` **공식 확장** |
+| `tasks/get` | `tasks/get` (이름까지 동일) |
+| Artifact | tool result의 `content` / `structuredContent` |
+| `TASK_STATE_INPUT_REQUIRED` | **MRTR** `InputRequiredResult` |
+| `message/stream` (SSE) | 요청 범위 `notifications/progress` |
+| push notification config | `subscriptions/listen` |
+| Agent Registry | **MAMS** (MCP 밖 — AI-Care 고유 확장) |
+
+## TaskState ↔ report.status 정렬
+
+| A2A TaskState | 대응 report.status |
+|---|---|
+| `SUBMITTED` / `WORKING` / `INPUT_REQUIRED` | (미발행) |
+| `COMPLETED` | `completed` / `abnormal` / `not_found` / `partial` |
+| `FAILED` | `failed` |
+| `REJECTED` | `rejected` |
+| `CANCELED` | `timeout` |
+
+## 보안
+
+mTLS/IPsec + Session Key (slide 13). Phase 0은 stdio 로컬로 OS 프로세스 격리에 의존한다.
+**Action Function이 액추에이션 직전에 키를 한 번 더 검증하는 이중 구조를 유지할 것** (S-4).
+
+## 주의
+
+**제안서·논문 제출 전 MCP 명세 최신판을 재확인할 것** (U-1). 이 매핑 전체가 2026-07-28 개정판에 의존한다.
+""")
+
+iface("if05_sf_facing", "IF-5", "SF-Facing Interface",
+      "WAC → PF/RF/AF", "0", "부분 — 현재는 함수 직접 호출", f"""
+Worker AI Core가 **L3 저수준 정책**을 Service Function에 내리는 인터페이스.
+IETF I2NSF의 **NSF-Facing Interface**에 대응하는 이름이며, 이 대응이 표준화 논거다 (S-2).
+
+## 전달 대상
+
+`{WA}/perception/` · `{WA}/reasoning/` · `{WA}/action/`
+페이로드 스키마는 `contracts/low_level_policy/`.
+
+## 요소명 규칙
+
+L3 요소명은 SF가 실제로 받는 자료구조와 **1:1**로 맞춘다.
+예: `<waypoint>` ↔ `Actions._goal_xy_yaw()`가 받는 `{{"x","y","frame"?,"yaw_deg"?}}`.
+어긋나면 Policy Translator에 변환 로직이 쌓여 계층 분리(P-2)가 무너진다.
+
+## 현재 상태
+
+`MCP_server.py`가 `LimoGatewayNode`에서 세 모듈을 직접 생성·주입한다.
+즉 **인터페이스가 아직 코드 경계로만 존재하고 규약으로 형식화되지 않았다.**
+0-6(Policy Translator) 착수 시 이 계약을 먼저 정의할 것.
+""")
+
+iface("if06_agent_monitoring", "IF-6", "Agent Monitoring Interface",
+      "PF/RF/AF → WAA", "0", "미착수", """
+Service Function의 실행 상태와 관측값을 Worker AI Analyzer로 올린다.
+WAA는 이걸 모아 **Worker Report**를 만든다 (`contracts/worker_report/`).
+
+## 올려야 할 것
+
+| SF | 내용 |
+|---|---|
+| PF | 프레임 수신 상태, rate, 인코딩, pose |
+| RF | 스캔 tick 수, hit 여부, confidence, bbox |
+| AF | 웨이포인트 진행, Nav2 goal 상태, 취소·실패 사유 |
+
+## 주의
+
+**G-1·G-2가 이 인터페이스의 출력을 비운다.**
+PF가 pose를 안 채우고(G-2) 과거 프레임을 못 꺼내므로(G-1),
+Report의 `observation.pose`와 `evidence`가 null이 된다. 0-7·0-8이 선결이다.
+""")
+
+iface("if07_ams_facing", "IF-7", "AMS-Facing Interface",
+      "MAMS ↔ WAMS", "2", "미착수", """
+Worker의 능력·자원·가용성을 Manager 측 Registry에 공시·갱신한다. Agent Card 갱신 경로.
+
+## 왜 이게 차별점인가 (표준화 항목 S-3)
+
+A2A의 Agent Card는 **정적 능력만** 공시한다. 선행 연구가 지적하듯
+*"Agent Card만으로는 CPU, Memory, Bandwidth 같은 현재 자원 상태를 충분히 반영하기 어렵다"*
+(Duan & Lu, arXiv:2508.15819).
+
+**IF-7은 WAMS가 주기적으로 실시간 자원 상태를 MAMS에 갱신하는 경로**이며,
+이것이 `worker_selector/`의 점수 함수에 `availability`·`recent_failure_rate`를 공급한다.
+**A2A가 비워둔 자리를 메우는 인터페이스**이므로 제안서의 핵심 논거다.
+
+## 주의
+
+Phase 2 항목이다. Phase 0에서는 Worker 주소·Skill을 고정 설정으로 둔다.
+""")
+
+iface("if08_analyzer_facing", "IF-8", "Analyzer-Facing Interface",
+      "MAA ↔ WAA", "2", "미착수", """
+상세 진단과 이상 이벤트를 에이전트 간에 주고받는다. **제어 평면과 분리된 관측 평면**이다.
+
+## IF-4와의 분리 이유
+
+IF-4(제어)는 정책·Task·Artifact를 나른다. IF-8(관측)은 그와 별도로 진단·이상 이벤트를 나른다.
+분리하면 **제어 채널이 막혀도 진단은 흐르고**, 관측 트래픽이 제어 지연에 영향을 주지 않는다.
+
+## 주의
+
+Phase 2 항목이다. Phase 0에서는 진단이 Report의 `diagnostics` 필드에 실려 IF-4로 함께 올라간다.
+IF-8을 도입할 때 그 필드를 이쪽으로 옮길지 결정해야 한다 (미결정).
+""")
+
+# ── 비컴포넌트 ───────────────────────────────────────────────────────────────
+C["contracts"] = f"""# contracts — 계층 간 페이로드 스키마
+
+> **구조 정본**: `SOT.md` · **설계 정본**: `{SPEC}` §4·§5
+> **Phase**: 0 · **구현 상태**: 미착수 (작업 0-4)
+
+컴포넌트 사이의 **유일한 계약**이다. P-2에 따라 각 계층은 바로 아래 계층만 알고, 그 앎은 전부 여기 있는 스키마로만 이뤄진다.
+
+| 경로 | 계층 | 형식 | 흐르는 인터페이스 |
+|---|---|---|---|
+| `intent_query/` | **L1** Intent Query | JSON | (MAC 내부) |
+| `high_level_policy/` | **L2** High-level Policy (ECA) | XML (내부 JSON 병용 검토 — U-2) | **IF-4** |
+| `low_level_policy/` | **L3** Low-level Policy | XML | **IF-5** |
+| `worker_report/` | Worker Report | JSON | IF-6 → IF-4 |
+
+## `interfaces/` 와의 차이
+
+`interfaces/`는 **누가 누구에게 어떻게 말하는가**, `contracts/`는 **무엇을 말하는가**이다.
+
+## 규칙
+
+1. **스키마를 바꾸면 여기부터 고치고 스펙에 반영한다.** 코드가 스펙을 앞서면 SOT가 깨진다.
+2. **L2에 디바이스 이름을 넣지 않는다.** device-agnostic이어야 다중 Worker fan-out이 성립한다.
+3. **검증기를 함께 둔다.** 스키마만 있고 검증이 없으면 P-4가 성립하지 않는다.
+4. L3 요소명은 SF가 실제로 받는 자료구조와 1:1로 맞춘다.
+
+## 원본 자료의 알려진 오류 (수정해서 쓸 것)
+
+- slide 21의 `<goal>37.5665, 126.9781</goal>`은 **WGS84 위경도(서울시청)** 다. 실내 Nav2 로봇은 `map` 프레임 x/y/yaw를 쓴다.
+- slide 21의 `<rate>10Hz`는 **순찰 시나리오에 잘못 붙은 값**이다. 구현은 1 Hz이고 10 Hz는 I2ICF의 주행 중 회피 값이다.
+- slide 21의 XML은 닫는 태그가 없는 **표현용 의사코드**다. 논문·제안서에는 정규화안을 쓸 것.
+
+## 미결정
+
+**U-2**: L2 직렬화 — XML(YANG/NETCONF 정합) vs JSON(LLM 생성 정확도·MCP 친화).
+현재 권고는 **내부 JSON, 표준 문서·전시 XML, 양방향 변환**.
+"""
+
+C["sim"] = f"""# sim — 시뮬레이션 환경
+
+> **구조 정본**: `SOT.md` · **설계 정본**: `{SPEC}` §10.2
+> **컴포넌트가 아니다.** 비즈니스 로직을 두지 않는다 (P-3).
+
+```bash
+source /opt/ros/jazzy/setup.bash
+./fetch_meshes.sh                     # 최초 1회 — AWS 메시 ~55MB
+ros2 launch sim/sim_bringup.launch.py
+```
+
+| 항목 | 현재 |
+|---|---|
+| ROS2 | **Jazzy** (WSL2 Ubuntu 24.04) — **팀 내 배포판이 갈려 있음, 통일 필요 (U-12)** |
+| 로봇 | **turtlebot3 waffle** (LIMO 아님) — 카메라 센서·브리지가 이미 완성돼 있어 선택 |
+| 월드 | **AWS RoboMaker small_house** — 실제 주거 공간이라 리빙케어에 적합 |
+| 측위 | **`slam_toolbox` (`slam:=True`)** — AMCL 아님. 초기 pose TF 레이스 원천 회피 |
+| 카메라 | `/camera/image_raw` — rate가 자료마다 다름 (30 / 10 / 실측 2~3.8 Hz) |
+| **RTF** | **0.04 ~ 0.06** — **최대 리스크** |
+
+## ⚠️ 두 가지 큰 문제
+
+**1. RTF 0.04~0.06 (U-14)** — headless·무로봇에서도 그렇다. 6.3분 시나리오가 **벽시계 2시간**이 된다.
+반복 검증이 불가능하므로 `tools/patrol_viz/`로 논리를 검증하고 여기는 최종 확인용으로 쓰는 이원화가
+현재 유일한 실행 가능안이다. 개선하려면 가구 collision을 단순 박스로 바꾸거나 `<collision>`을 빼는 게 효과가 클 것이다.
+
+**2. small_house 카메라 미검증 (작업 0-0)** — 카메라·YOLO 검증 실적은 전부 `turtlebot3_world` 기준이다.
+small_house 전환 후 비대화형 세션에서 양 경로가 막혔다: 헤드리스는 100초 넘게 프레임 0장(`/dev/dri` 부재 추정),
+GUI는 `qt.qpa.xcb: could not connect to display :0`. 저장소는 이를 **비대화형 세션(WSLg 소켓 접근 불가)의
+제약으로 추정**하며 대화형 재검증을 못 했다고 명시한다.
+**사람이 자기 WSL 터미널에서 직접 돌려 확인하는 것이 Phase 0의 사실상 첫 작업이다.**
+
+## 해결된 함정 (재발 방지)
+
+- **`cmd_vel` 타입 불일치** — 스톡 브리지 yaml은 `TwistStamped`, Nav2 `collision_monitor`는 `Twist` 발행 →
+  ROS2가 별개 토픽으로 취급해 **로봇이 영영 안 움직였다.** `waffle_bridge_fixed.yaml`로 `Twist` 통일.
+- **RViz2 Map 디스플레이 미동작** — `indexed_8bit_image` 셰이더 링크 실패. **Nav2 costmap 시각화도 같은 이유로 실패할 것.**
+- **RViz2 ↔ Gazebo 렌더링 요구가 반대** — Gazebo는 `GALLIUM_DRIVER=d3d12`, RViz2는 `LIBGL_ALWAYS_SOFTWARE=1`.
+- **WSL2 GPU** — `/dev/dri`가 아니라 **`/dev/dxg`**. `GALLIUM_DRIVER=d3d12` + `LD_LIBRARY_PATH=/usr/lib/wsl/lib`.
+- **numpy ABI 충돌** — `ultralytics`가 numpy 2.x를 깔면 apt matplotlib과 충돌. `numpy==1.26.4` 고정.
+
+## 실물 LIMO 이행 시 없는 것
+
+**실로봇용 bringup이 없다** (`amcl`·`map_server`·`limo_base`·`ydlidar` 참조 0건).
+`sim_bringup.launch.py`는 Gazebo에 완전히 묶여 있다. `real_bringup.launch.py`를 별도로 작성해야 한다.
+"""
+
+C["tools"] = f"""# tools — 검증·시연 도구
+
+> **구조 정본**: `SOT.md` · **설계 정본**: `{SPEC}` §10.1
+> **컴포넌트가 아니다.** 비즈니스 로직을 두지 않는다 (P-3).
+
+| 경로 | 용도 |
+|---|---|
+| `patrol_viz/` | Gazebo·Nav2·YOLO **없이** 순찰 로직 검증·시연 |
+| `scenarios/` | MCP 왕복 CLI 클라이언트 + 시나리오 DSL |
+
+## patrol_viz — 왜 존재하는가
+
+Gazebo RTF가 0.04~0.06이라 6.3분 시나리오가 벽시계 2시간이 된다. **반복 검증이 불가능해 만든 대체 수단**이다.
+
+```bash
+cd tools/patrol_viz
+./run_coverage.sh    # GUI 없이 커버리지 수치 + patrol_sim.png
+./run_patrol.sh      # RViz2 순찰 애니메이션 + 카메라 스트리밍
+```
+
+### 결과: 경로점 7개 · 375초 · 스캔 376회 · 주행 50 m · **커버리지 93.6%** · 사각지대 0
+
+**⚠️ 이 수치는 "실측"이 아니라 기하 시뮬레이션 결과다.** 논문·제안서에 반드시 이렇게 표기할 것:
+
+- 물리(바퀴 미끄러짐·충돌)와 Nav2 실제 재계획 없음 → **실소요는 20~30% 더 걸릴 것**
+- **YOLO를 돌리지 않음** — "FOV 안 + 시야 확보 = 발견"으로 처리
+- `CAM_RANGE = 4.0 m`는 **미측정 가정**이며 커버리지가 여기에 가장 민감
+- **수직 FOV 미반영 (U-13)** — 2D 가정이라 4 m 거리에서 **바닥에 누운 사람이 화면 아래로 벗어나는 경우**를
+  못 잡는다. 쓰러진 상황이 리빙케어에서 가장 위험한데 바로 그 부분이 미검증이다
+
+## scenarios
+
+```bash
+python3 tools/scenarios/send_goal.py 1.0 0.0
+python3 tools/scenarios/capture_and_detect.py out.jpg
+```
+
+**`check_obj_state.json`은 현재 실행 불가**다 — 참조하는 `look_around`·`is_looking_around`·
+`interrupt_look_around`가 AF에 없고(G-4), `check_object_state`도 tool로 노출되지 않았으며(G-3),
+RF의 `check_object_state`는 JSON이 넘기는 `detections` 인자를 받지 않는다.
+
+## 자산 메모
+
+`patrol_viz/limo/limo.urdf` — WeGo `limo_gazebo`(ROS1 xacro)에서 변환한 **실제 LIMO 모델**.
+Jazzy 파싱은 통과한다. **Gazebo 플러그인 3블록만 Harmonic 문법으로 재작성하면 시뮬에 투입 가능**하다.
+"""
+
+
+def stage_claudemd():
+    print("[claudemd] CLAUDE.md 재생성")
+    for path in sorted(C):
+        d = os.path.join(ROOT, path) if path else ROOT
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "CLAUDE.md"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(C[path])
+    print(f"  {len(C)}개 생성")
+    # 폐기 위치에 남은 CLAUDE.md 정리
+    for stale in (f"{WA}/service_functions", "a2a", "manager", "worker"):
+        p = os.path.join(ROOT, stale, "CLAUDE.md")
+        if os.path.exists(p):
+            trash(f"{stale}/CLAUDE.md")
+
+
+def stage_fixpath():
+    print("[fixpath] 경로 참조 수정")
+    p = os.path.join(ROOT, WA, "mcp_server", "MCP_server.py")
+    if os.path.exists(p):
+        s = open(p, encoding="utf-8").read()
+        s2 = s.replace('"worker", "service_functions", _sf', f'"{WA}", _sf')
+        if s2 != s:
+            open(p, "w", encoding="utf-8", newline="\n").write(s2)
+            print(f"  fix MCP_server.py sys.path -> {WA}/{{perception,reasoning,action}}")
+        else:
+            print("  - MCP_server.py sys.path 이미 정상")
+    for n in ("send_goal.py", "capture_and_detect.py"):
+        p = os.path.join(ROOT, "tools", "scenarios", n)
+        if not os.path.exists(p):
+            continue
+        s = open(p, encoding="utf-8").read()
+        s2 = s.replace('"..", "..", "a2a", "server", "MCP_server.py"',
+                       f'"..", "..", "{WA}", "mcp_server", "MCP_server.py"')
+        if s2 != s:
+            open(p, "w", encoding="utf-8", newline="\n").write(s2)
+            print(f"  fix tools/scenarios/{n} SERVER_PATH -> {WA}/mcp_server/")
+        else:
+            print(f"  - tools/scenarios/{n} 이미 정상")
+
+
+DECISIONS = """| **D-9** *(SOT)* | A2A 종단점을 **최상위가 아니라 각 에이전트 안에** 둔다 — `manager_ai_agent/mcp_client/`, `worker_ai_agent/mcp_server/` | `AI-Care_A2A_Core_Context` §4가 A2A Client를 Manager AI Agent에, A2A Server·Agent Executor를 Worker AI Agent에 배정. §10.1도 `MCP_server.py`를 WAC/A2A 종단점으로 매핑. **최상위 `a2a/`는 근거 없음** |
+| **D-10** *(SOT)* | `interfaces/`를 **1급 디렉터리**로 두고 IF-1~IF-8에 각각 디렉터리를 준다 | §3 *"각 인터페이스가 곧 표준화 문서의 한 절이 된다"*. 표준화 항목 S-6의 실체 |
+| **D-11** *(SOT)* | PF/RF/AF 디렉터리에서 `_function` 접미사를 뺀다 (`perception/` 등) | 명명 규칙 N-1의 명시적 예외. 상위 `worker_ai_agent/`가 문맥을 준다 |
+| **D-12** *(SOT)* | `service_functions/` 중간 계층을 **두지 않는다** | §2.2에서 "Service Functions"는 컴포넌트가 아니라 **행 레이블**. 실제 컴포넌트는 PF/RF/AF 셋 |
+| **D-13** *(SOT)* | 컴포넌트 디렉터리에 정식 명칭 전체를 쓴다 (`manager_ai_core`, `core` 아님) | 파일 하나만 열려 있어도 소속이 드러나야 하고, 축약형은 Manager/Worker 양쪽에서 충돌한다 |"""
+
+
+def stage_spec():
+    print("[spec] D-9~D-13을 §0.2 결정표에 반영")
+    p = os.path.join(ROOT, SPEC)
+    if not os.path.exists(p):
+        return print(f"  ! 스펙 없음: {SPEC}")
+    s = open(p, encoding="utf-8").read()
+    if "**D-9**" in s:
+        return print("  - 이미 반영됨")
+    anchor = "| **D-8** *(v0.2)*"
+    i = s.find(anchor)
+    if i < 0:
+        return print("  ! D-8 행을 못 찾음 — 수동 반영 필요")
+    j = s.find("\n", i)
+    s = s[:j + 1] + DECISIONS + "\n" + s[j + 1:]
+    note = ("\n> **D-9 ~ D-13은 저장소 구조 정본 `SOT.md`에서 온 결정이다.** "
+            "구조 규범과 기계 검사는 `SOT.md` / `sot_audit.py`가 관할한다.\n")
+    k = s.find("\n---", j)
+    s = s[:k] + "\n" + note + s[k:]
+    open(p, "w", encoding="utf-8", newline="\n").write(s)
+    print("  + D-9 ~ D-13 5건 추가")
+
+
+if __name__ == "__main__":
+    st = {"move": stage_move, "claudemd": stage_claudemd,
+          "fixpath": stage_fixpath, "spec": stage_spec}
+    a = sys.argv[1] if len(sys.argv) > 1 else ""
+    if a not in st:
+        print(__doc__)
+        sys.exit(1)
+    st[a]()
+
+
+==============================================================================
+### FILE: sot_preserve.py  (363 lines)
+==============================================================================
+#!/usr/bin/env python3
+"""limo-MCP / limo-patrol-viz 를 원본 그대로 복원해 적절한 위치에 배치한다.
+
+    python3 sot_preserve.py restore   # 원본 복원 + 배치 + 분해본 격리
+    python3 sot_preserve.py docs      # SOT.md / sot_audit.py / CLAUDE.md 갱신
+
+`restructure/sot-v0.2` 브랜치에서 실행. main(27b0f30)은 건드리지 않는다.
+"""
+import os
+import subprocess
+import sys
+
+R = os.path.dirname(os.path.abspath(__file__))
+BASE = "27b0f30"          # 원본이 온전한 최초 커밋
+WA = "worker_ai_agent"
+TRASH = "_to_delete/dissolved"
+
+
+def clr():
+    for f in (".git/index.lock", ".git/HEAD.lock", ".git/objects/maintenance.lock"):
+        p = os.path.join(R, f)
+        if os.path.exists(p):
+            os.makedirs(os.path.join(R, "_to_delete/gitlocks"), exist_ok=True)
+            try:
+                os.replace(p, os.path.join(R, "_to_delete/gitlocks",
+                                           os.path.basename(f) + f".{os.getpid()}"))
+            except OSError:
+                pass
+
+
+def sh(cmd):
+    r = subprocess.run(cmd, shell=True, cwd=R, capture_output=True, text=True)
+    clr()
+    return r
+
+
+def trash(rel):
+    s = os.path.join(R, rel)
+    if not os.path.exists(s):
+        return False
+    t = os.path.join(R, TRASH)
+    os.makedirs(t, exist_ok=True)
+    dst = os.path.join(t, rel.replace("/", "__"))
+    if os.path.exists(dst):
+        dst += f".{os.getpid()}"
+    os.replace(s, dst)
+    print(f"  격리    {rel}")
+    return True
+
+
+def stage_restore():
+    print(f"[restore] {BASE} 에서 원본 복원")
+    clr()
+    # 1) 분해본을 먼저 격리 (경로 충돌 방지)
+    for rel in [f"{WA}/perception/Perceptions.py",
+                f"{WA}/reasoning/Reasonings.py",
+                f"{WA}/action/Actions.py",
+                f"{WA}/mcp_server/MCP_server.py",
+                "requirements.txt",
+                "sim", "tools/scenarios", "tools/patrol_viz"]:
+        trash(rel)
+    sh("git add -A")
+
+    # 2) 원본 트리 복원
+    r = sh(f'git checkout {BASE} -- limo-MCP limo-patrol-viz')
+    if r.returncode != 0:
+        return print(f"  ! 복원 실패: {r.stderr.strip()}")
+    n = len(sh("git ls-files limo-MCP limo-patrol-viz").stdout.split())
+    print(f"  복원    limo-MCP/ + limo-patrol-viz/  ({n} 파일)")
+
+    # 3) 적절한 위치로 통째 이동
+    for src, dst in [("limo-MCP", f"{WA}/limo-MCP"),
+                     ("limo-patrol-viz", "tools/limo-patrol-viz")]:
+        if os.path.exists(os.path.join(R, dst)):
+            print(f"  - skip {dst} (이미 존재)")
+            continue
+        os.makedirs(os.path.dirname(os.path.join(R, dst)), exist_ok=True)
+        r = sh(f'git mv "{src}" "{dst}"')
+        print(f"  {'git mv ' if r.returncode == 0 else 'mv     '} {src} -> {dst}")
+        if r.returncode != 0:
+            os.replace(os.path.join(R, src), os.path.join(R, dst))
+    sh("git add -A")
+    print("  * 원본 파일 내용은 한 글자도 바뀌지 않았다 (경로 참조 수정분도 원복).")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+SPEC = "docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md"
+HDR = ("> **구조 정본**: `SOT.md` · **설계 정본**: `{spec}`\n"
+       "> **상위**: {parent} · **Phase**: {phase} · **구현 상태**: {state}\n")
+
+CLAUDE = {}
+
+CLAUDE[f"{WA}/limo-MCP"] = f"""# limo-MCP — LIMO Worker 구현체 (원본 보존)
+
+{HDR.format(spec="../../" + SPEC, parent=f"`{WA}/`", phase="0", state="동작 — 원본 그대로 보존")}
+> **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다.
+> `github.com/kunghun-jeong/-Ai-living-care` 의 `main/limo-MCP` 와 **내용이 동일**하다.
+
+## 왜 여기 있는가
+
+`limo-MCP`는 프레임워크 컴포넌트가 아니라 **LIMO라는 특정 디바이스의 Worker 실현체**다.
+Worker AI Agent의 구현이므로 `{WA}/` 안에 둔다. 다중 Worker로 확장하면 형제로 늘어난다:
+
+```
+{WA}/
+  limo-MCP/          ← LIMO (현재 유일)
+  refrigerator/      ← 향후
+  smart_tv/          ← 향후
+```
+
+## 내부 구조 (원본)
+
+| 경로 | SOT 컴포넌트 대응 |
+|---|---|
+| `Worker_functions/Perceptions.py` | Perception Function (PF) → `../perception/` |
+| `Worker_functions/Reasonings.py` | Reasoning Function (RF) → `../reasoning/` |
+| `Worker_functions/Actions.py` | Action Function (AF) → `../action/` |
+| `MCP_server/MCP_server.py` | A2A Server + Agent Executor → `../mcp_server/` |
+| `Simulation/` | 시뮬레이션 (비컴포넌트) |
+| `Scenarios/` | 검증 클라이언트 (비컴포넌트) |
+| `requirements.txt` | 의존성 |
+| `SESSION_HANDOFF.md` | 개발 기록 |
+
+각 컴포넌트 디렉터리(`../perception/` 등)의 `CLAUDE.md`에 **설계 규범과 알려진 갭**이 있다.
+**구현을 고칠 때는 그 문서를 먼저 읽을 것.**
+
+## 실행 (원본 그대로)
+
+```bash
+source /opt/ros/jazzy/setup.bash
+./Simulation/fetch_meshes.sh                      # 최초 1회, AWS 메시 ~55MB
+ros2 launch Simulation/sim_bringup.launch.py
+python3 Scenarios/send_goal.py 1.0 0.0            # 이 디렉터리에서 실행
+python3 Scenarios/capture_and_detect.py out.jpg
+```
+
+## 알려진 크리티컬 갭
+
+| ID | 갭 | 파일 |
+|---|---|---|
+| **G-1** | 프레임 pinning 부재 — 최신 1장만 캐시, 과거 `frame_id` 조회 불가 | `Worker_functions/Perceptions.py` |
+| **G-2** | `pose`가 항상 `None` | 〃 |
+| **G-3** | person-scan API 5종이 MCP tool로 미노출 | `MCP_server/MCP_server.py` |
+| **G-4** | `look_around` / patrol 미구현 | `Worker_functions/Actions.py` |
+| **G-5** | stale 콜백 가드 없음 | 〃 |
+
+**G-1과 G-2는 시나리오 1의 핵심 경로를 끊는다.** 상세는 `../perception/CLAUDE.md`.
+
+## 주의
+
+- **`Simulation/`의 RTF가 0.04~0.06**이다. 6.3분 시나리오가 벽시계 2시간. 반복 검증은
+  `tools/limo-patrol-viz/`로 하고 여기는 최종 확인용으로 쓴다 (U-14).
+- **small_house 카메라는 미검증**이다. 검증 실적은 `turtlebot3_world` 기준 (작업 0-0).
+- 개발 경위와 함정은 `SESSION_HANDOFF.md`에 누적 기록돼 있다. 새로 합류하면 그것부터 읽을 것.
+"""
+
+CLAUDE["tools/limo-patrol-viz"] = f"""# limo-patrol-viz — 순찰 로직 검증 도구 (원본 보존)
+
+{HDR.format(spec="../../" + SPEC, parent="`tools/`", phase="0", state="동작 — 원본 그대로 보존")}
+> **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다.
+> `github.com/kunghun-jeong/-Ai-living-care` 의 `main/limo-patrol-viz` 와 **내용이 동일**하다.
+
+Gazebo·Nav2·YOLO **없이** 순찰 로직을 검증·시연한다. AWS small_house 맵 위에서 A*로 경로를 뽑고
+운동학만 적분해 로봇을 움직이며 카메라 1인칭 뷰까지 합성한다.
+
+```bash
+./run_coverage.sh    # GUI 없이 커버리지 수치 + patrol_sim.png
+./run_patrol.sh      # RViz2 순찰 애니메이션 + 카메라 스트리밍
+```
+
+## 왜 존재하는가
+
+Gazebo RTF가 0.04~0.06이라 6.3분 시나리오가 벽시계 2시간이 된다.
+**반복 검증이 불가능해 만든 대체 수단**이며, 이 도구의 존재 자체가 U-14 리스크 신호다.
+
+## 결과: 경로점 7개 · 375초 · 스캔 376회 · 주행 50 m · **커버리지 93.6%** · 사각지대 0
+
+**⚠️ 이 수치는 "실측"이 아니라 기하 시뮬레이션 결과다.** 논문·제안서에 반드시 이렇게 표기할 것:
+
+- 물리(바퀴 미끄러짐·충돌)와 Nav2 실제 재계획 없음 → **실소요는 20~30% 더 걸릴 것**
+- **YOLO를 돌리지 않음** — "FOV 안 + 시야 확보 = 발견"으로 처리
+- `CAM_RANGE = 4.0 m`는 **미측정 가정**이며 커버리지가 여기에 가장 민감
+- **수직 FOV 미반영 (U-13)** — 2D 가정이라 4 m 거리에서 **바닥에 누운 사람이 화면 아래로 벗어나는 경우**를
+  못 잡는다. 쓰러진 상황이 리빙케어에서 가장 위험한데 바로 그 부분이 미검증이다
+
+## 자산 메모
+
+`limo/limo.urdf` — WeGo `limo_gazebo`(ROS1 xacro)에서 변환한 **실제 LIMO 모델**.
+Jazzy 파싱은 통과한다. **Gazebo 플러그인 3블록만 Harmonic 문법으로 재작성하면 시뮬에 투입 가능**하다.
+"""
+
+CLAUDE["tools"] = f"""# tools — 검증·시연 도구
+
+{HDR.format(spec=SPEC, parent="저장소 루트", phase="—", state="—")}
+**컴포넌트가 아니다.** 비즈니스 로직을 두지 않는다 (P-3).
+
+| 경로 | 용도 | 비고 |
+|---|---|---|
+| `limo-patrol-viz/` | Gazebo·Nav2·YOLO 없이 순찰 로직 검증 | **원본 보존 (D-14)** |
+
+> **MCP 왕복 검증 클라이언트는 여기 없다.** 원본 보존 원칙에 따라
+> `{WA}/limo-MCP/Scenarios/` 안에 그대로 있다.
+> ```bash
+> cd {WA}/limo-MCP && python3 Scenarios/send_goal.py 1.0 0.0
+> ```
+"""
+
+CLAUDE[f"{WA}"] = f"""# Worker AI Agent
+
+{HDR.format(spec="../" + SPEC, parent="저장소 루트", phase="0", state="구현체 동작 — 프레임워크 계층 미착수")}
+Manager가 만든 **고수준 정책(L2)** 을 받아 디바이스별 **저수준 정책(L3)** 으로 번역하고,
+실제로 수행한 뒤 결과를 Report로 되돌린다.
+
+## 두 층으로 구성된다
+
+**① 프레임워크 컴포넌트** — SOT가 정의하는 규범 계층. 설계·인터페이스·갭이 각 `CLAUDE.md`에 있다.
+
+| 디렉터리 | 정규화 명칭 | 상태 |
+|---|---|---|
+| `worker_ai_core/` | Worker AI Core (WAC) | 미착수 |
+| `worker_ai_analyzer/` | Worker AI Analyzer (WAA) | 미착수 |
+| `worker_ai_management_system/` | Worker AI Management System (WAMS) | 미착수 |
+| `perception/` | Perception Function (PF) | 규범 — 구현은 ② |
+| `reasoning/` | Reasoning Function (RF) | 규범 — 구현은 ② |
+| `action/` | Action Function (AF) | 규범 — 구현은 ② |
+| `mcp_server/` | A2A Server + Agent Executor | 규범 — 구현은 ② |
+
+**② Worker 구현체** — 디바이스별 실현체. **원본 보존 (D-14).**
+
+| 디렉터리 | 디바이스 | 상태 |
+|---|---|---|
+| `limo-MCP/` | LIMO (현재 turtlebot3 waffle로 시뮬) | **동작** |
+
+다중 Worker로 확장하면 `refrigerator/`, `smart_tv/`가 형제로 늘어난다.
+
+> **왜 나누는가**: 프레임워크는 디바이스와 무관해야 하고(P-2), 구현체는 팀이 이미 돌리고 있는
+> 원본이라 손대지 않아야 한다. 규범은 ①에, 코드는 ②에 둔다.
+> **컴포넌트 CLAUDE.md가 규범이고, 그 구현이 어디 있는지도 거기 적혀 있다.**
+
+## 인터페이스
+
+**IF-4**(↔MAC, `mcp_server/`) · **IF-5**(→PF/RF/AF) · **IF-6**(←PF/RF/AF) · IF-3(↔WAMS) · IF-7(↔MAMS, P2)
+
+## 주의
+
+**`ReasoningModule`은 ROS2에 의존하지 않는다.** 백엔드를 생성자로 주입받고 미주입 시 no-op으로 동작해
+로봇 없이 단독 테스트가 가능하다. **이 저장소에서 가장 잘 분리된 설계이므로 훼손하지 말 것.**
+"""
+
+IMPL_NOTE = """
+## 구현 위치 (D-14)
+
+원본 보존 원칙에 따라 실제 코드는 **`{impl}`** 에 있다.
+이 디렉터리는 **규범(설계·인터페이스·갭)** 을 보유하고, 코드는 두지 않는다.
+
+**구현을 고치기 전에 이 문서의 갭·주의사항을 먼저 읽을 것.**
+"""
+
+
+def stage_docs():
+    print("[docs] SOT.md / sot_audit.py / CLAUDE.md 갱신")
+
+    for path, text in CLAUDE.items():
+        d = os.path.join(R, path)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "CLAUDE.md"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+        print(f"  ~ {path}/CLAUDE.md")
+
+    # 컴포넌트 CLAUDE.md 에 구현 위치 주석 삽입
+    impls = {
+        f"{WA}/perception": f"{WA}/limo-MCP/Worker_functions/Perceptions.py",
+        f"{WA}/reasoning":  f"{WA}/limo-MCP/Worker_functions/Reasonings.py",
+        f"{WA}/action":     f"{WA}/limo-MCP/Worker_functions/Actions.py",
+        f"{WA}/mcp_server": f"{WA}/limo-MCP/MCP_server/MCP_server.py",
+    }
+    for d, impl in impls.items():
+        p = os.path.join(R, d, "CLAUDE.md")
+        if not os.path.exists(p):
+            continue
+        s = open(p, encoding="utf-8").read()
+        if "## 구현 위치 (D-14)" in s:
+            continue
+        i = s.find("\n## ")
+        s = s[:i] + "\n" + IMPL_NOTE.format(impl=impl) + s[i:]
+        open(p, "w", encoding="utf-8", newline="\n").write(s)
+        print(f"  + {d}/CLAUDE.md : 구현 위치 주석")
+
+    # sot_audit.py — 코드 위치 규칙(R5)과 비컴포넌트 목록 갱신
+    p = os.path.join(R, "sot_audit.py")
+    s = open(p, encoding="utf-8").read()
+    old_code = s[s.find("CODE = {"):s.find("}", s.find("CODE = {")) + 1]
+    new_code = f'''CODE = {{
+    "{WA}/limo-MCP/Worker_functions/Perceptions.py": "PF 구현 (원본 보존)",
+    "{WA}/limo-MCP/Worker_functions/Reasonings.py":  "RF 구현 (원본 보존)",
+    "{WA}/limo-MCP/Worker_functions/Actions.py":     "AF 구현 (원본 보존)",
+    "{WA}/limo-MCP/MCP_server/MCP_server.py":        "A2A Server / MCP 종단점 (원본 보존)",
+    "{WA}/limo-MCP/Simulation/sim_bringup.launch.py": "시뮬 브링업 (원본 보존)",
+    "{WA}/limo-MCP/Scenarios/send_goal.py":          "MCP 왕복 클라이언트 (원본 보존)",
+    "{WA}/limo-MCP/requirements.txt":                "의존성 (원본 보존)",
+    "tools/limo-patrol-viz/patrol_viz.py":           "순찰 검증 도구 (원본 보존)",
+    "SOT.md":                                        "구조 정본",
+    "CLAUDE.md":                                     "루트 진입점",
+}}'''
+    s = s.replace(old_code, new_code)
+    s = s.replace('NON_COMPONENT = ["docs", "sim", "tools", "contracts"]',
+                  'NON_COMPONENT = ["docs", "tools", "contracts"]')
+    s = s.replace('"manager", "worker", "a2a",',
+                  '"manager", "worker", "a2a", "sim", "tools/scenarios", "tools/patrol_viz",')
+    # R5 에 원본 보존 검사 추가
+    s = s.replace('ROOT_PY_ALLOW = {"sot_audit.py", "sot_migrate.py"}',
+                  'ROOT_PY_ALLOW = {"sot_audit.py", "sot_migrate.py", "sot_preserve.py"}\n\n'
+                  '# D-14 원본 보존 대상 — 내부 구조를 바꾸지 않는다\n'
+                  f'PRESERVED = ["{WA}/limo-MCP", "tools/limo-patrol-viz"]')
+    s = s.replace('    # R9 떠도는 .py',
+                  '    # R10 원본 보존\n'
+                  '    for d in PRESERVED:\n'
+                  '        chk("R10", isdir(d), f"원본 보존: {d}/")\n'
+                  f'    chk("R10", exists("{WA}/limo-MCP/Worker_functions") '
+                  f'and exists("{WA}/limo-MCP/Simulation"),\n'
+                  '        "limo-MCP 내부 구조 원형 유지 (Worker_functions/ · Simulation/)")\n\n'
+                  '    # R9 떠도는 .py')
+    open(p, "w", encoding="utf-8", newline="\n").write(s)
+    print("  ~ sot_audit.py : R5 경로 갱신 + R10(원본 보존) 신설")
+
+    # SOT.md
+    p = os.path.join(R, "SOT.md")
+    s = open(p, encoding="utf-8").read()
+    if "**D-14**" not in s:
+        s = s.replace(
+            "| **D-13** |",
+            f"""| **D-14** | **`limo-MCP/` 와 `limo-patrol-viz/` 는 원본을 그대로 보존한다.** 각각 `{WA}/limo-MCP/`, `tools/limo-patrol-viz/` 에 통째로 배치하고 내부를 분해하지 않는다 | 기존 저장소 작업자가 영향 없이 계속 작업하게 하기 위함. 컴포넌트 디렉터리는 **규범**을 보유하고 코드는 구현체에 둔다 — 규범과 구현의 분리 |
+| **D-13** |""")
+        s = s.replace(
+            "| **R9** |",
+            "| **R10** | D-14 원본 보존 대상이 존재하고 내부 구조가 원형인지 |\n| **R9** |")
+        s = s.replace("├── sim/                                시뮬레이션 (비컴포넌트)\n", "")
+        s = s.replace("""├── tools/                              검증·시연 도구 (비컴포넌트)
+│   ├── patrol_viz/
+│   └── scenarios/""",
+                      """├── tools/                              검증·시연 도구 (비컴포넌트)
+│   └── limo-patrol-viz/                ★ 원본 보존 (D-14)""")
+        s = s.replace("""│   ├── action/                     AF
+│   └── mcp_server/""",
+                      """│   ├── action/                     AF
+│   ├── mcp_server/                 A2A Server + Agent Executor — IF-4 Worker 측 종단점
+│   └── limo-MCP/                   ★ Worker 구현체, 원본 보존 (D-14)
+│                                     Worker_functions/ · MCP_server/ · Simulation/ · Scenarios/""")
+        s = s.replace("""│   └── mcp_server/                     A2A Server + Agent Executor — IF-4 Worker 측 종단점
+""", "")
+        open(p, "w", encoding="utf-8", newline="\n").write(s)
+        print("  ~ SOT.md : D-14 + R10 추가, 구조도 갱신")
+    else:
+        print("  - SOT.md 이미 갱신됨")
+
+
+if __name__ == "__main__":
+    st = {"restore": stage_restore, "docs": stage_docs}
+    a = sys.argv[1] if len(sys.argv) > 1 else ""
+    if a not in st:
+        print(__doc__)
+        sys.exit(1)
+    st[a]()
+
+
+==============================================================================
+### FILE: tools/limo-patrol-viz/patrol_sim.py  (177 lines)
+==============================================================================
+"""limo-MCP 맵 위에서 순찰 시나리오를 기하학적으로 시뮬레이션한다.
+
+Gazebo 물리도 Nav2도 YOLO도 없이, 우리가 설계한 5단계 흐름을 그대로 재현:
+  ① 순서 결정  ② 경로계획(A*)  ③ 1Hz 카메라 스캔
+  ④ 경로 추종 이동          ④.5 도착 후 look_around 360° 회전
+검증 목표: "이 순찰로 집 안 어디에 계신 할머니를 찾을 수 있는가" (커버리지)
+"""
+import cv2, numpy as np, os, math, heapq, json
+
+D = os.path.dirname(os.path.abspath(__file__))
+RES, OX, OY = 0.05, -10.0, -10.0        # limo-MCP 동봉 맵 (gzweb 브랜치)
+
+# --- 로봇/센서 제원 (turtlebot3 waffle 기준, LIMO도 유사) ---
+V_LIN      = 0.22      # m/s
+V_ANG      = 0.50      # rad/s
+ROBOT_R    = 0.22      # m (충돌 여유)
+CAM_FOV    = math.radians(62)   # realsense r200 수평 화각
+CAM_RANGE  = 4.0       # m, 사람 검출 유효 거리
+SCAN_HZ    = 1.0
+N_RAYS     = 48        # 가시영역 계산용 레이 수
+
+SPAWN = (3.5, 1.0, 0.0)
+# 사각지대 2곳((-7.77,0.56) 좌상단 방, (8.10,1.71) 식탁구역)을 추가하고
+# 이동거리가 짧아지도록 시계방향 루프로 재배열
+PATROL = [(8.10, 1.71), (4.30, -0.55), (1.45, 4.35), (-2.00, -0.80),
+          (-7.77, 0.56), (-7.90, -2.95), (7.15, -3.30)]
+
+# ---------- 맵 ----------
+with open(os.path.join(D, "maps", "map.pgm"), "rb") as f:
+    img = cv2.imdecode(np.frombuffer(f.read(), np.uint8), cv2.IMREAD_GRAYSCALE)
+H, W = img.shape
+free = (img > 250).astype(np.uint8)                 # 자유공간
+blocked = (img < 250).astype(np.uint8)              # 벽 + 미탐색 = 시야 차단
+dist_m = cv2.distanceTransform(free, cv2.DIST_L2, 5) * RES
+drivable = dist_m >= ROBOT_R                        # 로봇 중심이 갈 수 있는 곳
+
+def to_px(x, y):  return int(round((x - OX) / RES)), int(round(H - (y - OY) / RES))
+def to_m(px, py): return OX + px * RES, OY + (H - py) * RES
+
+# ---------- A* ----------
+def astar(start_m, goal_m):
+    s, g = to_px(*start_m), to_px(*goal_m)
+    def snap(p):                                     # 가까운 주행가능 셀로 스냅
+        if drivable[p[1], p[0]]: return p
+        ys, xs = np.nonzero(drivable)
+        k = np.argmin((xs - p[0])**2 + (ys - p[1])**2)
+        return int(xs[k]), int(ys[k])
+    s, g = snap(s), snap(g)
+    nbr = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]
+    openq = [(0.0, s)]; came = {}; gs = {s: 0.0}
+    while openq:
+        _, cur = heapq.heappop(openq)
+        if cur == g: break
+        for dx, dy in nbr:
+            nx, ny = cur[0]+dx, cur[1]+dy
+            if not (0 <= nx < W and 0 <= ny < H) or not drivable[ny, nx]: continue
+            step = math.hypot(dx, dy)
+            # 벽에 붙지 않도록 여유가 적은 셀에 페널티
+            cost = gs[cur] + step * (1.0 + 2.0 * max(0.0, 0.6 - dist_m[ny, nx]))
+            if cost < gs.get((nx, ny), 1e18):
+                gs[(nx, ny)] = cost; came[(nx, ny)] = cur
+                h = math.hypot(nx-g[0], ny-g[1])
+                heapq.heappush(openq, (cost + h, (nx, ny)))
+    if g not in came and g != s: return None
+    path, c = [], g
+    while c != s:
+        path.append(to_m(*c)); c = came[c]
+    path.append(to_m(*s)); path.reverse()
+    return path[::4]                                  # 0.2m 간격으로 솎기
+
+# ---------- 가시영역 ----------
+cover = np.zeros((H, W), np.uint8)
+def mark_visible(x, y, yaw):
+    cx, cy = to_px(x, y)
+    for i in range(N_RAYS):
+        a = yaw - CAM_FOV/2 + CAM_FOV * i / (N_RAYS - 1)
+        dx, dy = math.cos(a), -math.sin(a)
+        for step in range(1, int(CAM_RANGE / RES)):
+            px, py = int(cx + dx*step), int(cy + dy*step)
+            if not (0 <= px < W and 0 <= py < H) or blocked[py, px]: break
+            cover[py, px] = 1
+
+# ---------- 순찰 실행 ----------
+t = 0.0
+next_scan = 0.0
+x, y, yaw = SPAWN
+log, scans, traj = [], [], [(x, y)]
+
+def advance_to(nx, ny):
+    """직선 구간을 이동하며 1Hz로 스캔."""
+    global x, y, yaw, t, next_scan
+    tgt = math.atan2(ny - y, nx - x)
+    dyaw = (tgt - yaw + math.pi) % (2*math.pi) - math.pi
+    for phase, dur in (("turn", abs(dyaw)/V_ANG), ("move", math.hypot(nx-x, ny-y)/V_LIN)):
+        t0, y0, x0, yaw0 = t, y, x, yaw
+        while t < t0 + dur:
+            dt = min(0.1, t0 + dur - t); t += dt
+            f = (t - t0) / dur if dur > 0 else 1.0
+            if phase == "turn": yaw = yaw0 + dyaw * f
+            else: x, y = x0 + (nx-x0)*f, y0 + (ny-y0)*f
+            if t >= next_scan:
+                mark_visible(x, y, yaw); scans.append((x, y, yaw, t)); next_scan += 1.0/SCAN_HZ
+        yaw = yaw0 + dyaw if phase == "turn" else yaw
+        x, y = (nx, ny) if phase == "move" else (x, y)
+    traj.append((x, y))
+
+def look_around():
+    global yaw, t, next_scan
+    dur = 2*math.pi / V_ANG
+    t0, yaw0 = t, yaw
+    while t < t0 + dur:
+        dt = min(0.1, t0 + dur - t); t += dt
+        yaw = yaw0 + 2*math.pi * (t - t0)/dur
+        if t >= next_scan:
+            mark_visible(x, y, yaw); scans.append((x, y, yaw, t)); next_scan += 1.0/SCAN_HZ
+
+print(f"맵 {W}x{H} px = {W*RES:.1f}x{H*RES:.1f} m,  자유공간 {free.sum()*RES*RES:.0f} m2")
+print(f"로봇 v={V_LIN} m/s, w={V_ANG} rad/s, FOV {math.degrees(CAM_FOV):.0f}°, 사거리 {CAM_RANGE} m, 스캔 {SCAN_HZ} Hz\n")
+print(f"{'구간':<22}{'거리(m)':>9}{'누적시간':>10}{'스캔':>7}{'커버율':>9}")
+print("-" * 60)
+
+mark_visible(x, y, yaw)
+prev = (x, y)
+for i, (gx, gy) in enumerate(PATROL, 1):
+    path = astar((x, y), (gx, gy))
+    if path is None:
+        print(f"  WP{i} ({gx},{gy}) : ❌ 경로 없음"); continue
+    d0 = t; s0 = len(scans); px0, py0 = x, y
+    for wx, wy in path[1:]:
+        advance_to(wx, wy)
+    dist_travelled = sum(math.hypot(path[k+1][0]-path[k][0], path[k+1][1]-path[k][1])
+                         for k in range(len(path)-1))
+    print(f"{'이동 -> WP'+str(i):<22}{dist_travelled:>9.1f}{t:>9.0f}s{len(scans)-s0:>7}"
+          f"{100*cover.sum()/free.sum():>8.1f}%")
+    s1 = len(scans)
+    look_around()
+    print(f"{'  look_around WP'+str(i):<22}{'-':>9}{t:>9.0f}s{len(scans)-s1:>7}"
+          f"{100*cover.sum()/free.sum():>8.1f}%")
+
+covered = int((cover & free).sum())
+total = int(free.sum())
+print("-" * 60)
+print(f"총 소요 {t:.0f}초 ({t/60:.1f}분),  스캔 {len(scans)}회")
+print(f"커버리지 {covered}/{total} = {100*covered/total:.1f}%  (미커버 {(total-covered)*RES*RES:.1f} m2)")
+
+# ---------- 미커버 영역 ----------
+uncov = (free & ~cover).astype(np.uint8)
+n, lbl, st, cent = cv2.connectedComponentsWithStats(uncov, 8)
+big = sorted([(st[i, cv2.CC_STAT_AREA]*RES*RES, i) for i in range(1, n)], reverse=True)
+print("\n미커버 영역 상위 (2 m2 이상):")
+for a, i in big[:6]:
+    if a < 2.0: break
+    cx, cy = cent[i]
+    print(f"  {a:5.1f} m2  중심 ({OX+cx*RES:6.2f}, {OY+(H-cy)*RES:6.2f})")
+
+# ---------- 시각화 ----------
+vis = np.full((H, W, 3), 60, np.uint8)
+vis[free > 0] = (235, 235, 235)
+vis[(cover & free) > 0] = (170, 235, 170)      # 커버된 자유공간 = 연두
+vis[img < 100] = (30, 30, 30)                  # 벽
+for k in range(len(traj)-1):
+    cv2.line(vis, to_px(*traj[k]), to_px(*traj[k+1]), (200, 80, 0), 1)
+for sx, sy, syaw, _ in scans:
+    cv2.circle(vis, to_px(sx, sy), 1, (0, 0, 200), -1)
+for i, (gx, gy) in enumerate(PATROL, 1):
+    p = to_px(gx, gy)
+    cv2.circle(vis, p, 6, (0, 0, 220), -1)
+    cv2.putText(vis, str(i), (p[0]+8, p[1]+4), cv2.FONT_HERSHEY_SIMPLEX, .5, (0,0,220), 2)
+sp = to_px(SPAWN[0], SPAWN[1])
+cv2.circle(vis, sp, 7, (0, 160, 255), 2)
+cv2.putText(vis, "S", (sp[0]-4, sp[1]+4), cv2.FONT_HERSHEY_SIMPLEX, .5, (0,160,255), 2)
+
+ys, xs = np.nonzero(free)
+crop = vis[ys.min()-8:ys.max()+8, xs.min()-8:xs.max()+8]
+out = cv2.resize(crop, None, fx=3, fy=3, interpolation=cv2.INTER_NEAREST)
+cv2.imencode(".png", out)[1].tofile(os.path.join(D, "patrol_sim.png"))
+print("\nsaved patrol_sim.png  (연두=카메라가 본 영역, 주황선=주행 경로, 빨간점=스캔 위치)")
+
+
+==============================================================================
+### FILE: tools/limo-patrol-viz/patrol_viz.py  (353 lines)
+==============================================================================
+#!/usr/bin/env python3
+"""limo-MCP 맵 위에서 순찰 시나리오를 RViz2로 애니메이션한다.
+
+Gazebo/Nav2 없이 A*로 경로를 뽑고 운동학만 적분해서 로봇을 실제로 움직인다.
+발행: /map_walls, /patrol_points, /camera_fov, /coverage, /trail,
+      TF map->base_footprint, /joint_states
+"""
+import math, heapq, os
+import cv2, numpy as np
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy
+from geometry_msgs.msg import TransformStamped, Point
+from sensor_msgs.msg import JointState, Image
+from visualization_msgs.msg import Marker, MarkerArray
+from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+MAP = os.path.join(HERE, "maps", "map.pgm")
+RES, OX, OY = 0.05, -10.0, -10.0
+
+V_LIN, V_ANG, ROBOT_R = 0.22, 0.50, 0.22
+CAM_FOV, CAM_RANGE, N_RAYS = math.radians(62), 4.0, 32
+SPEED = 3.0          # 재생 배속
+DT = 0.1             # 궤적 생성 간격(초)
+
+SPAWN = (3.5, 1.0, 0.0)
+PATROL = [(8.10, 1.71), (4.30, -0.55), (1.45, 4.35), (-2.00, -0.80),
+          (-7.77, 0.56), (-7.90, -2.95), (7.15, -3.30)]
+WHEELS = ["wheel_left_joint", "wheel_right_joint",
+          "front_left_wheel", "front_right_wheel", "rear_left_wheel", "rear_right_wheel"]
+
+# 1인칭 카메라 (레이캐스팅으로 합성 — Gazebo 없이 파이프라인 검증용)
+IMG_W, IMG_H = 320, 240
+CAM_HZ = 5.0
+PERSON = (-7.5, 0.30)      # "할머니" — 원래 사각지대였던 좌상단 방에 배치
+PERSON_R = 0.30
+
+
+def read_pgm(path):
+    with open(path, "rb") as f:
+        d = f.read()
+    t, i = [], 0
+    while len(t) < 4:
+        while d[i:i+1].isspace(): i += 1
+        if d[i:i+1] == b"#":
+            while d[i:i+1] not in (b"\n", b"\r"): i += 1
+            continue
+        j = i
+        while not d[j:j+1].isspace(): j += 1
+        t.append(d[i:j]); i = j
+    w, h = int(t[1]), int(t[2]); i += 1
+    return np.frombuffer(d[i:i+w*h], np.uint8).reshape(h, w)
+
+
+img = read_pgm(MAP)
+H, W = img.shape
+free = (img > 250).astype(np.uint8)
+blocked = (img < 250).astype(np.uint8)
+distm = cv2.distanceTransform(free, cv2.DIST_L2, 5) * RES
+drivable = distm >= ROBOT_R
+
+def to_px(x, y): return int(round((x-OX)/RES)), int(round(H-(y-OY)/RES))
+def to_m(px, py): return OX+px*RES, OY+(H-py)*RES
+
+
+def astar(a, b):
+    s, g = to_px(*a), to_px(*b)
+    def snap(p):
+        if drivable[p[1], p[0]]: return p
+        ys, xs = np.nonzero(drivable)
+        k = int(np.argmin((xs-p[0])**2 + (ys-p[1])**2))
+        return int(xs[k]), int(ys[k])
+    s, g = snap(s), snap(g)
+    nb = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]
+    q = [(0.0, s)]; came = {}; gs = {s: 0.0}
+    while q:
+        _, c = heapq.heappop(q)
+        if c == g: break
+        for dx, dy in nb:
+            n = (c[0]+dx, c[1]+dy)
+            if not (0 <= n[0] < W and 0 <= n[1] < H) or not drivable[n[1], n[0]]: continue
+            cost = gs[c] + math.hypot(dx,dy)*(1.0 + 2.0*max(0.0, 0.6-distm[n[1], n[0]]))
+            if cost < gs.get(n, 1e18):
+                gs[n] = cost; came[n] = c
+                heapq.heappush(q, (cost + math.hypot(n[0]-g[0], n[1]-g[1]), n))
+    if g not in came and g != s: return None
+    p, c = [], g
+    while c != s: p.append(to_m(*c)); c = came[c]
+    p.append(to_m(*s)); p.reverse()
+    return p[::4]
+
+
+def build_timeline():
+    """(x, y, yaw, scan?) 리스트를 DT 간격으로 생성."""
+    tl = []
+    x, y, yaw = SPAWN
+    def emit():
+        tl.append((x, y, yaw, False))   # 스캔 여부는 재생 시 인덱스로 판단
+    for gx, gy in PATROL:
+        path = astar((x, y), (gx, gy))
+        if not path: continue
+        for wx, wy in path[1:]:
+            tgt = math.atan2(wy-y, wx-x)
+            d = (tgt - yaw + math.pi) % (2*math.pi) - math.pi
+            n = max(1, int(abs(d)/V_ANG/DT))
+            for k in range(n):
+                yaw += d/n; emit()
+            dist = math.hypot(wx-x, wy-y); n = max(1, int(dist/V_LIN/DT))
+            x0, y0 = x, y
+            for k in range(n):
+                f = (k+1)/n; x, y = x0+(wx-x0)*f, y0+(wy-y0)*f; emit()
+        n = int(2*math.pi/V_ANG/DT)          # look_around
+        y0 = yaw
+        for k in range(n):
+            yaw = y0 + 2*math.pi*(k+1)/n; emit()
+    return tl
+
+
+def visible_cells(x, y, yaw):
+    cx, cy = to_px(x, y); out = []
+    for i in range(N_RAYS):
+        a = yaw - CAM_FOV/2 + CAM_FOV*i/(N_RAYS-1)
+        dx, dy = math.cos(a), -math.sin(a)
+        for s in range(1, int(CAM_RANGE/RES)):
+            px, py = int(cx+dx*s), int(cy+dy*s)
+            if not (0 <= px < W and 0 <= py < H) or blocked[py, px]: break
+            out.append((px, py))
+    return out
+
+
+def render_camera(x, y, yaw):
+    """맵을 레이캐스팅해서 1인칭 뷰를 합성한다. (frame, 사람보임?, 사람거리)"""
+    cx, cy = (x - OX)/RES, H - (y - OY)/RES
+    ang = yaw - CAM_FOV/2 + CAM_FOV*np.arange(IMG_W)/(IMG_W-1)
+    dx, dy = np.cos(ang), -np.sin(ang)
+    dist = np.full(IMG_W, CAM_RANGE*2)
+    hit = np.zeros(IMG_W, bool)
+    for s in range(2, int(CAM_RANGE*2/RES)):
+        px = (cx + dx*s).astype(np.int32); py = (cy + dy*s).astype(np.int32)
+        ok = (px >= 0) & (px < W) & (py >= 0) & (py < H) & ~hit
+        if not ok.any(): break
+        b = np.zeros(IMG_W, bool)
+        b[ok] = blocked[py[ok], px[ok]] > 0
+        dist[b] = s*RES; hit |= b
+
+    corr = np.maximum(dist * np.cos(ang - yaw), 0.05)          # 어안 보정
+    wall_h = np.clip((0.9 / corr) * IMG_H, 4, IMG_H).astype(np.int32)
+    top = ((IMG_H - wall_h)//2).astype(np.int32)
+
+    frame = np.zeros((IMG_H, IMG_W, 3), np.uint8)
+    frame[:IMG_H//2] = (60, 55, 50)                            # 천장
+    frame[IMG_H//2:] = (95, 100, 105)                          # 바닥
+    shade = np.clip(255 * (1.0 - corr/(CAM_RANGE*1.3)), 30, 255).astype(np.uint8)
+    for c in range(IMG_W):
+        if dist[c] >= CAM_RANGE*2: continue
+        v = int(shade[c])
+        frame[top[c]:top[c]+wall_h[c], c] = (int(v*0.78), int(v*0.84), int(v*0.90))
+
+    # "할머니" 렌더 — FOV 안 + 시야 확보일 때만
+    seen, pdist = False, None
+    rel = math.atan2(PERSON[1]-y, PERSON[0]-x)
+    da = (rel - yaw + math.pi) % (2*math.pi) - math.pi
+    pd = math.hypot(PERSON[0]-x, PERSON[1]-y)
+    if abs(da) < CAM_FOV/2 and pd < CAM_RANGE:
+        n = int(pd/RES)
+        clear = True
+        for s in range(2, n):
+            px = int(cx + math.cos(rel)*s); py = int(cy - math.sin(rel)*s)
+            if not (0 <= px < W and 0 <= py < H) or blocked[py, px]: clear = False; break
+        if clear:
+            seen, pdist = True, pd
+            col = int(IMG_W/2 + (da/(CAM_FOV/2))*(IMG_W/2))
+            hgt = int(np.clip((0.55/pd)*IMG_H, 8, IMG_H))
+            wid = int(np.clip((PERSON_R*2/pd)*IMG_W/(2*math.tan(CAM_FOV/2)), 6, IMG_W))
+            t0 = IMG_H//2 - hgt//4
+            cv2.rectangle(frame, (col-wid//2, t0), (col+wid//2, t0+hgt), (110, 150, 225), -1)
+            cv2.rectangle(frame, (col-wid//2, t0), (col+wid//2, t0+hgt), (60, 90, 160), 1)
+    return frame, seen, pdist
+
+
+class PatrolViz(Node):
+    def __init__(self):
+        super().__init__("patrol_viz")
+        q = QoSProfile(depth=1)
+        q.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
+        q.reliability = QoSReliabilityPolicy.RELIABLE
+
+        self.get_logger().info(f"맵 {W}x{H}, 경로 계산 중...")
+        self.tl = build_timeline()
+        self.get_logger().info(
+            f"궤적 {len(self.tl)} 스텝 = {len(self.tl)*DT:.0f}초 (배속 {SPEED}x → {len(self.tl)*DT/SPEED:.0f}초)")
+
+        self.wpub = self.create_publisher(MarkerArray, "/map_walls", q)
+        self.ppub = self.create_publisher(MarkerArray, "/patrol_points", q)
+        self.fpub = self.create_publisher(Marker, "/camera_fov", 1)
+        self.cpub = self.create_publisher(Marker, "/coverage", 1)
+        self.tpub = self.create_publisher(Marker, "/trail", 1)
+        self.jpub = self.create_publisher(JointState, "/joint_states", 10)
+        self.ipub = self.create_publisher(Image, "/camera/image_raw", 1)
+        self.cam_every = max(1, int(round((1.0/CAM_HZ)/DT)))
+        self.found_at = None
+        self.tf = TransformBroadcaster(self)
+        self.stf = StaticTransformBroadcaster(self)
+
+        self.wpub.publish(self._walls())
+        self.ppub.publish(self._wps())
+        self.cover = np.zeros((H, W), np.uint8)
+        self.trail = []
+        self.i = 0
+        self.spin = 0.0
+        self.create_timer(DT/SPEED, self.tick)
+
+    def _cube_list(self, mid, ns, pts, rgba, z, scale):
+        m = Marker(); m.header.frame_id = "map"; m.ns = ns; m.id = mid
+        m.type = Marker.CUBE_LIST; m.action = Marker.ADD
+        m.pose.orientation.w = 1.0
+        m.scale.x = m.scale.y = scale; m.scale.z = 0.02
+        m.color.r, m.color.g, m.color.b, m.color.a = rgba
+        for px, py in pts:
+            p = Point(); p.x = OX+(px+.5)*RES; p.y = OY+(H-py-.5)*RES; p.z = z
+            m.points.append(p)
+        return m
+
+    def _walls(self):
+        a = MarkerArray()
+        ys, xs = np.nonzero(free)
+        a.markers.append(self._cube_list(0, "floor", list(zip(xs[::5], ys[::5])),
+                                         (.85,.85,.85,.85), 0.0, RES*2.5))
+        ys, xs = np.nonzero(img < 100)
+        a.markers.append(self._cube_list(1, "wall", list(zip(xs, ys)),
+                                         (.12,.12,.12,1.), 0.02, RES))
+        return a
+
+    def _wps(self):
+        a = MarkerArray()
+        for i, (x, y) in enumerate(PATROL):
+            m = Marker(); m.header.frame_id="map"; m.ns="wp"; m.id=i
+            m.type=Marker.CYLINDER; m.action=Marker.ADD
+            m.pose.position.x=x; m.pose.position.y=y; m.pose.position.z=0.03
+            m.pose.orientation.w=1.0
+            m.scale.x=m.scale.y=0.45; m.scale.z=0.05
+            m.color.r, m.color.g, m.color.b, m.color.a = 1.,.2,.2,.9
+            a.markers.append(m)
+            t = Marker(); t.header.frame_id="map"; t.ns="wplabel"; t.id=100+i
+            t.type=Marker.TEXT_VIEW_FACING; t.action=Marker.ADD
+            t.pose.position.x=x; t.pose.position.y=y; t.pose.position.z=0.8
+            t.pose.orientation.w=1.0; t.scale.z=0.5
+            t.color.r,t.color.g,t.color.b,t.color.a = 1.,1.,.2,1.
+            t.text=str(i+1); a.markers.append(t)
+        # "할머니" 위치 표시
+        p = Marker(); p.header.frame_id="map"; p.ns="person"; p.id=900
+        p.type=Marker.CYLINDER; p.action=Marker.ADD
+        p.pose.position.x, p.pose.position.y, p.pose.position.z = PERSON[0], PERSON[1], 0.3
+        p.pose.orientation.w=1.0
+        p.scale.x=p.scale.y=PERSON_R*2; p.scale.z=0.6
+        p.color.r,p.color.g,p.color.b,p.color.a = .95,.55,.35,.95
+        a.markers.append(p)
+        pt = Marker(); pt.header.frame_id="map"; pt.ns="person"; pt.id=901
+        pt.type=Marker.TEXT_VIEW_FACING; pt.action=Marker.ADD
+        pt.pose.position.x, pt.pose.position.y, pt.pose.position.z = PERSON[0], PERSON[1], 1.1
+        pt.pose.orientation.w=1.0; pt.scale.z=0.45
+        pt.color.r,pt.color.g,pt.color.b,pt.color.a = .95,.6,.4,1.
+        pt.text="PERSON"; a.markers.append(pt)
+        return a
+
+    def tick(self):
+        if self.i >= len(self.tl):
+            self.i = 0; self.cover[:] = 0; self.trail.clear()
+            self.found_at = None
+            self.get_logger().info("한 바퀴 완료 — 다시 시작")
+        x, y, yaw, _ = self.tl[self.i]
+        now = self.get_clock().now().to_msg()
+
+        t = TransformStamped()
+        t.header.stamp = now; t.header.frame_id = "map"; t.child_frame_id = "base_footprint"
+        t.transform.translation.x = x; t.transform.translation.y = y
+        t.transform.rotation.z = math.sin(yaw/2); t.transform.rotation.w = math.cos(yaw/2)
+        self.tf.sendTransform(t)
+
+        self.spin += 0.35
+        js = JointState(); js.header.stamp = now
+        js.name = WHEELS; js.position = [self.spin]*len(WHEELS)
+        self.jpub.publish(js)
+
+        # 카메라 FOV 부채꼴
+        f = Marker(); f.header.frame_id="map"; f.header.stamp=now
+        f.ns="fov"; f.id=0; f.type=Marker.TRIANGLE_LIST; f.action=Marker.ADD
+        f.pose.orientation.w=1.0; f.scale.x=f.scale.y=f.scale.z=1.0
+        f.color.r,f.color.g,f.color.b,f.color.a = .2,.6,1.,.25
+        prev=None
+        for k in range(13):
+            a = yaw - CAM_FOV/2 + CAM_FOV*k/12
+            p = Point(); p.x=x+CAM_RANGE*math.cos(a); p.y=y+CAM_RANGE*math.sin(a); p.z=0.05
+            if prev is not None:
+                o=Point(); o.x=x; o.y=y; o.z=0.05
+                f.points.extend([o, prev, p])
+            prev=p
+        self.fpub.publish(f)
+
+        if self.i % self.cam_every == 0:           # 카메라 스트리밍
+            frame, seen, pd = render_camera(x, y, yaw)
+            if seen and self.found_at is None:
+                self.found_at = self.i * DT
+                self.get_logger().info(
+                    f"*** 사람 발견 ***  t={self.found_at:.0f}s  거리 {pd:.2f}m  "
+                    f"로봇 ({x:.2f},{y:.2f})")
+            if self.found_at is not None:
+                cv2.putText(frame, "PERSON", (8, 22), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.6, (90, 230, 90), 2)
+            cv2.putText(frame, f"t={self.i*DT:.0f}s", (8, IMG_H-10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (220, 220, 220), 1)
+            im = Image()
+            im.header.stamp = now; im.header.frame_id = "depth_camera_link"
+            im.height, im.width = IMG_H, IMG_W
+            im.encoding = "bgr8"; im.is_bigendian = 0; im.step = IMG_W*3
+            im.data = frame.tobytes()
+            self.ipub.publish(im)
+
+        if self.i % 10 == 0:                       # 1Hz 스캔
+            for px, py in visible_cells(x, y, yaw):
+                self.cover[py, px] = 1
+            self.trail.append((x, y))
+            ys, xs = np.nonzero(self.cover & free)
+            c = self._cube_list(0, "cov", list(zip(xs[::5], ys[::5])),
+                                (.35,.9,.35,.75), 0.01, RES*2.5)
+            c.header.stamp = now; self.cpub.publish(c)
+
+            tr = Marker(); tr.header.frame_id="map"; tr.header.stamp=now
+            tr.ns="trail"; tr.id=0; tr.type=Marker.LINE_STRIP; tr.action=Marker.ADD
+            tr.pose.orientation.w=1.0; tr.scale.x=0.05
+            tr.color.r,tr.color.g,tr.color.b,tr.color.a = 1.,.5,0.,1.
+            for tx, ty in self.trail:
+                p=Point(); p.x=tx; p.y=ty; p.z=0.03; tr.points.append(p)
+            self.tpub.publish(tr)
+
+            pct = 100*int((self.cover & free).sum())/int(free.sum())
+            if self.i % 300 == 0:
+                self.get_logger().info(
+                    f"t={self.i*DT:5.0f}s  pos=({x:5.2f},{y:5.2f})  커버 {pct:4.1f}%")
+        self.i += 1
+
+
+def main():
+    rclpy.init(); n = PatrolViz()
+    try: rclpy.spin(n)
+    except KeyboardInterrupt: pass
+    finally:
+        n.destroy_node(); rclpy.try_shutdown()
+
+
+if __name__ == "__main__":
+    main()
+
+
+==============================================================================
+### FILE: worker_ai_agent/limo-MCP/MCP_server/MCP_server.py  (177 lines)
+==============================================================================
+"""Action/Reasoning 모듈을 묶는 MCP 서버.
+
+Reasoning이 목표를 "계획"(plan_path)해서 Action에 넘기면(send_goal_sequence)
+로봇이 Nav2를 통해 실제로 움직인다. plan_path는 목표 지점을 검증/정리만 하고
+실제 전역 경로계획은 각 웨이포인트마다 Nav2의 NavigateToPose가 내부적으로
+수행한다.
+
+실행: python3 MCP_server.py   (사전에 `pip install mcp`, ROS2 환경 source 필요)
+"""
+
+import contextlib
+import json
+import os
+import sys
+import threading
+
+import numpy as np
+import rclpy
+from rclpy.node import Node
+
+from mcp.server.mcpserver import Image, MCPServer
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "Worker_functions"))
+
+from Actions import ActionModule
+from Perceptions import PerceptionModule
+from Reasonings import ReasoningModule, yolo_detect
+
+CROP_MAX_PX = 512  # LLM에 올리는 이미지 크기 상한
+
+
+def _plan_fn(_start: dict, goal: dict) -> list:
+    """단순 웨이포인트 전달: 목표 지점을 검증만 하고 그대로 돌려준다.
+
+    실제 전역 경로계획은 send_goal_sequence가 각 웨이포인트마다 보내는
+    NavigateToPose 액션이 Nav2 내부에서 다시 수행하므로 여기서 별도로
+    ComputePathToPose 등을 호출할 필요가 없다.
+    """
+    if not goal or "x" not in goal or "y" not in goal:
+        return []
+    return [goal]
+
+
+def _encode_jpeg(frame) -> bytes:
+    import io
+
+    from PIL import Image as PILImage
+
+    img = PILImage.fromarray(frame)
+    scale = min(1.0, CROP_MAX_PX / max(img.size))
+    if scale < 1.0:
+        img = img.resize((int(img.width * scale), int(img.height * scale)))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    return buf.getvalue()
+
+
+def _crop_fn(frame, bbox) -> bytes:
+    """bbox 영역을 여유 있게 잘라 JPEG으로 인코딩한다."""
+    h, w = frame.shape[:2]
+    if bbox is None:
+        crop = frame
+    else:
+        x1, y1, x2, y2 = (int(v) for v in bbox)
+        mx, my = int((x2 - x1) * 0.15), int((y2 - y1) * 0.15)
+        x1, y1 = max(0, x1 - mx), max(0, y1 - my)
+        x2, y2 = min(w, x2 + mx), min(h, y2 + my)
+        crop = frame[y1:y2, x1:x2]
+        if crop.size == 0:
+            crop = frame
+    return _encode_jpeg(crop)
+
+
+class LimoGatewayNode(Node):
+    def __init__(self):
+        super().__init__("limo_mcp_gateway")
+        self.action = ActionModule(self)
+        self.perception = PerceptionModule(self)
+        self.reasoning = ReasoningModule(
+            plan_fn=_plan_fn,
+            detect_fn=yolo_detect,
+            crop_fn=_crop_fn,
+            frame_source=self.perception.get_latest_frame,
+        )
+
+
+rclpy.init()
+_node = LimoGatewayNode()
+_spin_thread = threading.Thread(target=rclpy.spin, args=(_node,), daemon=True)
+_spin_thread.start()
+
+# 첫 detect_objects 호출 때 YOLO 가중치를 처음 내려받으면 진행 표시줄이 stdout으로
+# 나가는데, stdio 트랜스포트는 stdout을 MCP JSON-RPC 프로토콜 전용으로 쓰기 때문에
+# 그 출력이 프로토콜을 깨뜨린다. mcp.run()으로 stdout을 넘기기 전에 미리 한 번
+# 돌려서(더미 프레임) 다운로드/로딩을 끝내고, 그 출력은 stderr로 돌려놓는다.
+with contextlib.redirect_stdout(sys.stderr):
+    try:
+        yolo_detect(np.zeros((32, 32, 3), dtype=np.uint8))
+    except Exception as exc:
+        print(f"YOLO warm-up failed (will retry lazily on first real call): {exc!r}", file=sys.stderr)
+
+mcp = MCPServer("limo-worker")
+
+
+@mcp.tool()
+def plan_and_navigate(x: float, y: float, frame: str = "map", yaw_deg: float = None) -> dict:
+    """목표 좌표까지 경로를 계획하고 바로 이동을 시작한다."""
+    start = _node.action.last_goal or {"x": 0.0, "y": 0.0}
+    goal = {"x": x, "y": y, "frame": frame}
+    if yaw_deg is not None:
+        goal["yaw_deg"] = yaw_deg
+
+    planned = _node.reasoning.plan_path(start, goal)
+    waypoints = planned.get("waypoints")
+    if not waypoints:
+        return {"started": False, "reason": planned.get("reason", "invalid goal")}
+    return _node.action.send_goal_sequence(waypoints)
+
+
+@mcp.tool()
+def navigate_waypoints(waypoints: list) -> dict:
+    """웨이포인트 리스트([{x, y, frame?, yaw_deg?}, ...])를 순서대로 이동한다."""
+    return _node.action.send_goal_sequence(waypoints)
+
+
+@mcp.tool()
+def get_status() -> dict:
+    """현재 내비게이션 상태, 마지막 목표, 시퀀스 진행 상황을 반환한다."""
+    a = _node.action
+    return {
+        "status": a.status,
+        "last_goal": a.last_goal,
+        "sequence_progress": a.sequence_progress,
+        "sequence_result": a.sequence_result,
+    }
+
+
+@mcp.tool()
+def get_camera_snapshot():
+    """카메라의 최신 프레임을 사진(JPEG)으로 가져온다."""
+    item = _node.perception.get_latest_frame()
+    if item is None:
+        return {"image": None, "reason": "no frame available yet"}
+    return [
+        json.dumps({"frame_id": item["frame_id"], "stamp": item["stamp"]}),
+        Image(data=_encode_jpeg(item["frame"]), format="jpeg"),
+    ]
+
+
+@mcp.tool()
+def detect_objects(min_conf: float = 0.4) -> dict:
+    """카메라의 최신 프레임에서 YOLO로 물체를 검출해 클래스/신뢰도/bbox 목록을 반환한다."""
+    item = _node.perception.get_latest_frame()
+    if item is None:
+        return {"detections": [], "reason": "no frame available yet"}
+
+    out = _node.reasoning.detect_objects(item["frame"])
+    detections = out.get("detections")
+    if detections is None:
+        return {"detections": [], "reason": out.get("reason", "detection failed")}
+
+    return {
+        "frame_id": item["frame_id"],
+        "detections": [d for d in detections if d.get("conf", 0.0) >= min_conf],
+    }
+
+
+@mcp.tool()
+def cancel() -> dict:
+    """진행 중인 목표/웨이포인트 시퀀스를 취소한다."""
+    if _node.action.is_running_sequence():
+        return _node.action.cancel_goal_sequence()
+    return _node.action.cancel_goal()
+
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+
+
+==============================================================================
+### FILE: worker_ai_agent/limo-MCP/Scenarios/capture_and_detect.py  (52 lines)
+==============================================================================
+"""MCP_server.py를 통해 카메라 스냅샷을 저장하고 YOLO 검출 결과를 출력하는
+커맨드라인 클라이언트.
+
+시뮬레이션이 이미 떠 있는 상태에서 실행한다 (별도 터미널).
+
+사용:
+    source /opt/ros/jazzy/setup.bash
+    cd limo-MCP
+    python3 Scenarios/capture_and_detect.py [저장할_경로.jpg]
+"""
+
+import asyncio
+import base64
+import os
+import sys
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+SERVER_PATH = os.path.join(os.path.dirname(__file__), "..", "MCP_server", "MCP_server.py")
+
+
+async def main(out_path: str) -> None:
+    params = StdioServerParameters(
+        command="python3",
+        args=[SERVER_PATH],
+        env=dict(os.environ),
+    )
+    async with stdio_client(params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            snap = await session.call_tool("get_camera_snapshot", {})
+            for item in snap.content:
+                if getattr(item, "type", None) == "text":
+                    print("snapshot meta:", item.text)
+                else:
+                    data = item.data
+                    raw = base64.b64decode(data) if isinstance(data, str) else data
+                    with open(out_path, "wb") as f:
+                        f.write(raw)
+                    print(f"saved snapshot -> {out_path} ({len(raw)} bytes)")
+
+            print("running detect_objects (첫 호출은 YOLO 모델 로딩 때문에 몇 초 걸릴 수 있음)...")
+            det = await session.call_tool("detect_objects", {"min_conf": 0.25})
+            for item in det.content:
+                print("detections:", item.text)
+
+
+if __name__ == "__main__":
+    output = sys.argv[1] if len(sys.argv) > 1 else "snapshot.jpg"
+    asyncio.run(main(output))
+
+
+==============================================================================
+### FILE: worker_ai_agent/limo-MCP/Scenarios/send_goal.py  (54 lines)
+==============================================================================
+"""MCP_server.py를 통해 목표 좌표로 로봇을 이동시키는 커맨드라인 클라이언트.
+
+시뮬레이션이 이미 떠 있는 상태에서 실행한다 (별도 터미널).
+
+사용:
+    source /opt/ros/jazzy/setup.bash
+    cd limo-MCP
+    python3 Scenarios/send_goal.py <x> <y> [yaw_deg]
+"""
+
+import asyncio
+import os
+import sys
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+SERVER_PATH = os.path.join(os.path.dirname(__file__), "..", "MCP_server", "MCP_server.py")
+
+
+async def main(x: float, y: float, yaw_deg: float | None) -> None:
+    params = StdioServerParameters(
+        command="python3",
+        args=[SERVER_PATH],
+        env=dict(os.environ),
+    )
+    async with stdio_client(params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            args = {"x": x, "y": y, "frame": "map"}
+            if yaw_deg is not None:
+                args["yaw_deg"] = yaw_deg
+
+            started = await session.call_tool("plan_and_navigate", args)
+            print("plan_and_navigate:", started.content)
+
+            while True:
+                await asyncio.sleep(1.0)
+                status = await session.call_tool("get_status", {})
+                print("status:", status.content)
+                text = str(status.content)
+                if '"status": "succeeded"' in text or '"status": "failed"' in text:
+                    break
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print(f"usage: python3 {sys.argv[0]} <x> <y> [yaw_deg]")
+        sys.exit(1)
+    goal_x = float(sys.argv[1])
+    goal_y = float(sys.argv[2])
+    goal_yaw = float(sys.argv[3]) if len(sys.argv) > 3 else None
+    asyncio.run(main(goal_x, goal_y, goal_yaw))
+
+
+==============================================================================
+### FILE: worker_ai_agent/limo-MCP/Simulation/sim_bringup.launch.py  (202 lines)
+==============================================================================
+"""limo-MCP 전용 Gazebo + Nav2 시뮬레이션 브링업.
+
+turtlebot3_gazebo(카메라 브리지 포함된 waffle 로봇)와 nav2_bringup(slam_toolbox
+기반 실시간 매핑 + Nav2 스택)을 그대로 재사용해서 엮는다. gzserver/gzclient/
+robot_state_publisher/spawn/nav2 bringup 하나하나는 각 패키지의 공식 launch
+파일이 하는 것을 그대로 따라감 — 커스텀 로봇 자산은 없음.
+
+월드는 turtlebot3_world 대신 `aws_small_house/`(aws-robomaker-small-house-world
+저장소 gzweb 브랜치에서 worlds/models/maps만 sparse checkout)를 사용한다. 이
+저장소는 클래식 Gazebo(ODE, gazebo_ros) 대상이라 gz-sim(Harmonic)에서 그대로
+로드되지 않았음 — 헤드리스 로드 시 "A link named link has invalid inertia"로
+전체 월드 로드가 실패함. 원인 두 가지를 찾아 고침(둘 다 `aws_small_house/` 안에서
+직접 수정, 원본 저장소는 안 건드림):
+  1. `aws_robomaker_residential_ShoeRack_01/model.sdf`: `<inertia>` 텐서에
+     `<ixx>`가 중복되고 `<izz>`가 누락된 원본 벤더 오타 — `<izz>`로 고침.
+  2. furniture 모델 46종이 `<inertial><mass>`만 있고 `<inertia>` 텐서가 아예
+     없음(클래식 Gazebo는 관대하게 넘어갔지만 gz-sim은 정색함) — world 파일의
+     해당 `<model>` include 인스턴스마다 `<static>true</static>`를 추가해서
+     동역학 계산 자체를 건너뛰게 함(가구는 어차피 정적이어야 맞음).
+
+단, 로봇 스폰 + ROS<->Gazebo 브리지만은 `turtlebot3_world.launch.py`가
+내부적으로 부르는 `spawn_turtlebot3.launch.py`를 통째로 include하지 않고 직접
+풀어서 구성한다. 이유(실제 시험 중 발견): 그 패키지의 스톡
+`turtlebot3_waffle_bridge.yaml`은 `cmd_vel`을 `TwistStamped`로 선언하는데, 이
+ROS2 Jazzy + nav2_bringup 스톡 파라미터 조합에서는 Nav2의 collision_monitor가
+최종 `/cmd_vel`을 `Twist`(스탬프 없음)로 발행함 — 타입이 안 맞으면 ROS2는 그
+둘을 다른 토픽 인스턴스로 취급해 아무 것도 브리지되지 않고, 로봇이 목표를
+향해 계속 재계획만 하고 실제로는 한 발짝도 안 움직인다("Failed to make
+progress" 반복, `/odom` 위치 불변으로 확인함). 그래서 `cmd_vel`만 `Twist`로
+고친 `waffle_bridge_fixed.yaml`을 대신 사용한다 (같은 폴더).
+
+turtlebot3_world용으로 미리 만들어둔 정적 지도가 없어서 AMCL 대신
+slam_toolbox로 실시간 매핑하면서 동시에 내비게이션하는 방식(slam:=True)을 쓴다.
+
+카메라/라이다 렌더링은 이 저장소를 Claude Code가 (사람 인터랙티브 터미널이
+아니라) `wsl.exe -e bash -lc "... &"`로 비대화형 배경 실행하며 검증하는 동안
+두 경로 다 막혔다(실제로 겪음):
+  - `--headless-rendering`(GUI 없이 오프스크린 렌더): 프로세스는 안 죽지만
+    `/camera/image_raw`가 gz 쪽에서부터 100초 넘게 기다려도 프레임을 한 장도
+    안 만듦. 이 WSL2 인스턴스에 `/dev/dri`(DRM 렌더 노드)가 아예 없어서 EGL
+    오프스크린 컨텍스트가 붙을 디바이스가 없는 것으로 보임 — 이건 world와
+    무관한 이 WSL2 인스턴스 자체의 제약으로 보임.
+  - GUI(`gz sim -g`) 붙이는 기본 경로: 매번 "Aborted (core dumped)"로 죽는데,
+    스택 트레이스를 까보면 원인은 렌더링/부하 문제가 아니라
+    `qt.qpa.xcb: could not connect to display :0` — 단순 X11 연결 실패였음.
+    DISPLAY=:0/WAYLAND_DISPLAY=wayland-0 env는 잡혀 있는데도 연결이 안 되는
+    걸 보면, WSLg의 X/Wayland 서버가 사람이 대화형으로 연 WSL 세션에 묶여
+    있어서 Claude Code가 새로 붙인 비대화형 wsl.exe 세션에서는 그 소켓에
+    접근이 안 되는 것으로 추정됨(미확인). 즉 이 GUI 크래시는 small_house
+    world나 nav2 동시 부하와는 무관할 가능성이 높음 — 실제 사람이 자기
+    WSL 터미널에서 대화형으로 이 launch 파일을 돌리면(이전 세션에
+    turtlebot3_world로 카메라가 검증된 방식과 동일한 조건) 문제없이 카메라가
+    뜰 수 있음. 아직 대화형 세션에서 재검증은 못 했음.
+
+gzserver는 기본(비-headless) 렌더 경로를 쓰고 GUI(`gzclient`)를 붙인다.
+`on_exit_shutdown=false`로 둬서 GUI가 어떤 이유로든 죽어도 나머지(로봇
+제어/Nav2)는 계속 동작하게 한다. nav2를 spawn 이후 15초 더 늦게 띄우는
+`delayed_nav2`는 애초에 "nav2 부하가 GUI를 죽인다"는(위에서 틀린 것으로
+확인된) 가설로 넣었던 것 — 틀린 가설이었지만 유지해도 해는 없어서 안전
+마진으로 남겨둠.
+
+실행:
+    source /opt/ros/jazzy/setup.bash
+    ros2 launch Simulation/sim_bringup.launch.py
+"""
+
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import (
+    AppendEnvironmentVariable,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+    TimerAction,
+)
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+ROBOT_MODEL = "waffle"
+
+
+def generate_launch_description():
+    turtlebot3_gazebo_dir = get_package_share_directory("turtlebot3_gazebo")
+    ros_gz_sim_dir = get_package_share_directory("ros_gz_sim")
+    nav2_bringup_dir = get_package_share_directory("nav2_bringup")
+
+    use_sim_time = LaunchConfiguration("use_sim_time", default="true")
+    nav2_params_file = os.path.join(nav2_bringup_dir, "params", "nav2_params.yaml")
+    # os.path.dirname(__file__)만 쓰면 `ros2 launch Simulation/sim_bringup.launch.py`처럼
+    # 상대경로로 실행했을 때 __file__ 자체가 상대경로로 남아서 GZ_SIM_RESOURCE_PATH도
+    # 상대경로로 등록됨 — sdformat이 file:// 메쉬 URI를 해석할 때 이 상대 경로를
+    # 이중으로 이어붙여서(.../aws_small_house/models/X/aws_small_house/models/X/meshes/...)
+    # 대부분의 furniture collision mesh 로드가 실패하는 걸 실제로 겪음. abspath로 고정.
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    small_house_dir = os.path.join(this_dir, "aws_small_house")
+    world = os.path.join(small_house_dir, "worlds", "small_house.world")
+    robot_sdf = os.path.join(
+        turtlebot3_gazebo_dir, "models", f"turtlebot3_{ROBOT_MODEL}", "model.sdf"
+    )
+    bridge_params = os.path.join(this_dir, "waffle_bridge_fixed.yaml")
+
+    # small_house.world의 furniture model:// URI 해석용. README 권장대로 (0,0,0)은
+    # lounge chair와 충돌해서 피하고 (3.5, 1.0) 근처를 스폰 지점으로 사용.
+    SPAWN_X, SPAWN_Y, SPAWN_Z = "3.5", "1.0", "0.01"
+
+    # robot_state_publisher.launch.py가 os.environ['TURTLEBOT3_MODEL']을 직접
+    # 읽어서 urdf 경로를 정한다 (launch configuration이 아니라 진짜 프로세스
+    # 환경변수).
+    set_tb3_model = SetEnvironmentVariable("TURTLEBOT3_MODEL", ROBOT_MODEL)
+
+    set_env_vars_resources = AppendEnvironmentVariable(
+        "GZ_SIM_RESOURCE_PATH", os.path.join(turtlebot3_gazebo_dir, "models")
+    )
+    set_env_vars_resources_house = AppendEnvironmentVariable(
+        "GZ_SIM_RESOURCE_PATH", os.path.join(small_house_dir, "models")
+    )
+
+    gzserver_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(ros_gz_sim_dir, "launch", "gz_sim.launch.py")
+        ),
+        launch_arguments={"gz_args": ["-r -s -v2 ", world], "on_exit_shutdown": "true"}.items(),
+    )
+
+    gzclient_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(ros_gz_sim_dir, "launch", "gz_sim.launch.py")
+        ),
+        launch_arguments={"gz_args": "-g -v2 ", "on_exit_shutdown": "false"}.items(),
+    )
+
+    robot_state_publisher_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(turtlebot3_gazebo_dir, "launch", "robot_state_publisher.launch.py")
+        ),
+        launch_arguments={"use_sim_time": use_sim_time}.items(),
+    )
+
+    spawn_cmd = Node(
+        package="ros_gz_sim",
+        executable="create",
+        arguments=["-name", ROBOT_MODEL, "-file", robot_sdf, "-x", SPAWN_X, "-y", SPAWN_Y, "-z", SPAWN_Z],
+        output="screen",
+    )
+
+    bridge_cmd = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        arguments=["--ros-args", "-p", f"config_file:={bridge_params}"],
+        output="screen",
+    )
+
+    image_bridge_cmd = Node(
+        package="ros_gz_image",
+        executable="image_bridge",
+        arguments=["/camera/image_raw"],
+        output="screen",
+    )
+
+    nav2_bringup_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(nav2_bringup_dir, "launch", "bringup_launch.py")
+        ),
+        launch_arguments={
+            "slam": "True",
+            "use_sim_time": use_sim_time,
+            "autostart": "True",
+            "params_file": nav2_params_file,
+        }.items(),
+    )
+
+    # small_house.world는 furniture 메시가 82MB라 turtlebot3_world보다 훨씬 오래
+    # 걸린다(측정: 단독 기동 시 /gazebo/worlds 서비스가 뜨는 데 ~15초, nav2 등과
+    # 동시에 뜰 땐 더 걸림). `ros_gz_sim create`의 월드 조회 타임아웃은 이보다
+    # 훨씬 짧아서 곧바로 실행하면 "Timed out when getting world names"로 스폰이
+    # 죽고, 로봇이 없으니 odom TF도 안 생겨서 Nav2가 계속 대기하는 연쇄 실패가
+    # 났음(실제로 겪음). 스폰 관련 노드들을 world 준비 이후로 지연시켜 회피.
+    delayed_spawn = TimerAction(
+        period=20.0,
+        actions=[spawn_cmd, bridge_cmd, image_bridge_cmd],
+    )
+
+    # nav2(특히 bt_navigator/docking_server 등 lifecycle configure 구간)는 CPU를
+    # 크게 튀게 만드는데, 이게 gzclient(GUI) 렌더 초기화와 겹치면 GUI가
+    # "Aborted (core dumped)"로 죽는 걸 실제로 겪었음. spawn(20초) 이후 GUI/카메라가
+    # 먼저 안정화될 시간(15초)을 더 주고 nav2를 띄운다.
+    delayed_nav2 = TimerAction(period=35.0, actions=[nav2_bringup_cmd])
+
+    return LaunchDescription(
+        [
+            set_tb3_model,
+            set_env_vars_resources,
+            set_env_vars_resources_house,
+            gzserver_cmd,
+            gzclient_cmd,
+            robot_state_publisher_cmd,
+            delayed_spawn,
+            delayed_nav2,
+        ]
+    )
+
+
+==============================================================================
+### FILE: worker_ai_agent/limo-MCP/Worker_functions/Actions.py  (178 lines)
+==============================================================================
+import math
+import threading
+import time
+from typing import Optional
+
+from action_msgs.msg import GoalStatus
+from geometry_msgs.msg import PoseStamped
+from nav2_msgs.action import NavigateToPose
+from rclpy.action import ActionClient
+
+
+def _goal_xy_yaw(waypoint, prev_xy: Optional[tuple] = None) -> tuple:
+    """웨이포인트 하나를 (x, y, frame, yaw_deg)로 정규화한다.
+
+    dict({"x","y","frame?","yaw_deg?"}) 와 (x, y) / (x, y, yaw_deg) 형태를 모두 받는다.
+    yaw가 주어지지 않으면 이전 웨이포인트 -> 현재 웨이포인트 방향을 바라보도록 계산한다.
+    """
+    if isinstance(waypoint, dict):
+        x, y = waypoint["x"], waypoint["y"]
+        frame = waypoint.get("frame", "map")
+        yaw_deg = waypoint.get("yaw_deg")
+    else:
+        x, y = waypoint[0], waypoint[1]
+        frame = "map"
+        yaw_deg = waypoint[2] if len(waypoint) >= 3 else None
+
+    if yaw_deg is None:
+        yaw_deg = math.degrees(math.atan2(y - prev_xy[1], x - prev_xy[0])) if prev_xy else 0.0
+
+    return x, y, frame, yaw_deg
+
+
+class ActionModule:
+    def __init__(self, node, nav_action: str = "navigate_to_pose"):
+        self.status = "idle"
+        self.last_goal = None
+        self.sequence_progress = None
+        self.sequence_result = None
+
+        self._goal_handle = None
+        self._action_client = ActionClient(node, NavigateToPose, nav_action)
+        self._sequence_thread: Optional[threading.Thread] = None
+        self._sequence_interrupt = threading.Event()
+
+    # ------------------------------------------------------------------ #
+    # waypoint 리스트 -> 순차적인 ROS2 NavigateToPose 액션으로 번역해 전송
+    # ------------------------------------------------------------------ #
+    def send_goal_sequence(self, waypoints: list) -> dict:
+        if self.is_running_sequence():
+            return {"started": False, "reason": "a goal sequence is already in progress"}
+        if not waypoints:
+            return {"started": False, "reason": "empty waypoint list"}
+
+        self._sequence_interrupt.clear()
+        self.sequence_result = None
+        total = len(waypoints)
+        self.sequence_progress = {"index": 0, "total": total}
+
+        def run() -> None:
+            completed = 0
+            prev_xy = None
+            for i, waypoint in enumerate(waypoints):
+                if self._sequence_interrupt.is_set():
+                    break
+                x, y, frame, yaw_deg = _goal_xy_yaw(waypoint, prev_xy)
+                self.sequence_progress = {"index": i, "total": total}
+
+                outcome = self._send_goal_and_wait(x, y, frame, yaw_deg)
+                if not outcome["succeeded"]:
+                    self.sequence_result = {
+                        "completed": completed,
+                        "total": total,
+                        "interrupted": outcome["reason"] == "interrupted",
+                        "reason": outcome["reason"],
+                    }
+                    return
+
+                completed += 1
+                prev_xy = (x, y)
+
+            self.sequence_result = {
+                "completed": completed,
+                "total": total,
+                "interrupted": self._sequence_interrupt.is_set(),
+            }
+
+        self._sequence_thread = threading.Thread(target=run, daemon=True)
+        self._sequence_thread.start()
+        return {"started": True}
+
+    def cancel_goal_sequence(self) -> dict:
+        if not self.is_running_sequence():
+            return {"cancelled": False, "reason": "no goal sequence in progress"}
+        self._sequence_interrupt.set()
+        self.cancel_goal()
+        return {"cancelled": True}
+
+    def is_running_sequence(self) -> bool:
+        return self._sequence_thread is not None and self._sequence_thread.is_alive()
+
+    # ------------------------------------------------------------------ #
+    # 단일 목표 전송 (send_goal_sequence가 웨이포인트마다 내부적으로 사용)
+    # ------------------------------------------------------------------ #
+    def send_goal(self, x: float, y: float, frame: str, yaw_deg: float) -> dict:
+        if not self._action_client.wait_for_server(timeout_sec=2.0):
+            return {"accepted": False, "reason": "nav2 action server unavailable"}
+
+        goal = NavigateToPose.Goal()
+        goal.pose = self._make_pose(x, y, frame, yaw_deg)
+
+        accepted_event = threading.Event()
+        result_holder: dict = {}
+
+        def on_goal_response(future) -> None:
+            result_holder["goal_handle"] = future.result()
+            accepted_event.set()
+
+        send_future = self._action_client.send_goal_async(goal, feedback_callback=self._on_feedback)
+        send_future.add_done_callback(on_goal_response)
+
+        if not accepted_event.wait(timeout=5.0):
+            return {"accepted": False, "reason": "timed out waiting for goal response"}
+
+        goal_handle = result_holder.get("goal_handle")
+        if goal_handle is None or not goal_handle.accepted:
+            self.status = "rejected"
+            return {"accepted": False, "reason": "goal rejected by action server"}
+
+        self._goal_handle = goal_handle
+        self.status = "navigating"
+        self.last_goal = {"x": x, "y": y, "frame": frame, "yaw_deg": yaw_deg}
+
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(self._on_result)
+        return {"accepted": True}
+
+    def cancel_goal(self) -> dict:
+        if self._goal_handle is None:
+            return {"cancelled": False, "reason": "no active goal"}
+        self._goal_handle.cancel_goal_async()
+        self._goal_handle = None
+        self.status = "cancelled"
+        return {"cancelled": True}
+
+    def _send_goal_and_wait(self, x: float, y: float, frame: str, yaw_deg: float, timeout: float = 120.0) -> dict:
+        result = self.send_goal(x, y, frame, yaw_deg)
+        if not result.get("accepted"):
+            return {"succeeded": False, "reason": result.get("reason", "goal not accepted")}
+
+        deadline = time.time() + timeout
+        while self.status == "navigating" and time.time() < deadline:
+            if self._sequence_interrupt.is_set():
+                self.cancel_goal()
+                return {"succeeded": False, "reason": "interrupted"}
+            time.sleep(0.1)
+
+        if self.status != "succeeded":
+            return {"succeeded": False, "reason": self.status}
+        return {"succeeded": True, "reason": "succeeded"}
+
+    def _on_feedback(self, feedback_msg) -> None:
+        self.status = "navigating"
+
+    def _on_result(self, future) -> None:
+        result = future.result()
+        self.status = "succeeded" if result.status == GoalStatus.STATUS_SUCCEEDED else "failed"
+        self._goal_handle = None
+
+    @staticmethod
+    def _make_pose(x: float, y: float, frame: str, yaw_deg: float) -> PoseStamped:
+        pose = PoseStamped()
+        pose.header.frame_id = frame
+        yaw = math.radians(yaw_deg)
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        pose.pose.orientation.z = math.sin(yaw / 2.0)
+        pose.pose.orientation.w = math.cos(yaw / 2.0)
+        return pose
+
+
+==============================================================================
+### FILE: worker_ai_agent/limo-MCP/Worker_functions/Perceptions.py  (43 lines)
+==============================================================================
+"""카메라 토픽을 구독해서 최신 프레임을 캐시해두는 모듈.
+
+Actions.py와 마찬가지로 ROS2에 의존한다. Reasonings.py의 `ReasoningModule`이
+기대하는 `FrameSource` 시그니처((frame_id=None) -> {"frame_id","frame","stamp","pose"})를
+그대로 만족하도록 `get_latest_frame`을 노출한다.
+"""
+
+import threading
+from typing import Optional
+
+import numpy as np
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import Image
+
+
+class PerceptionModule:
+    def __init__(self, node, topic: str = "/camera/image_raw"):
+        self._lock = threading.Lock()
+        self._latest: Optional[dict] = None
+        self._seq = 0
+        node.create_subscription(Image, topic, self._on_image, qos_profile_sensor_data)
+
+    def _on_image(self, msg: Image) -> None:
+        # 카메라 SDF가 R8G8B8(=rgb8)로 정의돼 있어 그 가정으로 바로 reshape한다.
+        frame = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.width, 3)
+
+        with self._lock:
+            self._seq += 1
+            self._latest = {
+                "frame_id": f"f_{self._seq}",
+                "frame": frame,
+                "stamp": msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9,
+                "pose": None,
+            }
+
+    def get_latest_frame(self, frame_id: Optional[str] = None) -> Optional[dict]:
+        with self._lock:
+            item = self._latest
+        if item is None:
+            return None
+        if frame_id is not None and item["frame_id"] != frame_id:
+            return None
+        return item
+
+
+==============================================================================
+### FILE: worker_ai_agent/limo-MCP/Worker_functions/Reasonings.py  (247 lines)
+==============================================================================
+"""Worker AI agent의 Reasoning 모듈.
+
+ROS2/MCP에 의존하지 않는 순수 로직. 실제 백엔드(YOLO, Nav2, 크롭)는 생성자로
+주입하고, 주입하지 않으면 no-op으로 동작하므로 로봇 없이 단독 테스트가 가능하다.
+"""
+
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from typing import Callable, Optional
+
+DetectFn = Callable[[object], list]          # frame -> [{"class", "conf", "bbox"}]
+PlanFn = Callable[[dict, dict], list]        # start, goal -> [{"x", "y", "yaw"}]
+CropFn = Callable[[object, list], bytes]     # frame, bbox -> jpeg bytes
+FrameSource = Callable[..., Optional[dict]]  # (frame_id=None) -> {"frame_id", "frame", "stamp", "pose"}
+
+
+def _no_op_detect(_frame) -> list:
+    return []
+
+
+def _no_op_plan(_start: dict, _goal: dict) -> list:
+    return []
+
+
+def _no_op_crop(_frame, _bbox) -> bytes:
+    return b""
+
+
+def _no_op_frame_source(_frame_id: Optional[str] = None) -> Optional[dict]:
+    return None
+
+
+_yolo_model = None
+
+
+def yolo_detect(frame) -> list:
+    """YOLO(ultralytics)로 프레임 안의 물체를 검출한다. detect_fn 구현체 중 하나.
+
+    ultralytics는 이 함수 안에서만 import한다 — 이 모듈을 그냥 import만 했을 때
+    (YOLO를 안 쓸 때)는 무거운 의존성(torch 등)을 안 물게 하기 위함. ultralytics는
+    numpy 배열을 BGR로 가정하므로(카메라 프레임은 RGB) 채널을 뒤집어 넣는다.
+    """
+    global _yolo_model
+    from ultralytics import YOLO
+
+    if _yolo_model is None:
+        _yolo_model = YOLO("yolov8n.pt")
+
+    results = _yolo_model(frame[:, :, ::-1], verbose=False)[0]
+    return [
+        {
+            "class": results.names[int(box.cls[0])],
+            "conf": float(box.conf[0]),
+            "bbox": [float(v) for v in box.xyxy[0]],
+        }
+        for box in results.boxes
+    ]
+
+
+class PersonScan:
+    """1Hz로 최신 프레임에 YOLO를 돌려 사람 유무(O/X)만 판별하는 백그라운드 루프.
+
+    상태 판정은 하지 않는다. 사람이 잡히면 그 시점의 프레임/pose만 기록해두고
+    실제 "괜찮은지" 판단은 상위 LLM이 크롭 이미지를 보고 내린다.
+    """
+
+    def __init__(
+        self,
+        scan_id: str,
+        frame_source: FrameSource,
+        detect_fn: DetectFn,
+        hz: float = 1.0,
+        person_class: str = "person",
+        min_conf: float = 0.5,
+        stop_on_hit: bool = True,
+    ):
+        self.scan_id = scan_id
+        self._frame_source = frame_source
+        self._detect_fn = detect_fn
+        self._period = 1.0 / hz if hz > 0 else 1.0
+        self._person_class = person_class
+        self._min_conf = min_conf
+        self._stop_on_hit = stop_on_hit
+
+        self._stop = threading.Event()
+        self._hit_event = threading.Event()
+        self._lock = threading.Lock()
+        self._hit: Optional[dict] = None
+        self._ticks = 0
+        self._last_frame_id: Optional[str] = None
+        self._error: Optional[str] = None
+        self._thread = threading.Thread(target=self._run, name=f"person-scan-{scan_id}", daemon=True)
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        self._hit_event.set()  # 대기 중인 wait_for_person을 깨운다
+
+    def wait(self, timeout: float) -> dict:
+        self._hit_event.wait(timeout)
+        return self.status()
+
+    def status(self) -> dict:
+        with self._lock:
+            return {
+                "scan_id": self.scan_id,
+                "running": self._thread.is_alive() and not self._stop.is_set(),
+                "ticks": self._ticks,
+                "found": self._hit is not None,
+                "hit": self._hit,
+                "error": self._error,
+            }
+
+    def _run(self) -> None:
+        while not self._stop.is_set():
+            started = time.monotonic()
+            try:
+                self._tick()
+            except Exception as exc:
+                with self._lock:
+                    self._error = repr(exc)
+            self._stop.wait(max(0.0, self._period - (time.monotonic() - started)))
+
+    def _tick(self) -> None:
+        item = self._frame_source()
+        if item is None or item.get("frame_id") == self._last_frame_id:
+            return  # 새 프레임이 없으면 같은 이미지를 두 번 돌리지 않는다
+        self._last_frame_id = item.get("frame_id")
+        with self._lock:
+            self._ticks += 1
+
+        persons = [
+            d
+            for d in (self._detect_fn(item["frame"]) or [])
+            if d.get("class") == self._person_class and d.get("conf", 0.0) >= self._min_conf
+        ]
+        if not persons:
+            return
+
+        best = max(persons, key=lambda d: d.get("conf", 0.0))
+        with self._lock:
+            self._hit = {
+                "frame_id": item.get("frame_id"),
+                "stamp": item.get("stamp"),
+                "pose": item.get("pose"),
+                "bbox": best.get("bbox"),
+                "conf": best.get("conf"),
+            }
+        self._hit_event.set()
+        if self._stop_on_hit:
+            self._stop.set()
+
+
+class ReasoningModule:
+    def __init__(
+        self,
+        detect_fn: DetectFn = _no_op_detect,
+        plan_fn: PlanFn = _no_op_plan,
+        crop_fn: CropFn = _no_op_crop,
+        frame_source: FrameSource = _no_op_frame_source,
+        max_workers: int = 2,
+    ):
+        self._detect_fn = detect_fn
+        self._plan_fn = plan_fn
+        self._crop_fn = crop_fn
+        self._frame_source = frame_source
+        self._pool = ThreadPoolExecutor(max_workers=max_workers)
+        self._scan: Optional[PersonScan] = None
+        self._scan_seq = 0
+        self._scan_lock = threading.Lock()
+
+    # --- 단발 검출 / 경로 ---
+
+    def detect_objects(self, frame, timeout: float = 5.0) -> dict:
+        future = self._pool.submit(self._detect_fn, frame)
+        try:
+            return {"detections": future.result(timeout=timeout)}
+        except FutureTimeoutError:
+            return {"detections": None, "reason": "detection timed out"}
+
+    def plan_path(self, start: dict, goal: dict, timeout: float = 10.0) -> dict:
+        future = self._pool.submit(self._plan_fn, start, goal)
+        try:
+            return {"waypoints": future.result(timeout=timeout)}
+        except FutureTimeoutError:
+            return {"waypoints": None, "reason": "planning timed out"}
+
+    # --- 상태 확인용 근거 이미지 (판정은 LLM이 한다) ---
+
+    def check_object_state(self, object_class: str = "person", frame_id: Optional[str] = None) -> dict:
+        """대상이 찍힌 프레임에서 해당 영역을 크롭해 JPEG으로 돌려준다."""
+        item = self._frame_source(frame_id)
+        if item is None:
+            return {"image_jpeg": None, "reason": "no frame available"}
+
+        detections = self._detect_fn(item["frame"]) or []
+        targets = [d for d in detections if d.get("class") == object_class]
+        if not targets:
+            return {"image_jpeg": None, "reason": f"{object_class} not in frame", "frame_id": item.get("frame_id")}
+
+        best = max(targets, key=lambda d: d.get("conf", 0.0))
+        return {
+            "image_jpeg": self._crop_fn(item["frame"], best.get("bbox")),
+            "bbox": best.get("bbox"),
+            "conf": best.get("conf"),
+            "frame_id": item.get("frame_id"),
+            "stamp": item.get("stamp"),
+            "pose": item.get("pose"),
+        }
+
+    # --- 1Hz 사람 탐지 루프 ---
+
+    def start_person_scan(self, hz: float = 1.0, min_conf: float = 0.5, stop_on_hit: bool = True) -> dict:
+        with self._scan_lock:
+            if self._scan is not None and self._scan.status()["running"]:
+                return {"scan_id": self._scan.scan_id, "reason": "already running"}
+            self._scan_seq += 1
+            self._scan = PersonScan(
+                scan_id=f"s_{self._scan_seq}",
+                frame_source=self._frame_source,
+                detect_fn=self._detect_fn,
+                hz=hz,
+                min_conf=min_conf,
+                stop_on_hit=stop_on_hit,
+            )
+            self._scan.start()
+            return {"scan_id": self._scan.scan_id}
+
+    def wait_for_person(self, timeout: float = 30.0) -> dict:
+        scan = self._scan
+        if scan is None:
+            return {"found": False, "reason": "no scan running"}
+        return scan.wait(timeout)
+
+    def get_scan_status(self) -> dict:
+        scan = self._scan
+        return scan.status() if scan is not None else {"running": False, "found": False}
+
+    def stop_person_scan(self) -> dict:
+        scan = self._scan
+        if scan is None:
+            return {"stopped": False, "reason": "no scan running"}
+        scan.stop()
+        return {"stopped": True, "scan_id": scan.scan_id}
