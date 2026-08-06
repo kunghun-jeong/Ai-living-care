@@ -33,3 +33,9 @@ Gazebo RTF가 0.04~0.06이라 6.3분 시나리오가 벽시계 2시간이 된다
 
 `limo/limo.urdf` — WeGo `limo_gazebo`(ROS1 xacro)에서 변환한 **실제 LIMO 모델**.
 Jazzy 파싱은 통과한다. **Gazebo 플러그인 3블록만 Harmonic 문법으로 재작성하면 시뮬에 투입 가능**하다.
+
+## 구성
+
+- `patrol_sim.py` — ROS2·GUI 없이 A*·레이캐스팅으로 커버리지 계산 (`run_coverage.sh`가 호출)
+- `patrol_viz.py` — RViz2 순찰 애니메이션 (`run_patrol.sh`가 호출)
+

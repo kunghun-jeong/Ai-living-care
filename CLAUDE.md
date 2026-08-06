@@ -13,12 +13,16 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 
 ## 주요 명령어
 
-- 구조 감사: `python3 sot_audit.py`
-- 문서 정합성 감사: `python3 doc_audit.py`
+- 구조 감사(구조를 바꿀 때만): `python3 sot_audit.py`
+- 앵커 확인: `python3 anchor.py`
 - 순찰 검증(경량, ROS2만 필요): `cd tools/limo-patrol-viz && ./run_coverage.sh`
 - 전체 시뮬: `cd worker_ai_agent/limo-MCP && ros2 launch Simulation/sim_bringup.launch.py`
 - MCP 왕복: `cd worker_ai_agent/limo-MCP && python3 Scenarios/send_goal.py 1.0 0.0`
-- 빌드 / 테스트 / 린트: **없음** — `TODO(확인 필요)`, @docs/status.md 참조
+- 빌드 / 테스트 / 린트: **없음** (@docs/status.md)
+
+## 구성
+
+`manager_ai_agent/` · `worker_ai_agent/` (구현체는 `limo-MCP/`) · `interfaces/`(IF-1~IF-8) · `contracts/`(L1~L3·Report 스키마) · `tools/` · `docs/`
 
 ## 프로젝트 문서 (필요할 때만 읽을 것)
 
@@ -31,10 +35,9 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 - 문서 소유권·전파: @docs/doc-map.md
 - 구조 정본: @SOT.md
 - 설계 정본: @docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md
-
 ## 작업 규칙
 
-- **작업 시작 전 @docs/harness.md 에서 해당 작업의 하네스를 읽는다.** 하네스가 사전 점검·검증·결정 기록·리스크 판정 절차를 정한다.
+- **작업 전 그 디렉터리의 `CLAUDE.md`만 읽는다.** 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다.
 - 중요한 설계·기술 결정을 내리면 즉시 @docs/decisions.md 맨 위에 날짜와 함께 기록한다.
 - 이 파일에는 참조와 규칙만 추가한다. 상세 내용은 docs/ 아래 파일로 분리한다.
 - 팀 공유 지식은 CLAUDE.md와 docs/에, 개인 학습 내용은 /memory에 저장한다.
@@ -43,5 +46,5 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 
 ## ⚠️ 착수 전 필독
 
-`sot_audit.py`는 **구조**를, `doc_audit.py`는 **문서 정합성**을 본다 — 둘 다 초록이어도 **실행 가능성은 전혀 보증되지 않는다.**
+두 스크립트 어느 것도 **실행 가능성을 보증하지 않는다.**
 크리티컬 갭 6건(G-1~G-6), 안전 결함, 선결 조건은 @docs/status.md 에 있다.

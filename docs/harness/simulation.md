@@ -2,7 +2,8 @@
 
 > 대상: `worker_ai_agent/limo-MCP/Simulation/**`, `tools/limo-patrol-viz/**`
 >
-> 공통 절차는 @docs/harness.md.
+> 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
+> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다.
 
 ## 0. 먼저 알아야 할 것
 
@@ -19,25 +20,6 @@
    cmd_vel 타입 불일치, 상대경로 이중결합, X11 연결 실패의 실화가 사유와 함께 기록돼 있다.
    **이 저장소에서 가장 밀도 높은 문서다. 반드시 읽는다.**
 4. `docs/handoff/limo-MCP_SESSION_HANDOFF.md` — 개발 경위
-
-## 2. 사전 점검
-
-```bash
-# 필수 자산 — 자산 표에 없지만 없으면 즉사한다
-test -f tools/limo-patrol-viz/maps/map.pgm  || echo "FAIL: map.pgm 없음 (모듈 로드 시점 하드 의존)"
-test -f tools/limo-patrol-viz/maps/map.yaml || echo "FAIL: map.yaml 없음"
-test -f tools/limo-patrol-viz/limo/limo.urdf || echo "FAIL: limo.urdf 없음"
-test -d worker_ai_agent/limo-MCP/Simulation/aws_small_house/models \
-  || echo "WARN: fetch_meshes.sh 선행 필요 (~55MB)"
-
-# 개행·실행 비트 (Windows/OneDrive 클론 방어)
-! grep -rlU $'\r' --include='*.sh' . || echo "FAIL: CRLF 셸 스크립트"
-for s in $(git ls-files '*.sh'); do test -x "$s" || echo "FAIL: not executable $s"; done
-
-# ROS2
-test -n "$ROS_DISTRO" || echo "FAIL: source /opt/ros/jazzy/setup.bash 안 함"
-echo "ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-<unset — 공유 호스트에서 토픽 충돌 위험>}"
-```
 
 ### map.yaml ↔ 코드 상수 일치 (현재 아무도 안 하는 검사)
 
@@ -59,7 +41,7 @@ EOF
 > 임계값은 아예 다르다(yaml `occupied_thresh 0.65` vs 코드 `img > 250`).
 > **맵을 교체하면 yaml만 갱신되고 코드는 조용히 옛 원점으로 계산한다.** 커버리지 93.6%가 여기에 직결된다.
 
-## 3. 검증
+## 알아 둘 것 (함정)
 
 | # | 검증 | 방법 |
 |---|---|---|
@@ -96,15 +78,3 @@ EOF
 - 사람 배치 `PERSON=(-7.5, 0.30)`는 웨이포인트 `(-7.77, 0.56)`에서 **0.38 m** 거리다.
   그 웨이포인트는 사각지대를 메우려고 나중에 추가한 점이므로, **"순찰이 사람을 찾는다"는 결론은
   검증이 아니라 구성상 보장된 결과다**
-
-## 6. 결정 기록 · 리스크
-
-- 순찰 좌표·`CAM_RANGE`·`CAM_FOV` 변경 → **R1** (커버리지 수치가 바뀐다. 논문 인용값과 함께)
-- 맵 교체 → **R2** (`map.yaml`과 코드 상수 동시 갱신 필수)
-- 로봇 모델 교체 (turtlebot3 → LIMO) → **R3**
-- Nav2 파라미터·측위 방식(slam_toolbox ↔ AMCL) 변경 → **R3**
-- 실물 로봇 bringup 신설 → **R3** (`use_sim_time:=false`, LIMO footprint·속도 반영 필요)
-
-> **`sim/` `tools/`에는 비즈니스 로직을 두지 않는다**(SP-3)는 규칙이 있으나 `patrol_sim.py`는
-> A*·레이캐스팅·운동학 적분을 직접 갖고 있어 이미 위반 상태다. D-14 원본 보존과 양립 불가능하다.
-> **새 로직을 여기 더 넣지 않는다.**

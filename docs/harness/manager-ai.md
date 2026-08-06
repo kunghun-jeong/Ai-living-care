@@ -2,7 +2,8 @@
 
 > 대상: `manager_ai_agent/**` (MAC · MAA · MAMS · KG · IAD · mcp_client)
 >
-> 공통 절차는 @docs/harness.md.
+> 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
+> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다.
 
 ## 0. 먼저 알아야 할 것
 
@@ -24,20 +25,10 @@
    - mcp_client → §6 (A2A-over-MCP 바인딩)
 4. @docs/conventions.md §2 — **의존성 주입 패턴을 그대로 따른다**
 
-## 2. 사전 점검
-
-```bash
-# 만들려는 컴포넌트가 의존하는 인터페이스와 스키마가 먼저 정의됐는지
-ls interfaces/if01_database/ interfaces/if02_analytics/ interfaces/if04_secure_a2a_channel/
-ls contracts/intent_query/ contracts/high_level_policy/ contracts/worker_report/
-```
-
-비어 있으면 **거기부터 채운다.** 코드가 스키마를 앞서면 SOT가 깨진다 (SP-4).
-
 ## 3. 컴포넌트별 필수 검증
 
 > ID 접두 `HG-*`는 **이 하네스 전용**이다. spec의 설계 원칙 `P-*`, 표준화 `S-*`,
-> `SOT.md`의 배치 규칙 `SP-*`·감사 규칙 `AR-*` 와 겹치지 않는다 (doc_audit.py DA-5가 검사).
+> `SOT.md`의 배치 규칙 `SP-*`·감사 규칙 `AR-*` 와 겹치지 않는다.
 
 ### (a) Manager AI Core — L0 → L1 → L2
 
@@ -87,28 +78,3 @@ ls contracts/intent_query/ contracts/high_level_policy/ contracts/worker_report/
 |---|---|
 | HG-19 | **Worker 선택을 클라이언트가 하지 않는가.** MAMS의 책임이다. 클라이언트는 정해진 상대에게 보내고 받는 것만 한다 |
 | HG-20 | Task 폴링에 **상한**이 있는가. `deadline-sec` 초과 시 `timeout`으로 전이하고 cancel을 보내는가 |
-
-## 4. 결정 기록
-
-Manager는 전부 신규 구현이므로 **거의 모든 작업이 기록 대상**이다. 특히:
-
-- L1/L2 스키마 필드 확정 → **R3** (contracts + spec 동시 갱신)
-- LLM 선택 (U-3: Claude API vs Ollama vs 로컬) → **R3**
-- L2 직렬화 형식 확정 (U-2: XML vs JSON) → **R3**
-- KG 저장 형식·`resolve()` 시그니처 → **R1**
-- Worker 선택 점수 함수 가중치 (U-4) → **R2**
-- 재시도 상한·에스컬레이션 정책 → **R4**
-
-## 5. 아키텍처 리스크
-
-| 변경 | 등급 |
-|---|---|
-| 컴포넌트 내부 로직 | R0 |
-| IF-1/IF-2/IF-3 계약 정의·변경 | R1 |
-| L1/L2 스키마 | **R3** — 모든 하위 계층이 여기에 걸린다 |
-| 폐루프 상태기계 전이 규칙 | **R4** — 에스컬레이션이 안 되면 사람이 방치된다 |
-| `abnormal`/`not_found` 판정 기준 | **R4** |
-| dispatch-mode 추가 | R2 |
-
-> **Manager를 만들 때 가장 흔한 실수는 "일단 동작하게" 만들면서 L2에 디바이스 이름을 넣는 것이다.**
-> 그러면 Phase 2의 다중 Worker fan-out이 통째로 불가능해진다. 이건 나중에 못 고친다.

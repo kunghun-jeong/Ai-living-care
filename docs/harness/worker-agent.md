@@ -3,12 +3,13 @@
 > 대상: `worker_ai_agent/limo-MCP/Worker_functions/*.py`, `worker_ai_agent/{perception,reasoning,action}/`,
 > `worker_ai_core/`, `worker_ai_analyzer/`, `worker_ai_management_system/`
 >
-> 공통 절차는 @docs/harness.md.
+> 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
+> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다.
 
 ## 0. 먼저 알아야 할 것
 
 **`limo-MCP/`는 원본 보존 대상이다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다.
-**파일 *내용* 수정은 D-17에 따라 허용된다** — `docs/decisions.md`에 결정을 남기면 `doc_audit.py` DA-6을 통과한다.
+**파일 *내용* 수정은 D-17에 따라 허용된다** — `docs/decisions.md`에 결정을 한 줄 남긴다.
 Phase 0 작업 0-5·0-7~0-12가 전부 여기 해당한다.
 컴포넌트 디렉터리(`perception/` 등)는 **규범**을 갖고 코드는 없다 — 규범을 읽고 구현을 고친다.
 
@@ -23,16 +24,6 @@ Phase 0 작업 0-5·0-7~0-12가 전부 여기 해당한다.
 1. @docs/status.md 의 갭·결함 표 — **건드릴 모듈의 G-*/F-* 를 먼저 확인**
 2. 해당 컴포넌트 `CLAUDE.md`
 3. @docs/conventions.md §2(의존성 주입) §4(에러 처리) §6(동시성)
-
-## 2. 사전 점검
-
-```bash
-python3 -c "import rclpy, numpy" || echo "FAIL: ROS2 환경 미설정"
-# Reasonings.py 는 ROS2 없이 단독 import 된다 — 여기서 실패하면 코드가 오염된 것
-python3 -c "
-import sys; sys.path.insert(0, 'worker_ai_agent/limo-MCP/Worker_functions')
-import Reasonings; print('OK: Reasonings 단독 import')"
-```
 
 ## 3. 모듈별 필수 검증
 
@@ -76,25 +67,3 @@ import Reasonings; print('OK: Reasonings 단독 import')"
 | HW-22 | **상태 보호.** `status`/`last_goal`/`_goal_handle`/`sequence_*`가 하나의 락으로 묶였는가. `is_running_sequence` 체크와 스레드 시작이 **같은 락 안**인가 | 3개 스레드가 무보호 공유. TOCTOU로 시퀀스 2개가 동시에 붙을 수 있다 |
 | HW-23 | **yaw.** `prev_xy is None`일 때 0도로 떨어지지 않고 "현재 헤딩 유지" 또는 "명시 필수"인가 | 단일 목표는 항상 맵 +x축을 보고 정지한다 |
 | HW-24 | `pose.header.stamp`를 채웠는가 | 이동 프레임 사용 시 엉뚱한 위치로 간다 |
-
-## 4. 결정 기록
-
-- SF의 주입 시그니처(`DetectFn`/`PlanFn`/`CropFn`/`FrameSource`) 변경 → **R1**
-- `status` 열거값 추가·변경 → **R1**, 소비자 전수 갱신
-- 타임아웃 값·기준 시계 변경 → **R4**
-- 프레임 버퍼 정책(크기·만료·pinning) → **R1**, `contracts/worker_report/`의 `evidence` 필드와 함께
-- 갭(G-1~G-5) 해소 → **기록 필수.** 해소했으면 @docs/status.md 에서 해당 행을 갱신한다
-
-## 5. 아키텍처 리스크
-
-| 변경 | 등급 |
-|---|---|
-| 내부 리팩터, 인터페이스 불변 | R0 |
-| 주입 시그니처·반환 스키마 변경 | R1 |
-| SF 추가·분할, IF-5/IF-6 계약 정의 | R2~R3 |
-| **`cancel`·타임아웃·`status` 전이** | **R4** |
-| **사람 검출 → 판정 경로, 프레임 신선도, 증거 이미지 체인** | **R4** |
-| Nav2 액션 교체, 로봇 기종 변경 | R3 |
-
-> `Reasonings.py`의 **ROS2 비의존 순수 로직 + 백엔드 주입** 설계는 이 저장소에서 가장 잘 분리된 자산이다.
-> **훼손하지 말 것.** ROS2·하드웨어 의존을 이 파일에 들이면 유일한 테스트 가능 모듈을 잃는다.

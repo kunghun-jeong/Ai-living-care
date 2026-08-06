@@ -86,10 +86,10 @@ CODE = {
     "CLAUDE.md":                                           "루트 진입점",
 }
 
-# 감사 스크립트만 루트에 둔다 (SOT.md §5 AR-9).
+# 감사·앵커 스크립트만 루트에 둔다 (SOT.md §5 AR-9).
 # sot_migrate.py · sot_preserve.py 는 폐기됐다 — 여기 다시 넣지 말 것.
 # 실행하면 42개 CLAUDE.md 를 내장 템플릿으로 전면 덮어써 방금 고친 문서를 되돌린다.
-ROOT_PY_ALLOW = {"sot_audit.py", "doc_audit.py"}
+ROOT_PY_ALLOW = {"sot_audit.py", "anchor.py"}
 
 # D-14 원본 보존 대상 — 내부 구조를 바꾸지 않는다
 PRESERVED = ["worker_ai_agent/limo-MCP", "tools/limo-patrol-viz"]

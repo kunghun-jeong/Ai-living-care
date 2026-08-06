@@ -3,7 +3,8 @@
 > 대상: `worker_ai_agent/limo-MCP/MCP_server/MCP_server.py`, `Scenarios/*.py`,
 > `worker_ai_agent/mcp_server/`, `manager_ai_agent/mcp_client/`, `interfaces/if04_secure_a2a_channel/`
 >
-> 공통 절차는 @docs/harness.md. 이 문서는 MCP 고유 항목만 다룬다.
+> 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
+> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다. 이 문서는 MCP 고유 항목만 다룬다.
 
 ## 1. 읽을 것
 
@@ -11,26 +12,6 @@
 2. `worker_ai_agent/mcp_server/CLAUDE.md` — 규범과 U-1(SDK 버전)
 3. `interfaces/if04_secure_a2a_channel/CLAUDE.md` — A2A ↔ MCP 객체 매핑, TaskState 정렬
 4. 필요 시 설계 정본 §6 (A2A-over-MCP 바인딩 프로파일)
-
-## 2. 사전 점검
-
-```bash
-# SDK 버전 — 가장 조용히 깨지는 지점
-python3 - <<'EOF'
-import importlib.metadata as md
-v = md.version("mcp"); major = int(v.split(".")[0])
-assert major >= 2, f"FAIL: mcp {v} — MCP_server.py 는 mcp>=2.0 전용 (1.x 는 fastmcp)"
-__import__("mcp.server.mcpserver", fromlist=["MCPServer", "Image"])
-print(f"OK: mcp {v}")
-EOF
-
-python3 -c "import rclpy" || echo "FAIL: source /opt/ros/jazzy/setup.bash 또는 venv --system-site-packages"
-python3 -c "import PIL"   || echo "FAIL: Pillow 없음 (MCP_server.py 가 import)"
-```
-
-> **venv를 쓴다면 반드시 `--system-site-packages`로 만든다.** `rclpy`는 apt로
-> `/usr/lib/python3/dist-packages`에 있고, `Scenarios/*.py`가 `command="python3"`로 서버를 띄우므로
-> venv가 활성이면 자식 프로세스도 venv python을 쓴다 → `ModuleNotFoundError: rclpy`.
 
 ## 3. 작업 중 규칙
 
@@ -63,7 +44,7 @@ stdio 트랜스포트는 stdout을 JSON-RPC에만 쓴다. **서버 코드에 `pr
 `rclpy.shutdown()`·`destroy_node()`·`_pool.shutdown()`이 하나도 없다.
 **신규 코드는 `main()` 안으로 넣는다.** 기존 코드를 건드릴 기회가 있으면 함께 정리한다.
 
-## 4. 검증
+## 알아 둘 것 (함정)
 
 공통 V-1~V-5에 더해:
 
@@ -76,28 +57,6 @@ stdio 트랜스포트는 stdout을 JSON-RPC에만 쓴다. **서버 코드에 `pr
 | HM-5 | **동시 호출** | 같은 tool을 동시에 2번 호출해 두 번째가 거부되는지 (`{"started": false, "reason": ...}`) |
 | HM-6 | **시나리오 JSON 대조** | tool을 추가·개명했으면 `Scenarios/check_obj_state.json`이 참조하는 이름·인자와 대조한다. 현재 이 파일은 없는 tool 3종을 참조하는 사문서다 |
 | HM-7 | **왕복 스모크** | `rclpy`를 `sys.modules` 스텁으로 대체하면 ROS2 없이 서버 기동 + `initialize` + `tools/list` + `call_tool` 왕복을 검증할 수 있다. **CI에 넣으면 SDK 버전 리스크가 영구히 잡힌다** |
-
-## 5. 결정 기록
-
-MCP 작업에서 **반드시 기록**해야 하는 것:
-
-- tool 추가·삭제·개명, 파라미터 시그니처 변경 → **R1 이상**
-- 반환 스키마 변경 → **R1**
-- `status` 열거값 추가·변경 → **R1**, 소비자 전수 갱신 필수
-- 트랜스포트 변경(stdio ↔ Streamable HTTP) → **R3**
-- SDK 버전 하한·상한 변경 → **R1**, `requirements.txt`와 함께
-- A2A 객체 매핑 변경 → **R3**, `interfaces/if04_*/CLAUDE.md`와 spec §6.2 동시 갱신
-
-## 6. 아키텍처 리스크
-
-| 변경 | 등급 | 이유 |
-|---|---|---|
-| 기존 tool 시그니처 변경 | **R1** | Manager 측 클라이언트와 시나리오가 깨진다 |
-| `cancel` / 타임아웃 / `status` 전이 | **R4** | **로봇 정지 경로.** 현재 goal 수락 타임아웃 후 로봇을 멈출 방법이 없다 |
-| person-scan 5종 노출 (G-3) | **R4** | 사람 검출 결과가 판정으로 이어지는 경로. 블로킹 문제도 함께 |
-| `execute_policy` 신설 (L2 수용) | **R3** | 정책 계층이 처음 코드로 들어온다. contracts 스키마 선행 필요 |
-| Agent Card / `server/discover` | **R3** | IF-4 계약. spec §6.2 매핑표와 동기 |
-| stdout 처리 방식 | **R1** | 프로토콜 무결성 |
 
 ## 7. 알려진 함정 (재확인용)
 
