@@ -27,6 +27,7 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 - 의사결정 기록: @docs/decisions.md
 - 현재 상태·갭·선결조건: @docs/status.md
 - **작업 하네스**: @docs/harness.md
+- 문서 소유권·전파: @docs/doc-map.md
 - 구조 정본: @SOT.md
 - 설계 정본: @docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md
 
