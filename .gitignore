@@ -1,0 +1,37 @@
+# 파이썬
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 대용량 자산 — fetch_meshes.sh 로 받는다
+*.dae
+*.DAE
+*.stl
+*.STL
+*.obj
+*.mtl
+*.tga
+*.fbx
+*.blend
+limo-MCP/Simulation/aws_small_house/models/**/*.png
+limo-MCP/Simulation/aws_small_house/models/**/*.jpg
+limo-MCP/Simulation/aws_small_house/models/**/*.jpeg
+
+# YOLO 가중치 (ultralytics 가 자동 다운로드, AGPL-3.0)
+*.pt
+*.onnx
+*_openvino_model/
+
+# 실행 산출물
+patrol_sim.png
+*.log
+/tmp/
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

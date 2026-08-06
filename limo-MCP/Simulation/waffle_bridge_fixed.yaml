@@ -1,0 +1,58 @@
+# turtlebot3_gazebo/params/turtlebot3_waffle_bridge.yaml 그대로 복사한 것 + cmd_vel 타입만 수정.
+#
+# 원본은 cmd_vel을 geometry_msgs/msg/TwistStamped로 선언하는데, 이 ROS2 Jazzy +
+# nav2_bringup 스톡 nav2_params.yaml 조합에서는 collision_monitor가 최종
+# /cmd_vel을 geometry_msgs/msg/Twist(스탬프 없음)로 발행한다. 타입이 안 맞으면
+# ROS2는 그 둘을 아예 다른 토픽 인스턴스로 취급해 아무 것도 브리지되지 않고,
+# Gazebo의 DiffDrive 플러그인은 cmd_vel을 영원히 못 받아 로봇이 안 움직인다
+# (실제로 겪은 문제: Nav2가 "Failed to make progress"를 반복하며 goal에 영원히
+# 도달 못 함, /odom 위치가 전혀 안 바뀜). 그래서 Twist로 고쳐서 실제 발행 타입과
+# 맞춘다.
+
+- ros_topic_name: "clock"
+  gz_topic_name: "clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "joint_states"
+  gz_topic_name: "joint_states"
+  ros_type_name: "sensor_msgs/msg/JointState"
+  gz_type_name: "gz.msgs.Model"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "odom"
+  gz_topic_name: "odom"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "tf"
+  gz_topic_name: "tf"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "cmd_vel"
+  gz_topic_name: "cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+
+- ros_topic_name: "imu"
+  gz_topic_name: "imu"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "scan"
+  gz_topic_name: "scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "camera/camera_info"
+  gz_topic_name: "camera/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS

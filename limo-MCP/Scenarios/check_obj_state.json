@@ -1,0 +1,44 @@
+{
+  "scenario_id": "check_obj_human",
+  "input": {"intent": "check_obj", "object": "person"},
+  "steps": [
+    {
+      "id": "look_around",
+      "type": "call",
+      "layer": "action",
+      "tool": "look_around",
+      "args": {"steps": 8, "step_deg": 45, "step_duration": 1.0}
+    },
+    {
+      "id": "scan_and_detect",
+      "type": "poll_until_match",
+      "layer": "reasoning",
+      "tool": "detect_objects",
+      "args": {},
+      "match": {"field": "detections", "class_field": "class", "target": "$input.object"},
+      "stop_when": {"tool": "is_looking_around", "field": "looking_around", "equals": false},
+      "poll_interval": 0.5,
+      "timeout": 15.0,
+      "interrupt": {"tool": "interrupt_look_around"}
+    },
+    {
+      "id": "check_found",
+      "type": "branch",
+      "condition": "scan_and_detect.matched",
+      "on_true": "state_check",
+      "on_false": "fail"
+    },
+    {
+      "id": "state_check",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "check_object_state",
+      "args": {
+        "object_class": "$input.object",
+        "detections": "$scan_and_detect.matched_detections"
+      },
+      "next": "success"
+    }
+  ],
+  "fail": {"error": "object_not_found"}
+}
