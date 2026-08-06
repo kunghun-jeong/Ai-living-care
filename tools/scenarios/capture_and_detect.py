@@ -5,8 +5,8 @@
 
 사용:
     source /opt/ros/jazzy/setup.bash
-    cd limo-MCP
-    python3 Scenarios/capture_and_detect.py [저장할_경로.jpg]
+    cd <repo root>
+    python3 tools/scenarios/capture_and_detect.py [저장할_경로.jpg]
 """
 
 import asyncio
@@ -17,7 +17,7 @@ import sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-SERVER_PATH = os.path.join(os.path.dirname(__file__), "..", "MCP_server", "MCP_server.py")
+SERVER_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "a2a", "server", "MCP_server.py")
 
 
 async def main(out_path: str) -> None:

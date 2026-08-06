@@ -20,7 +20,11 @@ from rclpy.node import Node
 
 from mcp.server.mcpserver import Image, MCPServer
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "Worker_functions"))
+# SF는 worker/service_functions/ 아래 세 디렉터리로 분리돼 있다.
+# 모듈명(Perceptions/Reasonings/Actions)은 그대로라 import는 바뀌지 않는다.
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+for _sf in ("perception", "reasoning", "action"):
+    sys.path.append(os.path.join(_ROOT, "worker", "service_functions", _sf))
 
 from Actions import ActionModule
 from Perceptions import PerceptionModule
