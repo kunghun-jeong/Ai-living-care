@@ -63,7 +63,6 @@
 │   ├── perception/                     PF
 │   ├── reasoning/                      RF
 │   ├── action/                         AF
-│   └── mcp_server/                     A2A Server + Agent Executor — IF-4 Worker 측 종단점
 │
 ├── interfaces/                         IF-1 ~ IF-8 (스펙 §3)
 │   ├── if01_database/
@@ -81,10 +80,8 @@
 │   ├── low_level_policy/               L3
 │   └── worker_report/
 │
-├── sim/                                시뮬레이션 (비컴포넌트)
 ├── tools/                              검증·시연 도구 (비컴포넌트)
-│   ├── patrol_viz/
-│   └── scenarios/
+│   └── limo-patrol-viz/                ★ 원본 보존 (D-14)
 └── docs/                               문서 (비컴포넌트)
     ├── spec/ context/ handoff/ audit/ slides/
 ```
@@ -183,6 +180,7 @@
 | **R6** | 비컴포넌트 4종(`docs` `sim` `tools` `contracts`)이 루트에 존재 |
 | **R7** | 경로 참조 무결성 — `mcp_server`의 `sys.path`가 실재 디렉터리를 가리키고, scenarios의 `SERVER_PATH`가 실재 파일을 가리킴 |
 | **R8** | `CLAUDE.md`가 SOT를 참조 (P-6) |
+| **R10** | D-14 원본 보존 대상이 존재하고 내부 구조가 원형인지 |
 | **R9** | 컴포넌트 디렉터리 밖에 떠도는 `.py` 부재. 루트 허용은 SOT 관리 스크립트 `sot_audit.py` · `sot_migrate.py` 둘뿐 |
 
 ```bash
@@ -200,6 +198,7 @@ python3 sot_audit.py --plan   # 위반 해소용 git mv 계획 출력
 | **D-10** | `interfaces/`를 **1급 디렉터리**로 둔다 | 스펙 §3 *"각 인터페이스가 곧 표준화 문서의 한 절이 된다"*. 표준화 항목 S-6의 실체 |
 | **D-11** | PF/RF/AF 디렉터리에서 `_function` 접미사를 뺀다 | N-1의 명시적 예외. 상위 `worker_ai_agent/`가 문맥을 주므로 반복이 불필요 |
 | **D-12** | `service_functions/` 중간 계층을 **두지 않는다** | 스펙 §2.2에서 "Service Functions"는 컴포넌트가 아니라 **행 레이블**이다. 실제 컴포넌트는 PF/RF/AF 셋. IF-5·IF-6이 이들을 집합으로 지칭하는 것은 `interfaces/if05_sf_facing/`이 문서로 다룬다 |
+| **D-14** | **`limo-MCP/` 와 `limo-patrol-viz/` 는 원본을 그대로 보존한다.** 각각 `worker_ai_agent/limo-MCP/`, `tools/limo-patrol-viz/` 에 통째로 배치하고 내부를 분해하지 않는다 | 기존 저장소 작업자가 영향 없이 계속 작업하게 하기 위함. 컴포넌트 디렉터리는 **규범**을 보유하고 코드는 구현체에 둔다 — 규범과 구현의 분리 |
 | **D-13** | 컴포넌트 디렉터리에 정식 명칭 전체를 쓴다 (`manager_ai_core`, `core` 아님) | N-1. 파일 하나만 열려 있어도 소속이 드러나야 하고, 축약형은 Manager/Worker 양쪽에서 충돌한다 |
 
 > D-9 ~ D-13은 **스펙 §0.2 결정표에 반영해야 한다.** (미반영 상태)

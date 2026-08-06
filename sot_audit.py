@@ -59,11 +59,11 @@ INTERFACES = [
     ("IF-8", "interfaces/if08_analyzer_facing",    "Analyzer-Facing Interface"),
 ]
 
-NON_COMPONENT = ["docs", "sim", "tools", "contracts"]
+NON_COMPONENT = ["docs", "tools", "contracts"]
 
 # 금지 별칭 (SOT §5 R2) : 존재하면 위반
 FORBIDDEN = [
-    "manager", "worker", "a2a",
+    "manager", "worker", "a2a", "sim", "tools/scenarios", "tools/patrol_viz",
     f"{WORKER}/service_functions",
     f"{MANAGER}/intent_audit_db",
     f"{MANAGER}/core", f"{MANAGER}/analyzer", f"{MANAGER}/mgmt_system",
@@ -72,20 +72,23 @@ FORBIDDEN = [
 
 # SOT가 정한 코드 위치 (R5)
 CODE = {
-    f"{WORKER}/perception/Perceptions.py":  "PF 구현",
-    f"{WORKER}/reasoning/Reasonings.py":    "RF 구현",
-    f"{WORKER}/action/Actions.py":          "AF 구현",
-    f"{WORKER}/mcp_server/MCP_server.py":   "A2A Server / MCP 종단점",
-    "sim/sim_bringup.launch.py":            "시뮬 브링업",
-    "tools/scenarios/send_goal.py":         "MCP 왕복 클라이언트",
-    "tools/patrol_viz/patrol_viz.py":       "순찰 검증 도구",
-    "requirements.txt":                     "의존성",
-    "SOT.md":                               "구조 정본",
-    "CLAUDE.md":                            "루트 진입점",
+    f"{WORKER}/limo-MCP/Worker_functions/Perceptions.py":  "PF 구현 (원본 보존)",
+    f"{WORKER}/limo-MCP/Worker_functions/Reasonings.py":   "RF 구현 (원본 보존)",
+    f"{WORKER}/limo-MCP/Worker_functions/Actions.py":      "AF 구현 (원본 보존)",
+    f"{WORKER}/limo-MCP/MCP_server/MCP_server.py":         "A2A Server / MCP 종단점 (원본 보존)",
+    f"{WORKER}/limo-MCP/Simulation/sim_bringup.launch.py": "시뮬 브링업 (원본 보존)",
+    f"{WORKER}/limo-MCP/Scenarios/send_goal.py":           "MCP 왕복 클라이언트 (원본 보존)",
+    f"{WORKER}/limo-MCP/requirements.txt":                 "의존성 (원본 보존)",
+    "tools/limo-patrol-viz/patrol_viz.py":                 "순찰 검증 도구 (원본 보존)",
+    "SOT.md":                                              "구조 정본",
+    "CLAUDE.md":                                           "루트 진입점",
 }
 
 # SOT 관리 스크립트는 루트에 두는 것이 규범이다 (SOT.md §5 R9)
-ROOT_PY_ALLOW = {"sot_audit.py", "sot_migrate.py"}
+ROOT_PY_ALLOW = {"sot_audit.py", "sot_migrate.py", "sot_preserve.py"}
+
+# D-14 원본 보존 대상 — 내부 구조를 바꾸지 않는다
+PRESERVED = ["worker_ai_agent/limo-MCP", "tools/limo-patrol-viz"]
 
 # 현재 구조 → SOT (R2/R5 위반 해소용 이동 계획)
 MIGRATION = [
@@ -156,22 +159,20 @@ def audit():
         chk("R6", isdir(d), f"{d}/")
 
     # R7 경로 참조 무결성
-    p = os.path.join(R, WORKER, "mcp_server", "MCP_server.py")
+    p = os.path.join(R, WORKER, "limo-MCP", "MCP_server", "MCP_server.py")
     if os.path.exists(p):
         s = open(p, encoding="utf-8").read()
         m = re.findall(r'os\.path\.join\(_ROOT,\s*([^)]+)\)', s)
         base = os.path.abspath(os.path.join(os.path.dirname(p), "..", ".."))
-        hits = [sf for sf in ("perception", "reasoning", "action")
-                if os.path.isdir(os.path.join(base, WORKER, sf))]
-        chk("R7", len(hits) == 3 and f'"{WORKER}"' in s.replace("'", '"'),
-            f"MCP_server.py sys.path → {WORKER}/{{perception,reasoning,action}}")
+        chk("R7", "Worker_functions" in s,
+            "MCP_server.py sys.path -> ../Worker_functions (원본 그대로)")
     else:
         chk("R7", False, "MCP_server.py 부재로 sys.path 검사 불가")
 
     for n in ("send_goal.py", "capture_and_detect.py"):
-        p = os.path.join(R, "tools", "scenarios", n)
+        p = os.path.join(R, WORKER, "limo-MCP", "Scenarios", n)
         if not os.path.exists(p):
-            chk("R7", False, f"tools/scenarios/{n} 부재")
+            chk("R7", False, f"limo-MCP/Scenarios/{n} 부재")
             continue
         s = open(p, encoding="utf-8").read()
         m = re.search(r'SERVER_PATH\s*=\s*os\.path\.join\((.+?)\)\s*$', s, re.M)
@@ -181,7 +182,7 @@ def audit():
             parts = [x for x in parts if x != "os.path.dirname(__file__)"]
             target = os.path.normpath(os.path.join(os.path.dirname(p), *parts))
         chk("R7", bool(target) and os.path.isfile(target),
-            f"tools/scenarios/{n} SERVER_PATH → {os.path.relpath(target, R) if target else '?'}")
+            f"limo-MCP/Scenarios/{n} SERVER_PATH → {os.path.relpath(target, R) if target else '?'}")
 
     # R8 CLAUDE.md가 SOT 참조
     missing = []
@@ -194,6 +195,13 @@ def audit():
                 missing.append(rel if rel != "." else "(root)")
     chk("R8", not missing,
         "모든 CLAUDE.md가 SOT.md 참조" + (f" — 미참조 {len(missing)}개: {', '.join(missing[:6])}…" if missing else ""))
+
+    # R10 원본 보존 (D-14)
+    for d in PRESERVED:
+        chk("R10", isdir(d), f"원본 보존: {d}/")
+    chk("R10", all(isdir(f"worker_ai_agent/limo-MCP/" + x)
+                   for x in ("Worker_functions", "Simulation", "Scenarios", "MCP_server")),
+        "limo-MCP 내부 구조 원형 유지")
 
     # R9 떠도는 .py
     stray = [f for f in os.listdir(R)

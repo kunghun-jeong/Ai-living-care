@@ -7,6 +7,14 @@
 
 **파일**: `Actions.py` — `ActionModule(node, nav_action="navigate_to_pose")`
 
+
+## 구현 위치 (D-14)
+
+원본 보존 원칙에 따라 실제 코드는 **`worker_ai_agent/limo-MCP/Worker_functions/Actions.py`** 에 있다.
+이 디렉터리는 **규범(설계·인터페이스·갭)** 을 보유하고, 코드는 두지 않는다.
+
+**구현을 고치기 전에 이 문서의 갭·주의사항을 먼저 읽을 것.**
+
 ## ROS2 의존 표면 (전부)
 
 ```python

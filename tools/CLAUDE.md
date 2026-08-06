@@ -1,45 +1,16 @@
 # tools — 검증·시연 도구
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §10.1
-> **컴포넌트가 아니다.** 비즈니스 로직을 두지 않는다 (P-3).
+> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+> **상위**: 저장소 루트 · **Phase**: — · **구현 상태**: —
 
-| 경로 | 용도 |
-|---|---|
-| `patrol_viz/` | Gazebo·Nav2·YOLO **없이** 순찰 로직 검증·시연 |
-| `scenarios/` | MCP 왕복 CLI 클라이언트 + 시나리오 DSL |
+**컴포넌트가 아니다.** 비즈니스 로직을 두지 않는다 (P-3).
 
-## patrol_viz — 왜 존재하는가
+| 경로 | 용도 | 비고 |
+|---|---|---|
+| `limo-patrol-viz/` | Gazebo·Nav2·YOLO 없이 순찰 로직 검증 | **원본 보존 (D-14)** |
 
-Gazebo RTF가 0.04~0.06이라 6.3분 시나리오가 벽시계 2시간이 된다. **반복 검증이 불가능해 만든 대체 수단**이다.
-
-```bash
-cd tools/patrol_viz
-./run_coverage.sh    # GUI 없이 커버리지 수치 + patrol_sim.png
-./run_patrol.sh      # RViz2 순찰 애니메이션 + 카메라 스트리밍
-```
-
-### 결과: 경로점 7개 · 375초 · 스캔 376회 · 주행 50 m · **커버리지 93.6%** · 사각지대 0
-
-**⚠️ 이 수치는 "실측"이 아니라 기하 시뮬레이션 결과다.** 논문·제안서에 반드시 이렇게 표기할 것:
-
-- 물리(바퀴 미끄러짐·충돌)와 Nav2 실제 재계획 없음 → **실소요는 20~30% 더 걸릴 것**
-- **YOLO를 돌리지 않음** — "FOV 안 + 시야 확보 = 발견"으로 처리
-- `CAM_RANGE = 4.0 m`는 **미측정 가정**이며 커버리지가 여기에 가장 민감
-- **수직 FOV 미반영 (U-13)** — 2D 가정이라 4 m 거리에서 **바닥에 누운 사람이 화면 아래로 벗어나는 경우**를
-  못 잡는다. 쓰러진 상황이 리빙케어에서 가장 위험한데 바로 그 부분이 미검증이다
-
-## scenarios
-
-```bash
-python3 tools/scenarios/send_goal.py 1.0 0.0
-python3 tools/scenarios/capture_and_detect.py out.jpg
-```
-
-**`check_obj_state.json`은 현재 실행 불가**다 — 참조하는 `look_around`·`is_looking_around`·
-`interrupt_look_around`가 AF에 없고(G-4), `check_object_state`도 tool로 노출되지 않았으며(G-3),
-RF의 `check_object_state`는 JSON이 넘기는 `detections` 인자를 받지 않는다.
-
-## 자산 메모
-
-`patrol_viz/limo/limo.urdf` — WeGo `limo_gazebo`(ROS1 xacro)에서 변환한 **실제 LIMO 모델**.
-Jazzy 파싱은 통과한다. **Gazebo 플러그인 3블록만 Harmonic 문법으로 재작성하면 시뮬에 투입 가능**하다.
+> **MCP 왕복 검증 클라이언트는 여기 없다.** 원본 보존 원칙에 따라
+> `worker_ai_agent/limo-MCP/Scenarios/` 안에 그대로 있다.
+> ```bash
+> cd worker_ai_agent/limo-MCP && python3 Scenarios/send_goal.py 1.0 0.0
+> ```
