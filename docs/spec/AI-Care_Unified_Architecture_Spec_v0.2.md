@@ -52,6 +52,14 @@
 | D-6 | KG는 **JSON/YAML 룩업 테이블로 간소 구현**하되 Database Interface 계약을 고정해 후일 그래프DB로 무중단 교체 | 사용자 지시 (§3.1, §4.2) |
 | **D-7** *(v0.2)* | **`limo-MCP`를 Worker 기준 코드베이스로 확정.** `limo_slam`은 코드 재사용 없이 참조만 (원 자료는 limo_slam을 "레거시"가 아니라 **별개의 대등한 프로젝트**로 서술하며, 그쪽 Gazebo/Nav2 브링업도 검증돼 있다 — 격하는 이 스펙의 편집 결정) | `limo-MCP/SESSION_HANDOFF.md` 2026-08-06: "limo_slam과는 **별개의 독립 프로젝트**로 진행하기로 함… Gazebo 시뮬레이션 환경도 limo_slam 것을 재사용하지 않고 새로 구성". limo-MCP는 카메라·YOLO·Nav2 end-to-end가 실제로 검증됨 (§10.1) |
 | **D-8** *(v0.2)* | **시뮬레이션 로봇은 turtlebot3 waffle, 월드는 AWS RoboMaker small_house** 유지. LIMO 모델 교체는 Phase 1 이후 | 카메라 센서·브리지가 이미 완성돼 있고 SF 코드는 로봇 비의존. 월드가 실제 주거 공간이라 리빙케어 시나리오에 적합 (§10.2) |
+| **D-9** *(SOT)* | A2A 종단점을 **최상위가 아니라 각 에이전트 안에** 둔다 — `manager_ai_agent/mcp_client/`, `worker_ai_agent/mcp_server/` | `AI-Care_A2A_Core_Context` §4가 A2A Client를 Manager AI Agent에, A2A Server·Agent Executor를 Worker AI Agent에 배정. §10.1도 `MCP_server.py`를 WAC/A2A 종단점으로 매핑. **최상위 `a2a/`는 근거 없음** |
+| **D-10** *(SOT)* | `interfaces/`를 **1급 디렉터리**로 두고 IF-1~IF-8에 각각 디렉터리를 준다 | §3 *"각 인터페이스가 곧 표준화 문서의 한 절이 된다"*. 표준화 항목 S-6의 실체 |
+| **D-11** *(SOT)* | PF/RF/AF 디렉터리에서 `_function` 접미사를 뺀다 (`perception/` 등) | 명명 규칙 N-1의 명시적 예외. 상위 `worker_ai_agent/`가 문맥을 준다 |
+| **D-12** *(SOT)* | `service_functions/` 중간 계층을 **두지 않는다** | §2.2에서 "Service Functions"는 컴포넌트가 아니라 **행 레이블**. 실제 컴포넌트는 PF/RF/AF 셋 |
+| **D-13** *(SOT)* | 컴포넌트 디렉터리에 정식 명칭 전체를 쓴다 (`manager_ai_core`, `core` 아님) | 파일 하나만 열려 있어도 소속이 드러나야 하고, 축약형은 Manager/Worker 양쪽에서 충돌한다 |
+
+
+> **D-9 ~ D-13은 저장소 구조 정본 `SOT.md`에서 온 결정이다.** 구조 규범과 기계 검사는 `SOT.md` / `sot_audit.py`가 관할한다.
 
 ---
 

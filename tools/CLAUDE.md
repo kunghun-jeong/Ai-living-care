@@ -1,22 +1,21 @@
 # tools — 검증·시연 도구
 
-> **SOT**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §10.1
-> **컴포넌트가 아니다.** 여기에 비즈니스 로직을 두지 않는다.
+> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §10.1
+> **컴포넌트가 아니다.** 비즈니스 로직을 두지 않는다 (P-3).
 
 | 경로 | 용도 |
 |---|---|
-| `patrol_viz/` | Gazebo·Nav2·YOLO **없이** 순찰 로직을 검증·시연 |
-| `scenarios/` | MCP 왕복 CLI 클라이언트 + 시나리오 DSL. **정책 실행 회귀 테스트 하네스로 승격 예정** |
+| `patrol_viz/` | Gazebo·Nav2·YOLO **없이** 순찰 로직 검증·시연 |
+| `scenarios/` | MCP 왕복 CLI 클라이언트 + 시나리오 DSL |
 
 ## patrol_viz — 왜 존재하는가
 
 Gazebo RTF가 0.04~0.06이라 6.3분 시나리오가 벽시계 2시간이 된다. **반복 검증이 불가능해 만든 대체 수단**이다.
-AWS small_house 맵 위에서 A*로 경로를 뽑고 운동학만 적분해 로봇을 움직이며, 카메라 1인칭 뷰까지 합성한다.
 
 ```bash
 cd tools/patrol_viz
 ./run_coverage.sh    # GUI 없이 커버리지 수치 + patrol_sim.png
-./run_patrol.sh      # RViz2에서 순찰 애니메이션 + 카메라 스트리밍
+./run_patrol.sh      # RViz2 순찰 애니메이션 + 카메라 스트리밍
 ```
 
 ### 결과: 경로점 7개 · 375초 · 스캔 376회 · 주행 50 m · **커버리지 93.6%** · 사각지대 0
@@ -32,13 +31,13 @@ cd tools/patrol_viz
 ## scenarios
 
 ```bash
-python3 tools/scenarios/send_goal.py 1.0 0.0        # plan_and_navigate 왕복
-python3 tools/scenarios/capture_and_detect.py out.jpg  # 스냅샷 + YOLO
+python3 tools/scenarios/send_goal.py 1.0 0.0
+python3 tools/scenarios/capture_and_detect.py out.jpg
 ```
 
 **`check_obj_state.json`은 현재 실행 불가**다 — 참조하는 `look_around`·`is_looking_around`·
 `interrupt_look_around`가 AF에 없고(G-4), `check_object_state`도 tool로 노출되지 않았으며(G-3),
-게다가 RF의 `check_object_state`는 JSON이 넘기는 `detections` 인자를 받지 않는다.
+RF의 `check_object_state`는 JSON이 넘기는 `detections` 인자를 받지 않는다.
 
 ## 자산 메모
 

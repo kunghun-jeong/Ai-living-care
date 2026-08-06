@@ -1,0 +1,31 @@
+# Manager AI Agent
+
+> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+> **상위**: 저장소 루트 · **Phase**: 0 · **구현 상태**: 미착수
+
+사용자의 자연어 의도를 해석해 **고수준 정책(L2)** 을 만들고, 적절한 Worker를 선택해 A2A로 배포하며,
+돌아온 Report를 해석해 재시도·전환·에스컬레이션을 결정한다.
+
+## 구성 (P-1 대칭성)
+
+| 디렉터리 | 정규화 명칭 | 약칭 |
+|---|---|---|
+| `manager_ai_core/` | Manager AI Core | MAC |
+| `manager_ai_analyzer/` | Manager AI Analyzer | MAA |
+| `manager_ai_management_system/` | Manager AI Management System | MAMS |
+| `knowledge_graph/` | Knowledge Graph | KG |
+| `intent_audit_database/` | Intent Audit Database | IAD |
+| `mcp_client/` | A2A Client — IF-4 Manager 측 종단점 | — |
+
+> **KG와 IAD는 별개다.** 원 자료(slide 16·17·21, 논문 Fig.1)에서 이 자리에 박스가 하나만 그려져 있고
+> 자료마다 이름이 다르지만, 접근 패턴과 수명이 달라 두 저장소로 분리했다 (spec §2.3).
+
+## 인터페이스
+
+IF-1(→KG/IAD) · IF-2(↔MAA) · IF-3(↔MAMS) · **IF-4**(↔WAC) · IF-7(↔WAMS, P2) · IF-8(↔WAA, P2)
+정의는 `interfaces/`에 있다.
+
+## 주의
+
+docx는 Manager를 "우리 스코프 아님"으로 두었으나 **2026-08-06 결정으로 구현 범위에 포함**됐다.
+KG는 그래프DB가 아니라 JSON 룩업으로 간소 구현한다 (D-6).

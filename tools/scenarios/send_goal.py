@@ -15,7 +15,7 @@ import sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-SERVER_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "a2a", "server", "MCP_server.py")
+SERVER_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "worker_ai_agent", "mcp_server", "MCP_server.py")
 
 
 async def main(x: float, y: float, yaw_deg: float | None) -> None:
