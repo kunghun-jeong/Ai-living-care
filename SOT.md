@@ -24,7 +24,7 @@
 | **N-2** | 표기는 **snake_case**. 공백·하이픈·대문자를 쓰지 않는다. 파이썬 패키지·ROS2 경로·셸 스크립트에서 그대로 식별자로 쓸 수 있어야 한다. (`Manager AI Core` → `manager_ai_core`) |
 | **N-3** | 약칭(MAC/MAA/MAMS/WAC/WAA/WAMS/KG/IAD/PF/RF/AF)은 **문서 안에서만** 쓴다. 디렉터리 이름으로 쓰지 않는다. |
 | **N-4** | 인터페이스 디렉터리는 `if<NN>_<snake_name>` 형식. 번호를 붙여 스펙 §3의 표 순서와 정렬을 강제한다. |
-| **N-5** | 비컴포넌트(`docs/` `sim/` `tools/` `contracts/` `interfaces/`)는 저장소 루트에 둔다. 에이전트 디렉터리 안에 넣지 않는다. |
+| **N-5** | 비컴포넌트(`docs/` `tools/` `contracts/` `interfaces/`)는 저장소 루트에 둔다. **`sim/`은 존재하지 않으며 금지 경로다** — 시뮬레이션은 `worker_ai_agent/limo-MCP/Simulation/`에 있고 이는 D-14 보존 대상 내부이므로 이 규칙의 예외다 (F-13 잔여 정정). |
 
 ---
 
@@ -107,6 +107,8 @@
 | Perception Function | PF | `worker_ai_agent/perception/` | IF-5·IF-6 | 0 | `Perceptions.py` |
 | Reasoning Function | RF | `worker_ai_agent/reasoning/` | IF-5·IF-6 | 0 | `Reasonings.py` |
 | Action Function | AF | `worker_ai_agent/action/` | IF-5·IF-6 | 0 | `Actions.py` |
+| A2A Client | — | `manager_ai_agent/mcp_client/` | **IF-4** | 0 | 없음 |
+| A2A Server + Agent Executor | — | `worker_ai_agent/mcp_server/` | **IF-4** | 0 | `MCP_server.py` (구현은 `limo-MCP/`) |
 
 > **PF/RF/AF의 정식 명칭은 "…Function"이지만 디렉터리는 `perception/`·`reasoning/`·`action/`으로 한다** (D-11).
 > `_function` 접미사가 모든 경로에 반복되어 가독성을 해치고, 상위 `worker_ai_agent/`가 이미 문맥을 준다.
@@ -178,7 +180,7 @@
 
 | ID | 검사 |
 |---|---|
-| **AR-1** | §2.1의 컴포넌트 디렉터리 11개가 정확한 이름으로 존재 |
+| **AR-1** | §2.1의 컴포넌트 디렉터리 11개 + A2A 종단점 2개가 정확한 이름으로 존재 |
 | **AR-2** | 금지 별칭 디렉터리 부재 — `manager/` `worker/` `a2a/` `*/core` `*/analyzer` `*/mgmt_system` `*/service_functions` `*/intent_audit_db` |
 | **AR-3** | `interfaces/if01_…`~`if08_…` 8개 존재 |
 | **AR-4** | 모든 컴포넌트·인터페이스 디렉터리에 `CLAUDE.md` 존재 (SP-5) |
@@ -192,7 +194,7 @@
 ```bash
 python3 sot_audit.py          # 구조 검사 (AR-1~AR-10)
 python3 sot_audit.py --plan   # 위반 해소용 git mv 계획 출력
-python3 doc_audit.py          # 문서 정합성 검사 (DA-1~DA-9) — 둘 다 통과해야 커밋
+python3 doc_audit.py          # 문서 정합성 검사 (DA-1~DA-11) — 둘 다 통과해야 커밋
 ```
 
 ---
@@ -208,6 +210,7 @@ python3 doc_audit.py          # 문서 정합성 검사 (DA-1~DA-9) — 둘 다 
 | **D-14** | **`limo-MCP/` 와 `limo-patrol-viz/` 는 원본을 그대로 보존한다.** 각각 `worker_ai_agent/limo-MCP/`, `tools/limo-patrol-viz/` 에 통째로 배치하고 내부를 분해하지 않는다 | 기존 저장소 작업자가 영향 없이 계속 작업하게 하기 위함. 컴포넌트 디렉터리는 **규범**을 보유하고 코드는 구현체에 둔다 — 규범과 구현의 분리 |
 | **D-13** | 컴포넌트 디렉터리에 정식 명칭 전체를 쓴다 (`manager_ai_core`, `core` 아님) | N-1. 파일 하나만 열려 있어도 소속이 드러나야 하고, 축약형은 Manager/Worker 양쪽에서 충돌한다 |
 | **D-15** | **배치 규칙은 `SP-*`, 감사 규칙은 `AR-*`, 하네스 로컬 체크는 `H*-`로 접두를 분리한다** | spec §1.2의 설계 원칙 `P-*`, §11.1의 표준화 `S-*`와 충돌하면 "P-4를 지켰나"라는 문장의 의미가 결정되지 않는다 (F-14·F-23). `doc_audit.py` DA-5가 재발을 막는다 |
+| **D-17** | **D-14의 보존 범위는 「구조·파일명·경로」이며 「내용 동결」이 아니다.** 원본 파일의 삭제·개명·무단 추가는 금지하고, 내용 변경은 `docs/decisions.md`에 결정을 남기면 허용한다 | `doc_audit.py` DA-6이 내용까지 동결하고 있었고, 그 결과 **Phase 0 작업 0-5·0-7~0-12(7건)가 커밋 불가**였다. 이 7건은 F-1~F-3(안전)·F-4~F-8(실행 차단) 수정 대상과 겹친다. **보존이 안전 수정을 막으면 보존이 아니다.** 2026-08-06 2차 재감사에서 실증 |
 | **D-16** | **`SOT.md` §2 트리 · `sot_audit.py` 검사 대상 · 실제 디렉터리는 항상 집합 일치한다** | 셋 중 하나만 고치면 정본이 파생물보다 낡는다 — 실제로 발생했다 (F-20). `doc_audit.py` DA-3가 강제한다 |
 
 > D-9 ~ D-13은 **스펙 §0.2 결정표에 반영해야 한다.** (미반영 상태)

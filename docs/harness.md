@@ -44,7 +44,7 @@
 git rev-parse --abbrev-ref HEAD                       # 브랜치 확인
 test -d worker_ai_agent/limo-MCP || echo "FAIL: 구 레이아웃"
 python3 sot_audit.py                                   # 구조 규범 (AR-1~AR-10)
-python3 doc_audit.py                                   # 문서 정합성 (DA-1~DA-10)
+python3 doc_audit.py                                   # 문서 정합성 (DA-1~DA-11)
 python3 -m compileall -q $(git ls-files '*.py')        # 구문
 for s in $(git ls-files '*.sh'); do bash -n "$s"; done # 셸 구문
 ```
@@ -104,14 +104,17 @@ for s in $(git ls-files '*.sh'); do bash -n "$s"; done # 셸 구문
 | **하위 컴포넌트 추가·삭제** | **부모 `CLAUDE.md`의 구성 표** | **DA-2** |
 | 〃 | `SOT.md` §2 트리 · `sot_audit.py`의 `COMPONENTS`/`CHILDREN` | **DA-3** |
 | 〃 | `docs/architecture.md` 다이어그램 + 컴포넌트 표 | **DA-10** |
-| MCP tool 변경 | `docs/api-spec.md` · `mcp_server/CLAUDE.md` | **DA-1** |
+| MCP tool **추가·개명** | `docs/api-spec.md` · `mcp_server/CLAUDE.md` | **DA-1** |
+| MCP tool **인자·반환 스키마 변경** | 〃 | **사람 (F-34)** — DA-1은 tool *이름*만 본다 |
 | 〃 | `Scenarios/*.json`의 tool 이름·인자 | 사람 (HM-6) |
 | 개수를 세는 문장 (「tool 6종」) | 그 문장이 있는 모든 문서 | **DA-4** |
 | 상태 열거값 추가 | **그 값을 읽는 모든 소비자** (V-4). 판정 로직(MAA)까지 | 사람 |
 | 갭 해소 | `docs/status.md` 해당 행, 컴포넌트 `CLAUDE.md`의 ⚠️ | 사람 |
 | 구조 결정 | spec §0.2 **와** `SOT.md` §6 **양쪽** | 사람 (D-14에서 실제 누락) |
 
-> **기계가 잡는 칸은 외우지 않아도 된다. 「사람」 칸만 의식적으로 확인하면 된다.**
+> **「사람」 칸만 의식적으로 확인하면 된다 — 단, 기계 칸이 무엇까지 보는지는 알아 둘 것.**
+> DA-1은 tool **이름**만, DA-2·DA-10은 **파일 전체 부분 문자열**만 본다 (F-34·F-35).
+> **잘못된 안심은 무검사보다 나쁘다.**
 > 그것이 이 표의 목적이다 — 주의력을 기계가 못 보는 곳에만 쓰게 하는 것.
 
 **같은 사실을 새로 복제해야 한다면** @docs/doc-map.md §1에 정본을 선언하고 §4 중복 표에 행을 추가한다.

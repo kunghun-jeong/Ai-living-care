@@ -27,6 +27,7 @@ DA-7  문서 경로 실재       구 하네스 D-1 재작성 (인라인 코드�
 DA-8  폐기 생성기 봉인     하네스 docs-and-structure §0
 DA-9  CLAUDE.md 규약       하네스 docs-and-structure §6 · HD-1
 DA-10 architecture 정합    doc-map §3 DM-5
+DA-11 감사기 자기 감사     2026-08-06 재감사 — 검사가 사라져도 100%가 되던 문제
 """
 import os
 import re
@@ -48,10 +49,16 @@ HISTORICAL = ("docs/audit/", "docs/handoff/", "docs/context/", "MIGRATION.md")
 TOOL_MIRRORS = ["docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md"]
 
 results = []
+notes = []
 
 
 def chk(dev, ok, msg, detail=""):
     results.append((dev, bool(ok), msg, detail))
+
+
+def note(msg):
+    """통과해도 사람이 봐야 하는 사실. 통과 항목의 내역이 화면 밖으로 사라지는 것을 막는다."""
+    notes.append(msg)
 
 
 def rel(p):
@@ -187,12 +194,25 @@ def parse_sot_tree():
     return out
 
 
-def sot_audit_targets():
+_SOT_NS = {}
+
+
+def sot_ns():
+    """sot_audit.py를 한 네임스페이스로 적재한다. globals와 locals를 같은 dict로 줘야
+    거기서 정의된 함수가 자기 모듈 전역을 찾는다 (DA-11이 audit()을 호출한다)."""
+    if _SOT_NS:
+        return _SOT_NS
     txt = read("sot_audit.py")
-    ns = {}
+    body = txt.split("\nif __name__")[0]
+    ns = {"__name__": "sot_audit_loaded", "__file__": rel("sot_audit.py")}
+    exec(compile(body, "sot_audit.py", "exec"), ns, ns)
+    _SOT_NS.update(ns)
+    return _SOT_NS
+
+
+def sot_audit_targets():
     try:
-        exec(compile(re.sub(r"^if __name__.*", "", txt, flags=re.S | re.M), "sot_audit.py", "exec"),
-             {"os": os, "re": re, "sys": sys, "__file__": rel("sot_audit.py")}, ns)
+        ns = sot_ns()
     except Exception as e:
         chk("DA-3", False, "sot_audit.py 구조 추출 실패", str(e))
         return None
@@ -249,18 +269,22 @@ def da4(tools):
     if tools is not None:
         counts["tool"] = (len(tools), f"{MCP_SERVER}의 @mcp.tool()")
     spec = read(SPEC) if os.path.exists(rel(SPEC)) else ""
-    m = re.search(r"### 5\.2 `status` 열거값.*?\n((?:\|.*\n)+)", spec)
+    # 제목과 표 사이에 빈 줄이 있다 — `.*?\n` 으로는 못 넘는다 (구 버전은 여기서 조용히 죽어
+    # 「status 7종」을 한 번도 검사하지 않았다)
+    m = re.search(r"### 5\.2 `status` 열거값[\s\S]{0,300}?\n((?:\|.*\n)+)", spec)
     if m:
         vals = re.findall(r"^\|\s*`(\w+)`\s*\|", m.group(1), re.M)
         if vals:
             counts["status"] = (len(vals), "spec §5.2 열거표")
-    m = re.search(r"^\s*(?:or-race|and-all)[\s\S]{0,400}", spec, re.M)
     modes = set(re.findall(r"\b(and-all|or-race|or-fallback|sequential|split)\b", spec))
     if modes:
-        counts["dispatch-mode"] = (len(modes), "spec §7.1 모드 이름")
-    ifn = len(re.findall(r"^\|\s*\*{0,2}IF-\d+", read(SOT), re.M))
+        counts["dispatch-mode"] = (len(modes), "spec §7.1/§7.3 모드 이름")
+    ifn = len([d for d in os.listdir(rel("interfaces"))
+               if os.path.isdir(rel(f"interfaces/{d}"))]) if os.path.isdir(rel("interfaces")) else 0
     if ifn:
-        counts["인터페이스"] = (ifn, "SOT.md §3 표")
+        counts["인터페이스"] = (ifn, "interfaces/ 디렉터리")
+    note(f"DA-4 등록된 정본 카운터: {', '.join(f'{k}={v[0]}' for k, v in sorted(counts.items()))}"
+         + (" — 미등록 라벨은 그 문서의 「N종」을 검사하지 않는다" if len(counts) < 4 else ""))
 
     # 「없는 tool 3종」처럼 부재를 세는 문장은 정본 개수와 무관하다
     pat = re.compile(r"(?P<neg>없는|미구현|존재하지 않는|누락된)?\s*"
@@ -362,11 +386,14 @@ def on_disk(d):
 
 
 def da6():
+    # SKIP을 PASS로 집계하지 않는다. 검사 불가는 통과가 아니다 —
+    # shallow clone·squash·zip 배포에서 D-14 집행이 조용히 사라지는 것을 막는다.
     if git("rev-parse", "--git-dir") is None:
-        chk("DA-6", True, "git 없음 — 보존 검사 SKIP")
+        chk("DA-6", False, "git 없음 — D-14 집행 불가 (SKIP은 통과가 아니다)")
         return
     if git("cat-file", "-e", BASE_COMMIT) is None and git("rev-parse", BASE_COMMIT) is None:
-        chk("DA-6", True, f"기준 커밋 {BASE_COMMIT} 없음 — SKIP")
+        chk("DA-6", False, f"기준 커밋 {BASE_COMMIT} 없음 — D-14 집행 불가",
+            "shallow clone이면 `git fetch --unshallow`. 히스토리를 재작성했다면 BASE_COMMIT을 갱신할 것")
         return
     for old, new in PRESERVE_MAP.items():
         a = blobs(BASE_COMMIT, old)
@@ -378,10 +405,17 @@ def da6():
         added = sorted(f for f in set(b) - set(a) if os.path.basename(f) not in ALLOWED_ADD)
         changed = sorted(f for f in set(a) & set(b)
                          if norm(a[f]) != open(b[f], "rb").read().replace(b"\r\n", b"\n"))
-        chk("DA-6", not removed, f"{new} — 원본 파일 삭제 없음", f"{removed}" if removed else "")
-        chk("DA-6", not changed, f"{new} — 원본 내용 변경 없음 (개행 정규화 제외)",
-            f"{changed}  ← D-14 위반" if changed else "")
+        # D-14의 범위는 **구조·파일명·경로**다 (SOT §6 · worker-agent.md §0 · limo-MCP/CLAUDE.md).
+        # 내용 동결이 아니다 — 내용을 얼리면 Phase 0 작업 0-5·0-7~0-12(7건)가 착수 불가가 된다.
+        chk("DA-6", not removed, f"{new} — 원본 파일 삭제·개명 없음", f"{removed}" if removed else "")
         chk("DA-6", not added, f"{new} — 허용 외 파일 추가 없음", f"{added}" if added else "")
+        # 내용 변경은 허용하되 **결정 기록을 강제**한다 (하네스 4-1).
+        undoc = [f for f in changed
+                 if os.path.basename(f) not in read("docs/decisions.md")] if changed else []
+        chk("DA-6", not undoc, f"{new} — 원본 내용 변경 시 decisions.md 기록",
+            f"기록 없이 변경됨: {undoc} — 하네스 4-1로 결정을 남길 것" if undoc else "")
+        if changed:
+            note(f"DA-6 {new}: 원본 대비 내용 변경 {len(changed)}건 — {changed}")
         chk("DA-6", True, f"{new} — 원본 {len(a)}개 파일 대조 완료")
 
 
@@ -531,6 +565,49 @@ def da10():
         chk("DA-10", top in txt, f"{ARCH} — 비컴포넌트 `{top}/` 언급")
 
 
+# ═══ DA-11 · 감사기 자기 감사 — 검사가 사라지는 것을 막는다 ═══════════════════
+# 「총 N/N 통과」의 분모는 저장소 상태의 함수다. 검사를 지우면 분자와 분모가 함께 줄어
+# 언제나 100%가 된다. sot_audit.py의 audit() 본문을 비우면 0/0 PASS · exit 0 이었다.
+def da11():
+    produced = {d for d, _, _, _ in results}
+    for dev, name, _ in DEVICES:
+        if dev == "DA-11":
+            continue
+        chk("DA-11", dev in produced, f"{dev} ({name}) 가 검사를 산출했는가",
+            "장치가 등록만 되고 실행되지 않았다" if dev not in produced else "")
+    # sot_audit.py 가 SOT.md §5 AR 표의 규칙을 전부 실제로 돌리는가
+    try:
+        ns = sot_ns()
+        ns["results"].clear()
+        ns["audit"]()
+        ran = {r[0] for r in ns["results"]}
+    except Exception as e:
+        chk("DA-11", False, "sot_audit.py audit() 실행 실패", str(e))
+        ran = set()
+    declared = set(re.findall(r"^\|\s*\*{0,2}(AR-\d+)\*{0,2}\s*\|", read(SOT), re.M))
+    chk("DA-11", bool(declared), f"SOT.md §5 에 AR 규칙 표가 있는가 ({len(declared)}개)")
+    if declared and ran:
+        chk("DA-11", declared == ran, "SOT.md §5 AR 표 = sot_audit.py 가 실제로 돌린 규칙",
+            f"표에만: {sorted(declared - ran)} / 구현에만: {sorted(ran - declared)}"
+            if declared != ran else "")
+        note(f"DA-11 sot_audit.py 실행 규칙 {len(ran)}종 · 검사 {len(ns['results'])}건")
+    # doc-map §3 표와 모듈 docstring이 실제 장치 목록과 일치하는가
+    ids = {d for d, _, _ in DEVICES}
+    for src in ("docs/doc-map.md", "docs/harness/docs-and-structure.md"):
+        listed = set(re.findall(r"\*\*(DA-\d+)\*\*", read(src)))
+        chk("DA-11", listed >= ids - {"DA-11"}, f"{src} 가 장치를 전부 나열",
+            f"누락: {sorted(ids - {'DA-11'} - listed)}" if not listed >= ids - {"DA-11"} else "")
+    doc = set(re.findall(r"^(DA-\d+)\s", __doc__ or "", re.M))
+    chk("DA-11", doc >= ids - {"DA-11"}, "doc_audit.py docstring 이 장치를 전부 나열",
+        f"누락: {sorted(ids - {'DA-11'} - doc)}" if not doc >= ids - {"DA-11"} else "")
+    # 「DA-1~DA-N」 범위 표기가 실제 장치 수와 맞는가
+    hi = max(int(d.split("-")[1]) for d in ids)
+    for md in all_md():
+        for lo, n in re.findall(r"DA-(\d+)\s*~\s*DA-(\d+)", read(md)):
+            chk("DA-11", int(n) == hi, f"{md} — 「DA-{lo}~DA-{n}」 범위 표기",
+                f"실제 장치는 DA-1~DA-{hi}" if int(n) != hi else "")
+
+
 DEVICES = [("DA-1", "MCP tool 집합 (코드가 정본)", None),
            ("DA-2", "부모 CLAUDE.md ↔ 실제 자식 디렉터리", da2),
            ("DA-3", "SOT §2 트리 ↔ sot_audit.py ↔ 파일시스템", da3),
@@ -540,7 +617,8 @@ DEVICES = [("DA-1", "MCP tool 집합 (코드가 정본)", None),
            ("DA-7", "문서 언급 경로 실재", da7),
            ("DA-8", "폐기 생성기 봉인", da8),
            ("DA-9", "CLAUDE.md 규약 · @참조", da9),
-           ("DA-10", "architecture.md ↔ 실제 컴포넌트", da10)]
+           ("DA-10", "architecture.md ↔ 실제 컴포넌트", da10),
+           ("DA-11", "감사기 자기 감사 (검사 소실 방지)", da11)]
 
 
 def run(only=None):
@@ -578,6 +656,11 @@ def report():
                     print(f"      → {det}")
         if p == len(items):
             print(f"    ✓ {len(items)}개 항목 모두 통과")
+    if notes:
+        # 통과 항목의 내역은 화면 밖으로 사라진다. 사람이 알아야 하는 것은 여기 남긴다.
+        print("\n[NOTE] 통과했지만 알아 둘 것")
+        for n in notes:
+            print(f"    · {n}")
     print("\n" + "-" * 78)
     print(f"  총 {nok}/{len(results)} 통과, {len(results) - nok} 위반")
     print("-" * 78)
