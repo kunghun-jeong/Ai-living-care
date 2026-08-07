@@ -15,9 +15,9 @@ venv/
 *.tga
 *.fbx
 *.blend
-limo-MCP/Simulation/aws_small_house/models/**/*.png
-limo-MCP/Simulation/aws_small_house/models/**/*.jpg
-limo-MCP/Simulation/aws_small_house/models/**/*.jpeg
+worker_ai_agent/limo-MCP/Simulation/aws_small_house/models/**/*.png
+worker_ai_agent/limo-MCP/Simulation/aws_small_house/models/**/*.jpg
+worker_ai_agent/limo-MCP/Simulation/aws_small_house/models/**/*.jpeg
 
 # YOLO 가중치 (ultralytics 가 자동 다운로드, AGPL-3.0)
 *.pt
@@ -35,8 +35,6 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
-
-_to_delete/
 
 ####################
 # 대용량 발표 자료 (로컬 전용)

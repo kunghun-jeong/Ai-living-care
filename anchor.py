@@ -13,6 +13,7 @@
   A3  헤더의 `읽을 절` 이 spec 에 **실재하는 절**을 가리키는가
   A4  루트가 50줄 이내이고 **`@` 재귀 총합**이 상한 이내인가 (매 세션 자동 로딩된다)
   A5  미해소 안전 결함이 귀속 컴포넌트의 `상태` 줄에 떠 있는가 (D-18 인계 경로)
+  A6  `.gitignore` 의 경로 패턴이 실재하는 디렉터리를 가리키는가
 """
 import os
 import re
@@ -29,6 +30,7 @@ STATUS = "docs/status.md"
 SAFETY_MARK = "### 안전 — 담당자 통지"
 TOOL_SRC = "worker_ai_agent/limo-MCP/MCP_server/MCP_server.py"
 TOOL_DOCS = ("docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md")
+IGNORE = ".gitignore"
 ROOT_MAX_LINES = 50
 AUTOLOAD_MAX_LINES = 420
 
@@ -168,6 +170,26 @@ def check_safety_handoff():
             missing.append((doc, f"안전 결함 `{fid}` 이 `상태` 줄에 없음 — D-18 인계"))
 
 
+# ── A6 · .gitignore 가 실재하는 경로를 가리키는가 ────────────────────────────
+def check_ignore_paths():
+    """슬래시가 든 패턴은 저장소 루트 기준으로 **고정**된다. 디렉터리를 옮기면 그 규칙은
+    죽는데 git 은 아무 말도 하지 않는다 — 실제로 재구조화 때 세 줄이 그렇게 죽어 있었고,
+    `fetch_meshes.sh` 가 받은 텍스처 수백 장이 `git add -A` 한 번에 들어올 뻔했다.
+    `CLAUDE.md` 앵커와 같은 규칙이다: **가리키는 것은 실재해야 한다.**"""
+    if not has(IGNORE):
+        return
+    for ln in read(IGNORE).splitlines():
+        pat = ln.strip()
+        if not pat or pat.startswith("#"):
+            continue
+        pat = pat.lstrip("!").strip("/")
+        if "/" not in pat:                       # 이름만 지정한 패턴은 어디서나 매칭된다
+            continue
+        head = re.split(r"[*?\[]", pat)[0].rstrip("/")
+        if "/" in head and not os.path.exists(os.path.join(ROOT, head)):
+            missing.append((IGNORE, f"`{ln.strip()}` 가 없는 경로 `{head}` 를 지목 — 규칙이 죽어 있다"))
+
+
 # ── --status · 전 영역 현황 (파일에 쓰지 않는다) ─────────────────────────────
 def status():
     """각 `CLAUDE.md` 헤더의 `상태` 줄을 읽어 한 화면에 모은다.
@@ -216,4 +238,5 @@ if __name__ == "__main__":
     check_spec_refs()
     check_root_size()
     check_safety_handoff()
+    check_ignore_paths()
     sys.exit(report())

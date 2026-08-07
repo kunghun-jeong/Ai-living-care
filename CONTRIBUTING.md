@@ -5,10 +5,26 @@
 ## 최초 1회
 
 ```bash
-make hooks     # 커밋할 때 앵커 검사가 자동으로 돈다
-               # make 가 없으면: git config core.hooksPath .githooks && chmod +x .githooks/*
-make status    # 다른 협업자가 어디까지 갔는지
+make hooks              # 커밋할 때 앵커 검사가 자동으로 돈다
+                        # make 가 없으면: git config core.hooksPath .githooks && chmod +x .githooks/*
+make status             # 다른 협업자가 어디까지 갔는지
+git config user.email   # 비어 있거나 GitHub 계정 이메일이 아니면 아래를 읽는다
 ```
+
+### 커밋 신원
+
+**git 은 push 한 사람이 아니라 커밋에 박힌 author 이메일로 기여를 귀속한다.** 그 이메일이
+자기 GitHub 계정에 인증돼 있지 않으면 커밋이 아무에게도 연결되지 않는다 — 실제로 이 저장소
+초기 커밋 28개가 그렇게 쌓였다.
+
+```bash
+git config --global user.name  "<GitHub 사용자명>"
+git config --global user.email "<GitHub 계정에 인증된 주소>"
+```
+
+실제 주소를 공개하고 싶지 않으면 GitHub → Settings → Emails 의 noreply 주소
+(`12345678+사용자명@users.noreply.github.com`)를 쓴다 — 이것도 정상 귀속된다.
+**이 저장소에만 다르게 쓰려면 `--global` 을 뺀다.**
 
 ## 브랜치
 
