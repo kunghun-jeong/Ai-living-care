@@ -3,7 +3,8 @@
 # 커밋되는 것을 막는다. 이 저장소에서 문서가 낡는 경로는 사실상 이것 하나다.
 #
 # 설치:  make hooks        (또는 git config core.hooksPath .githooks)
-# 우회:  SKIP_ANCHOR=1 git commit ...
+# 우회 (환경별):  Bash  SKIP_ANCHOR=1 git commit ...
+#                 CMD   set SKIP_ANCHOR=1 && git commit ... && set SKIP_ANCHOR=
 #
 # 규칙을 사람이 기억해서 치는 한 지켜지지 않는다는 것을 이 저장소에서 이미
 # 확인했다 (전파 절차 11단계가 전부 기계 강제 0건이었고, 그 결과 구조 정본이
@@ -24,7 +25,10 @@ if ! "$PY" anchor.py; then
     echo ""
     echo "  ─ 커밋을 멈췄다 ────────────────────────────────────────────"
     echo "  위에 적힌 CLAUDE.md 에 한 줄씩 넣고 다시 커밋한다."
-    echo "  지금 당장 넘겨야 한다면:  SKIP_ANCHOR=1 git commit ..."
+    echo "  지금 당장 넘겨야 한다면 — 환경에 맞는 것 하나:"
+    echo "      Git Bash     SKIP_ANCHOR=1 git commit ..."
+    echo "      CMD          set SKIP_ANCHOR=1 && git commit ... && set SKIP_ANCHOR="
+    echo '      PowerShell   $env:SKIP_ANCHOR=1; git commit ...; Remove-Item Env:SKIP_ANCHOR'
     echo "  ────────────────────────────────────────────────────────────"
     exit 1
 fi

@@ -22,7 +22,10 @@ hooks:
 	@git config core.hooksPath .githooks
 	@chmod +x .githooks/* 2>/dev/null || true
 	@echo "pre-commit 훅 설치됨 — 이제 커밋할 때 앵커 검사가 돈다"
-	@echo "우회가 필요하면: SKIP_ANCHOR=1 git commit ..."
+	@echo "우회가 필요하면 (환경별):"
+	@echo "  Git Bash     SKIP_ANCHOR=1 git commit ..."
+	@echo "  CMD          set SKIP_ANCHOR=1 && git commit ... && set SKIP_ANCHOR="
+	@echo '  PowerShell   $$env:SKIP_ANCHOR=1; git commit ...; Remove-Item Env:SKIP_ANCHOR'
 
 status:
 	@$(PY) anchor.py --status

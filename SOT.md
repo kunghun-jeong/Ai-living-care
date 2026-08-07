@@ -90,6 +90,8 @@
 │   └── limo-patrol-viz/                ★ 원본 보존 (D-14)
 └── docs/                               문서 (비컴포넌트)
     ├── spec/ context/ handoff/ audit/ slides/
+    ├── standards/                   I-D · 기고문 원고 (S-* 는 spec §11.1 이 정본)
+    └── papers/                      매거진 논문 원고
 ```
 
 ### 2.1 컴포넌트 ↔ 디렉터리 대응 (스펙 §2)

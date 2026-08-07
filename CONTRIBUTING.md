@@ -63,6 +63,30 @@ git push                          # upstream 은 자동으로 잡힌다 (push.au
 `master → main` PR 로 하며, 그건 서버 쪽이라 훅과 무관하게 동작한다.
 정말 넘겨야 하면 `SKIP_MAIN_PUSH=1 git push origin main`.
 
+### 승격 — 그리고 반드시 되돌린다
+
+소유자가 `master` 를 검토한 뒤 `main` 으로 올린다. **올린 뒤 되돌리지 않으면 다음 사이클이
+어긋난 상태에서 시작한다** — 실제로 두 번 그랬다.
+
+```bash
+# ① 올린다 — GitHub 에서 master → main PR 이 권장(CI 가 한 번 더 돈다). 터미널로 하려면:
+git switch main && git pull
+git merge master                  # 병합 커밋이 필요하다 — --ff-only 를 쓰지 말 것
+git push origin main              # pre-push 가 승격으로 인식해 통과시킨다
+
+# ② 내린다 — 이걸 빠뜨리면 두 브랜치가 계속 벌어진다
+git switch master && git fetch origin
+git merge --ff-only origin/main   # 여기서는 반드시 --ff-only
+git push
+```
+
+**방향에 따라 `--ff-only` 가 반대다.** 올릴 때는 두 갈래를 합치는 것이라 병합 커밋이 필요하고,
+내릴 때는 이미 포함된 것을 따라가는 것이라 병합 커밋이 생기면 안 된다. `--ff-only` 가 실패하면
+**순서가 틀렸다는 신호다** — ①을 안 했거나 누가 `main` 에 직접 손댔다.
+
+`.githooks/pre-push` 는 `main` 으로 가는 푸시 중 **`master` 를 거치지 않은 것만** 막는다.
+승격(= `master` 를 병합한 커밋, 또는 `master` 자신)은 그냥 통과하므로 매번 탈출구를 쓸 일이 없다.
+
 **리뷰가 필요하거나 같은 영역에 둘이 붙으면 브랜치를 판다. base 는 `master` 다.**
 
 ```
@@ -106,6 +130,23 @@ tools/limo-patrol-viz/**         코드는 담당 연구원 소유
 원본 보존의 범위는 **구조·파일명·경로**다. 담당자가 자기 코드의 **내용**을 고치는 것은
 정상이며, 그때 [`docs/decisions.md`](docs/decisions.md) 에 한 줄 남긴다.
 
+## Windows 에서
+
+이 저장소의 기본 개발 환경은 **Windows + OneDrive** 다. 문서에서 흔히 보는 `VAR=값 명령` 표기는
+**bash 문법**이라 CMD·PowerShell 에서 동작하지 않는다. 훅 안내문은 세 환경을 병기한다.
+
+| | 쓰는 법 |
+|---|---|
+| Git Bash | `SKIP_ANCHOR=1 git commit ...` |
+| CMD | `set SKIP_ANCHOR=1` → 명령 → `set SKIP_ANCHOR=` (지우지 않으면 그 창에서 계속 남는다) |
+| PowerShell | `$env:SKIP_ANCHOR=1` → 명령 → `Remove-Item Env:SKIP_ANCHOR` |
+
+- `.gitattributes` 가 저장소를 **LF 로 정규화**한다. 체크아웃에서 CRLF 헛변경이 보이면 그 규칙이
+  생기기 전에 받은 클론이다 — `git add --renormalize .` 로 한 번 맞춘다.
+- **저장소가 OneDrive 동기 폴더 안에 있으면** 동기 중 `.git/*.lock` 이 남아
+  `Another git process seems to be running` 이 뜰 수 있다. 그 파일을 지우면 풀린다.
+  같은 폴더를 두 기기에서 동기하지 않는다.
+
 ## 커밋 · 문서
 
 - 커밋 메시지는 **무엇을 왜**. 되돌릴 사람이 읽는다고 생각하고 쓴다.
@@ -120,7 +161,7 @@ tools/limo-patrol-viz/**         코드는 담당 연구원 소유
   **문서에 숫자를 적지 않는다.** 적으면 낡고, 낡은 숫자는 아무도 다시 재지 않는다.
 - **`@` 를 루트 밖에서 쓰지 않는다.** `@` 는 **재귀 import** 라(최대 5홉) 하위 문서에 하나 붙이면
   그것이 부르는 것까지 전부 열린다. 실제로 그렇게 1,330줄까지 부풀었다. 총량 상한은 `anchor.py` 가 막는다.
-- 설계 정본 962줄은 **통독하지 않는다.** 각 컴포넌트 `CLAUDE.md` 헤더의 `읽을 절`만 연다.
+- 설계 정본은 **통독하지 않는다.** 각 컴포넌트 `CLAUDE.md` 헤더의 `읽을 절`만 연다.
 - 절 지목이 틀렸으면 **그 헤더를 고치는 것이 먼저다** — 통독으로 때우지 않는다.
 - `docs/context/` · `docs/handoff/` 는 `REFERENCE-ONLY` 다. **인용하지 않는다.**
 

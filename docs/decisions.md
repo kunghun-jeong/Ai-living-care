@@ -21,6 +21,8 @@
 | 날짜 | 결정 | 정본 반영 |
 |---|---|---|
 | 2026-08-07 | **커밋 author 는 각자 자기 GitHub 인증 이메일로 한다** — 공용 신원(`AI-Care <noreply@skku.edu>`)으로 28개가 쌓여 아무에게도 귀속되지 않았다. 과거 이력은 재작성하지 않는다(clone 파손 위험). **AI 공동저자 트레일러는 넣지 않는다** | `CONTRIBUTING.md` 「커밋 신원」 |
+| 2026-08-07 | **spec 파생 수치(줄 번호·절 크기)를 문서에 두지 않는다** — 절 색인은 `make spec` 이 읽는 시점에 만들고, 컴포넌트 헤더의 `읽을 절` 은 **절 번호만** 쓴다. 근거: 색인 전 행이 spec 편집으로 조용히 어긋나 있었고 아무도 몰랐다. `make status` 와 같은 원리 — 읽는 시점에 만들면 낡을 수가 없다 | `anchor.py --spec` · `Makefile` · `docs/spec/CLAUDE.md` · 컴포넌트 헤더 전체 |
+| 2026-08-07 | **`pre-push` 를 승격 판정으로 정밀화** — `main` 으로 가는 푸시 중 `master` 를 거치지 않은 것만 막는다. 부모만 보면 `main == master` 인 정상 상태에서 직접 커밋이 승격과 구분되지 않아 **병합 커밋 여부**를 함께 본다. 훅·Makefile 안내문을 Bash/CMD/PowerShell 로 병기 (기존 표기는 이 팀의 Windows 환경에서 동작하지 않았다) | `.githooks/*` · `CONTRIBUTING.md` |
 | 2026-08-07 | **규칙은 guided soft rule 이다** — 검사를 「막는다 / 알린다」로 나누고 알림은 `--strict`(PR·CI)에서만 막는다. 커버리지 하한 90% 도 경고로 내렸다(Phase 1 에 복원). 실측: spec 절 하나를 옮기면 헤더 14개가 걸려 **정본 개정을 벌하고 있었다** | `anchor.py` · `CONTRIBUTING.md` · `check.yml` |
 | 2026-08-07 | **`status.md` 를 둘로 나눈다** — 결함 이력을 `status-defects.md` 로. 결함을 기록하면 자동 로딩 예산에 막히던 자기모순을 없앴다 (391 → 283줄) | `docs/status.md` · `docs/status-defects.md` |
 | 2026-08-07 | **브랜치를 2단으로 — `master` 가 협업자 통합 브랜치, `main` 은 소유자가 PR 로 승격하는 최종본** | `CONTRIBUTING.md` 「브랜치」 |
