@@ -3,9 +3,9 @@
 독거 어르신 돌봄 로봇. **"할머니 괜찮은지 확인해 줘"** 한 마디로 로봇이 집 안을
 순찰하고, 사람을 찾고, 상태를 판단해 보고하는 시스템.
 
-전체 구조는 **Manager AI Agent**가 자연어 의도를 고수준 정책(L2)으로 번역해
-**Worker AI Agent**에 A2A로 배포하고, 돌아온 Report를 해석해 재시도·전환·에스컬레이션을
-결정하는 폐루프다. 계층·인터페이스 전체 그림은 [`docs/architecture.md`](docs/architecture.md).
+전체 구조는 **Manager AI Agent → A2A → Worker AI Agent** 폐루프다. 계층·인터페이스·
+정책 계층(L0~L4)의 정의는 설계 정본 `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+§1~§6 에 있고, 그림은 [`docs/architecture.md`](docs/architecture.md) 에 있다.
 
 아래는 그중 **Worker 측 시나리오 1**(현재 코드가 실제로 하는 일)이다. Worker 안에서
 LLM이 하는 일은 두 가지뿐 — **①어디부터 갈지 정하기**, **②찾은 사람의 사진을 보고
@@ -43,10 +43,21 @@ LLM이 하는 일은 두 가지뿐 — **①어디부터 갈지 정하기**, **�
 > `limo-MCP/` 와 `limo-patrol-viz/` 는 **원본을 그대로 보존**한다 (D-14). 각 트리의 코드는
 > 담당 연구원 소유이며, 구조·파일명·경로를 바꾸지 않는다.
 
-**새로 합류했다면 [`CLAUDE.md`](CLAUDE.md) 부터 읽는다.** 작업 절차는
-[`docs/harness.md`](docs/harness.md), 지금 무엇이 깨져 있는지는
-[`docs/status.md`](docs/status.md). 옛 경로를 찾고 있다면 [`MIGRATION.md`](MIGRATION.md).
-개발 경위는 [`docs/handoff/limo-MCP_SESSION_HANDOFF.md`](docs/handoff/limo-MCP_SESSION_HANDOFF.md).
+### 새로 합류했다면
+
+[`CLAUDE.md`](CLAUDE.md) 하나만 읽는다. 나머지는 거기서 라우팅된다.
+
+문서는 세 계층이다 — **`@` 표시는 매 세션 자동 로딩**(루트 + doc-map + harness + status,
+합계 약 300줄), **무표는 gateway 뒤 lazy**(필요할 때만 연다). 설계 정본 962줄은
+**통독하지 않는다** — 각 컴포넌트 `CLAUDE.md` 헤더가 지목한 절만 읽는다.
+
+- 작업 시작점(하려는 일 → 열 문서): [`docs/doc-map.md`](docs/doc-map.md)
+- 작업 절차: [`docs/harness.md`](docs/harness.md)
+- 지금 무엇이 깨져 있는지: [`docs/status.md`](docs/status.md)
+- 옛 경로를 찾는 중이라면: [`MIGRATION.md`](MIGRATION.md)
+- 전체 계층 그림: [`docs/architecture.md`](docs/architecture.md)
+  — ⚠️ 그림의 IF-4·IF-5 종단점에 알려진 불일치가 있다 (F-62, `docs/status.md`)
+- 개발 경위: [`docs/handoff/`](docs/handoff/) — **참고 원본, 정본 아님**
 
 ---
 
@@ -57,7 +68,9 @@ LLM이 하는 일은 두 가지뿐 — **①어디부터 갈지 정하기**, **�
 Gazebo도 Nav2도 필요 없다. RViz2와 Python만 있으면 된다.
 
 ```bash
-make hooks            # 최초 1회 — 커밋할 때 앵커 검사가 자동으로 돈다
+# 최초 1회 — 커밋할 때 앵커 검사가 자동으로 돈다
+make hooks                                    # make 가 없으면 아래 한 줄로 대체
+# git config core.hooksPath .githooks && chmod +x .githooks/*
 
 cd tools/limo-patrol-viz
 ./run_coverage.sh     # GUI 없이 커버리지 수치 + patrol_sim.png
