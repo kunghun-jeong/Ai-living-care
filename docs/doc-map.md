@@ -15,6 +15,7 @@
 | **논문 · IITP 제안서 작성** | **아래 §2 팀장 문서** · spec **§11**(표준화 항목 36줄) · `docs/status.md`(수치와 한정어) | 컴포넌트 `CLAUDE.md` · 코드 |
 | **인터페이스 계약 정의** | `interfaces/if0N_*/CLAUDE.md` · spec **§3**(51줄) | spec 전체 |
 | **스키마(L1~L3·Report)** | `contracts/*/CLAUDE.md` · spec **§4**(L1·L2) 또는 **§5**(Report) | 나머지 절 |
+| **브랜치를 파거나 PR 을 연다** | `CONTRIBUTING.md` | 나머지 전부 |
 | 위에 없음 | @docs/harness.md 공통 절차 | 나머지 전부 |
 
 > **수치를 인용할 때는 반드시 한정어를 함께 가져온다.** 「사각지대 0」이 아니라

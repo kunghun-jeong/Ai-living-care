@@ -51,6 +51,7 @@ LLM이 하는 일은 두 가지뿐 — **①어디부터 갈지 정하기**, **�
 합계 약 300줄), **무표는 gateway 뒤 lazy**(필요할 때만 연다). 설계 정본 962줄은
 **통독하지 않는다** — 각 컴포넌트 `CLAUDE.md` 헤더가 지목한 절만 읽는다.
 
+- **브랜치·PR·소유 경계**: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - 작업 시작점(하려는 일 → 열 문서): [`docs/doc-map.md`](docs/doc-map.md)
 - 작업 절차: [`docs/harness.md`](docs/harness.md)
 - 지금 무엇이 깨져 있는지: [`docs/status.md`](docs/status.md)
