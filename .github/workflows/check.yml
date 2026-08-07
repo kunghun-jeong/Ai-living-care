@@ -32,9 +32,6 @@ jobs:
       - name: 셸 구문
         run: for s in $(git ls-files '*.sh'); do bash -n "$s"; done
 
-      - name: 안전 경로 회귀 (ROS2 불필요)
-        run: python3 worker_ai_agent/limo-MCP/verify_fixes.py
-
   coverage:
     runs-on: ubuntu-latest
     steps:

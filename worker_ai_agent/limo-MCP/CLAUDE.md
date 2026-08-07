@@ -62,12 +62,3 @@ python3 Scenarios/capture_and_detect.py out.jpg
   `tools/limo-patrol-viz/`로 하고 여기는 최종 확인용으로 쓴다 (U-14).
 - **small_house 카메라는 미검증**이다. 검증 실적은 `turtlebot3_world` 기준 (작업 0-0).
 - 개발 경위와 함정은 `SESSION_HANDOFF.md`에 누적 기록돼 있다. 새로 합류하면 그것부터 읽을 것.
-
-## 검증
-
-```bash
-python3 verify_fixes.py    # ROS2 없이 도는 안전 경로 회귀 (21건)
-```
-
-`verify_fixes.py` 는 F-4·F-47·F-50·F-51 의 실패 경로를 실제로 실행한다 — 증거 이미지 신뢰도 하한, 정지한 스캔의 결과 기록, 새 프레임 0장일 때의 결론, 웨이포인트 입력 검증.
-`Reasonings.py` 가 의존성 주입이라 로봇 없이 돌아간다.

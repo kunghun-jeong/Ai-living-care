@@ -18,7 +18,7 @@ from mcp.client.stdio import stdio_client
 SERVER_PATH = os.path.join(os.path.dirname(__file__), "..", "MCP_server", "MCP_server.py")
 
 
-async def main(x: float, y: float, yaw_deg: float | None, timeout: float = 300.0) -> None:
+async def main(x: float, y: float, yaw_deg: float | None) -> None:
     params = StdioServerParameters(
         command="python3",
         args=[SERVER_PATH],
@@ -34,24 +34,13 @@ async def main(x: float, y: float, yaw_deg: float | None, timeout: float = 300.0
 
             started = await session.call_tool("plan_and_navigate", args)
             print("plan_and_navigate:", started.content)
-            if '"started": false' in str(started.content).lower():
-                print("시작하지 못했다 — 위 reason 확인")
-                return
 
-            # F-6 — 예전에는 succeeded/failed 두 개만 봐서, Nav2 가 안 떠 있으면
-            # 에러 없이 영원히 돌았다. status 열거값 전부와 벽시계 상한을 본다.
-            TERMINAL = ("succeeded", "failed", "cancelled", "rejected", "idle")
-            deadline = asyncio.get_event_loop().time() + timeout
             while True:
                 await asyncio.sleep(1.0)
                 status = await session.call_tool("get_status", {})
                 print("status:", status.content)
                 text = str(status.content)
-                if any(f'"status": "{v}"' in text for v in TERMINAL):
-                    break
-                if asyncio.get_event_loop().time() > deadline:
-                    print(f"{timeout}s 안에 종료 상태에 도달하지 못했다 — 취소를 보낸다")
-                    print("cancel:", (await session.call_tool("cancel", {})).content)
+                if '"status": "succeeded"' in text or '"status": "failed"' in text:
                     break
 
 

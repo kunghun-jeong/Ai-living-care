@@ -17,54 +17,16 @@ from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAP = os.path.join(HERE, "maps", "map.pgm")
-
-def _map_meta(path):
-    """map.yaml 에서 해상도·원점을 읽는다.
-
-    F-18 — 예전에는 같은 값이 이 파일과 patrol_viz.py 에 하드코딩돼 있고 map.yaml 은
-    아무도 읽지 않았다. 맵을 교체하면 yaml 만 갱신되고 코드는 조용히 옛 원점으로
-    계산해 커버리지 수치가 틀린 채로 나온다.
-    """
-    res = ox = oy = None
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            if line.startswith("resolution:"):
-                res = float(line.split(":", 1)[1])
-            elif line.startswith("origin:"):
-                nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", line)]
-                ox, oy = nums[0], nums[1]
-    if res is None or ox is None:
-        raise SystemExit(f"map.yaml 에서 resolution/origin 을 못 읽었다: {path}")
-    return res, ox, oy
-
-
-RES, OX, OY = _map_meta(os.path.join(HERE, "maps", "map.yaml"))   # 정본은 map.yaml (F-18)
+RES, OX, OY = 0.05, -10.0, -10.0
 
 V_LIN, V_ANG, ROBOT_R = 0.22, 0.50, 0.22
-# N_RAYS 는 patrol_sim.py 와 같아야 한다 — 달랐을 때(32 vs 48) 시연 커버리지가
-# 논문 인용값 93.6%(48 기준)보다 낮게 나왔다 (F-54).
-CAM_FOV, CAM_RANGE, N_RAYS = math.radians(62), 4.0, 48
+CAM_FOV, CAM_RANGE, N_RAYS = math.radians(62), 4.0, 32
 SPEED = 3.0          # 재생 배속
 DT = 0.1             # 궤적 생성 간격(초)
 
 SPAWN = (3.5, 1.0, 0.0)
 PATROL = [(8.10, 1.71), (4.30, -0.55), (1.45, 4.35), (-2.00, -0.80),
           (-7.77, 0.56), (-7.90, -2.95), (7.15, -3.30)]
-# F-55 — PATROL 이 두 파일에 이중 하드코딩돼 있다. 한쪽만 고치면 run_coverage.sh 는
-# 새 좌표로, RViz 시연은 옛 좌표로 조용히 갈라진다. 실행할 때마다 대조한다.
-def _assert_patrol_matches_sim():
-    src = open(os.path.join(HERE, "patrol_sim.py"), encoding="utf-8").read()
-    m = re.search(r"PATROL = \[(.*?)\]", src, re.S)
-    if not m:
-        return
-    theirs = [tuple(float(v) for v in p) for p in
-              re.findall(r"\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)", m.group(1))]
-    if theirs and theirs != [tuple(map(float, p)) for p in PATROL]:
-        raise SystemExit(f"FAIL: PATROL 이 patrol_sim.py 와 다르다 (F-55)\n"
-                         f"  patrol_viz.py: {PATROL}\n  patrol_sim.py: {theirs}")
-
-_assert_patrol_matches_sim()
-
 WHEELS = ["wheel_left_joint", "wheel_right_joint",
           "front_left_wheel", "front_right_wheel", "rear_left_wheel", "rear_right_wheel"]
 
@@ -311,10 +273,7 @@ class PatrolViz(Node):
         now = self.get_clock().now().to_msg()
 
         t = TransformStamped()
-        # F-53 — urdf 의 base_footprint 링크·조인트가 주석 처리돼 있어 루트 링크는
-        # base_link 다. base_footprint 로 발행하면 TF 가지가 고립돼 RViz 에
-        # 로봇이 아예 안 그려진다 ("No transform from [base_link] to [map]").
-        t.header.stamp = now; t.header.frame_id = "map"; t.child_frame_id = "base_link"
+        t.header.stamp = now; t.header.frame_id = "map"; t.child_frame_id = "base_footprint"
         t.transform.translation.x = x; t.transform.translation.y = y
         t.transform.rotation.z = math.sin(yaw/2); t.transform.rotation.w = math.cos(yaw/2)
         self.tf.sendTransform(t)

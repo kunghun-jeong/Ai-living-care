@@ -1,25 +1,2 @@
-# pip 의존성. ROS2 패키지는 여기 들어가지 않는다 — 아래 apt 목록 참조.
-#
-# mcp: MCP_server.py 가 `mcp.server.mcpserver`(2.0 경로)를 쓴다. 1.x 에는 `fastmcp` 밖에
-#      없어 import 자체가 실패한다. 하한이 없으면 1.x 가 잡힌다 (F-7).
-mcp[cli]>=2.0,<3
-
-# ultralytics: YOLO. numpy 2.x 를 끌어오면 apt 로 깐 python3-matplotlib / cv_bridge 와
-#              ABI 가 충돌한다. spec §10.2 가 "numpy 1.26 고정으로 해결"이라 기록했지만
-#              실제 핀이 없었다 (F-52).
-ultralytics>=8.0
-numpy>=1.26,<2
-
-# 코드가 직접 import 하는데 선언이 없어 ultralytics 의 전이 의존에 얹혀 있었다 (F-8).
-pillow>=10.0          # MCP_server.py _encode_jpeg
-opencv-python-headless>=4.8   # tools/limo-patrol-viz/patrol_sim.py
-
-# ─────────────────────────────────────────────────────────────────────────────
-# apt 로 깔아야 하는 것 (pip 로 안 된다). 없으면 import 시점에 죽는다:
-#   ros-jazzy-navigation2      Actions.py 의 nav2_msgs.action.NavigateToPose
-#   ros-jazzy-nav2-bringup     Simulation/sim_bringup.launch.py
-#   ros-jazzy-turtlebot3-gazebo  〃
-#   ros-jazzy-ros-gz-sim         〃
-#   ros-jazzy-tf2-ros-py, ros-jazzy-xacro
-#
-# venv 를 쓴다면 --system-site-packages 로 만들어야 rclpy 가 보인다 (F-10).
+mcp[cli]
+ultralytics

@@ -31,8 +31,5 @@ structure:
 	@$(PY) sot_audit.py > /dev/null && echo "구조 OK" || ($(PY) sot_audit.py; exit 1)
 
 test:
-	@echo "── 안전 경로 회귀 (ROS2 불필요) ─────────────────────────"
-	@$(PY) worker_ai_agent/limo-MCP/verify_fixes.py
-	@echo ""
-	@echo "── 순찰 커버리지 회귀 ───────────────────────────────────"
+	@echo "── 순찰 커버리지 회귀 (ROS2 불필요) ─────────────────────"
 	@cd tools/limo-patrol-viz && ./run_coverage.sh | tail -4

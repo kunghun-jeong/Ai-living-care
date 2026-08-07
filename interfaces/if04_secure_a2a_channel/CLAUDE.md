@@ -45,8 +45,6 @@
 | `FAILED` | `failed` |
 | `REJECTED` | `rejected` |
 | `CANCELED` | `timeout` |
-| A2A `tasks/cancel` | `tools/call` + `io.modelcontextprotocol/tasks` 취소 | 취소 경로 — spec §6.2 에 있으나 여기 빠져 있었다 (F-58) |
-| A2A `AUTH_REQUIRED` | MCP 오류 + 세션 키 재협상 유도 | 세션 키 만료 시 재협상 — spec §6.3 (F-58) |
 
 ## 보안
 

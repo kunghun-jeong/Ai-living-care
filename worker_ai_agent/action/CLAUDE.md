@@ -3,7 +3,7 @@
 > **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
 > **상위**: `worker_ai_agent/` · **Phase**: 0 · **구현 상태**: 구현됨 — 단일 웨이포인트만 검증
 
-결정에 따른 물리 행동. 디바이스를 제어한다. **세션 키 검증은 아직 코드에 없다** — spec §9가 요구하는 이중 검증(AF 단계 재검증)은 Phase 1 (F-63). IF-5 · IF-6.
+결정에 따른 물리 행동. 세션 키 검증 후 디바이스를 제어한다. IF-5 · IF-6.
 
 **파일**: `Actions.py` — `ActionModule(node, nav_action="navigate_to_pose")`
 

@@ -50,13 +50,11 @@ graph TD
     PF -->|"/camera/image_raw 토픽"| SIM
     SCN -->|"stdio 서브프로세스"| SRV
 
-    MSRV --> WAC
-    WAC -->|IF-5| PF
+    MSRV -->|IF-5| PF
     MSRV -->|IF-5| RF
     MSRV -->|IF-5| AF
     PF -->|IF-6| WAA
-    WAA --> WAC
-    WAC -->|IF-4| MCLI
+    WAA -->|IF-4| MCLI
 
     TOOL["tools/limo-patrol-viz/<br/>순찰 검증 (ROS2만, Gazebo 불필요)"]
 

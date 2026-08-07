@@ -5,31 +5,10 @@ Gazebo 물리도 Nav2도 YOLO도 없이, 우리가 설계한 5단계 흐름을 �
   ④ 경로 추종 이동          ④.5 도착 후 look_around 360° 회전
 검증 목표: "이 순찰로 집 안 어디에 계신 할머니를 찾을 수 있는가" (커버리지)
 """
-import cv2, numpy as np, os, math, heapq, json, re
+import cv2, numpy as np, os, math, heapq, json
 
 D = os.path.dirname(os.path.abspath(__file__))
-
-def _map_meta(path):
-    """map.yaml 에서 해상도·원점을 읽는다.
-
-    F-18 — 예전에는 같은 값이 이 파일과 patrol_viz.py 에 하드코딩돼 있고 map.yaml 은
-    아무도 읽지 않았다. 맵을 교체하면 yaml 만 갱신되고 코드는 조용히 옛 원점으로
-    계산해 커버리지 수치가 틀린 채로 나온다.
-    """
-    res = ox = oy = None
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            if line.startswith("resolution:"):
-                res = float(line.split(":", 1)[1])
-            elif line.startswith("origin:"):
-                nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", line)]
-                ox, oy = nums[0], nums[1]
-    if res is None or ox is None:
-        raise SystemExit(f"map.yaml 에서 resolution/origin 을 못 읽었다: {path}")
-    return res, ox, oy
-
-
-RES, OX, OY = _map_meta(os.path.join(D, "maps", "map.yaml"))   # 정본은 map.yaml (F-18)
+RES, OX, OY = 0.05, -10.0, -10.0        # limo-MCP 동봉 맵 (gzweb 브랜치)
 
 # --- 로봇/센서 제원 (turtlebot3 waffle 기준, LIMO도 유사) ---
 V_LIN      = 0.22      # m/s
