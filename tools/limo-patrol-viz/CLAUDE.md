@@ -6,7 +6,7 @@
 > **정본** 구조 `SOT.md` · 수치는 **실행 출력** · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
 > **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다.
-> `github.com/kunghun-jeong/-Ai-living-care` 의 `main/limo-patrol-viz` 와 **내용이 동일**하다.
+> **원본 저장소** `github.com/kunghun-jeong/-Ai-living-care` 의 `main/limo-patrol-viz` 와 **내용이 동일**하다.
 
 Gazebo·Nav2·YOLO **없이** 순찰 로직을 검증·시연한다. AWS small_house 맵 위에서 A*로 경로를 뽑고
 운동학만 적분해 로봇을 움직이며 카메라 1인칭 뷰까지 합성한다.

@@ -23,13 +23,23 @@ limo-patrol-viz : 원본  10개 →  10개 | 누락 0 | 추가 0 | 내용상이 
 
 blob 해시가 원본과 일치한다. 각 디렉터리에 `CLAUDE.md` 한 개만 추가됐다.
 
-## main 은 그대로다
+## 저장소가 옮겨졌다
 
-`origin/main`은 최초 커밋 `27b0f30`에서 **한 발짝도 움직이지 않았다.**
-기존 작업자는 하던 대로 `main`에서 계속 작업하면 되고, GitHub의
-`tree/main/limo-MCP` · `tree/main/limo-patrol-viz` 링크도 그대로 산다.
+이 개편은 **새 저장소 `github.com/kunghun-jeong/Ai-living-care`** 의 `master` 로 들어간다.
 
-이 개편은 `restructure/sot-v0.2` 브랜치에 격리돼 있다. **병합 시점은 팀이 정한다.**
+원본 저장소 `github.com/kunghun-jeong/-Ai-living-care` 의 `main` 은 최초 커밋 `27b0f30`
+그대로이며 **건드리지 않았다.** 거기 걸린 `tree/main/limo-MCP` 링크도 그대로 산다.
+다만 앞으로의 작업은 새 저장소에서 한다.
+
+**기존 클론을 갖고 있다면:**
+
+```bash
+git remote set-url origin https://github.com/kunghun-jeong/Ai-living-care.git
+git fetch origin
+git checkout master        # 경로가 크게 바뀐다 — 위 대응표 참조
+```
+
+**진행 중인 로컬 변경이 있으면 먼저 커밋하거나 stash 한 뒤 받는다.**
 
 ## 실행 명령 — `cd` 한 줄만 바뀐다
 
@@ -97,7 +107,7 @@ cd tools/limo-patrol-viz   # 기존: cd limo-patrol-viz
 
 ## 병합할 때
 
-1. **팀원의 진행 중 브랜치를 먼저 `main`에 넣는다.** 이 개편은 rename이 대부분이라
+1. **팀원의 진행 중 브랜치를 먼저 넣는다.** 이 개편은 rename이 대부분이라
    충돌이 크지 않지만, 순서를 지키면 더 깔끔하다.
 2. `python3 sot_audit.py` 가 104/104 통과하는지 확인.
 3. `git log --follow <파일>` 로 이력이 이어지는지 확인 — 전부 `git mv`라 rename이 인식된다.
@@ -109,7 +119,7 @@ cd tools/limo-patrol-viz   # 기존: cd limo-patrol-viz
 OneDrive/Windows 체크아웃에서 98개 파일이 계속 헛변경(5,839줄)으로 잡히던 문제를 없앤다.
 
 ```bash
-git checkout main
+git checkout master
 git cherry-pick 58ddc79
 ```
 
