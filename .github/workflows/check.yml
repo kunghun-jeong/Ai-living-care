@@ -6,7 +6,7 @@ name: check
 on:
   pull_request:
   push:
-    branches: [master, main]
+    branches: [main]
 
 jobs:
   check:

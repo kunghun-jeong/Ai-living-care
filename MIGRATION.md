@@ -23,20 +23,23 @@ limo-patrol-viz : 원본  10개 →  10개 | 누락 0 | 추가 0 | 내용상이 
 
 blob 해시가 원본과 일치한다. 각 디렉터리에 `CLAUDE.md` 한 개만 추가됐다.
 
-## 저장소가 옮겨졌다
+## 저장소 이름이 바뀌었고 `main` 이 움직였다
 
-이 개편은 **새 저장소 `github.com/kunghun-jeong/Ai-living-care`** 의 `master` 로 들어간다.
+저장소가 `-Ai-living-care` → **`Ai-living-care`** 로 개명됐다 (앞의 `-` 제거).
+**같은 저장소이며 옛 URL 은 리다이렉트된다** — 별개 저장소가 아니다.
 
-원본 저장소 `github.com/kunghun-jeong/-Ai-living-care` 의 `main` 은 최초 커밋 `27b0f30`
-그대로이며 **건드리지 않았다.** 거기 걸린 `tree/main/limo-MCP` 링크도 그대로 산다.
-다만 앞으로의 작업은 새 저장소에서 한다.
+`main` 은 `27b0f30` 에서 이 개편으로 **전진했다.** 따라서:
+
+**⚠️ 외부에 걸린 `tree/main/limo-MCP` · `tree/main/limo-patrol-viz` 링크는 죽었다.**
+`tree/main/worker_ai_agent/limo-MCP` · `tree/main/tools/limo-patrol-viz` 로 고친다.
+옛 트리를 그대로 보려면 커밋을 고정한다 — `tree/27b0f30/limo-MCP`.
 
 **기존 클론을 갖고 있다면:**
 
 ```bash
 git remote set-url origin https://github.com/kunghun-jeong/Ai-living-care.git
 git fetch origin
-git checkout master        # 경로가 크게 바뀐다 — 위 대응표 참조
+git checkout main          # 경로가 크게 바뀐다 — 위 대응표 참조
 ```
 
 **진행 중인 로컬 변경이 있으면 먼저 커밋하거나 stash 한 뒤 받는다.**
