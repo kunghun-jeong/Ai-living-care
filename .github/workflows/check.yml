@@ -6,7 +6,9 @@ name: check
 on:
   pull_request:
   push:
-    branches: [main]
+    # master 는 협업자가 직접 푸시하는 통합 브랜치다 —
+    # PR 을 안 거치므로 여기서 안 돌면 검사 없이 흘러간다.
+    branches: [master, main]
 
 jobs:
   check:
