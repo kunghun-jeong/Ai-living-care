@@ -9,18 +9,22 @@
 PY ?= python3
 
 .DEFAULT_GOAL := help
-.PHONY: help hooks check test anchor structure
+.PHONY: help hooks check test status anchor structure
 
 help:
 	@echo "  make hooks   pre-commit 훅 설치 (최초 1회)"
 	@echo "  make check   앵커 + 구조 검사 (수 초, 커밋 전)"
 	@echo "  make test    회귀 테스트 (로봇 불필요, 약 1분)"
+	@echo "  make status  전 영역 현황 — 48개 CLAUDE.md 헤더를 읽어 한 화면에"
 
 hooks:
 	@git config core.hooksPath .githooks
 	@chmod +x .githooks/* 2>/dev/null || true
 	@echo "pre-commit 훅 설치됨 — 이제 커밋할 때 앵커 검사가 돈다"
 	@echo "우회가 필요하면: SKIP_ANCHOR=1 git commit ..."
+
+status:
+	@$(PY) anchor.py --status
 
 check: anchor structure
 
