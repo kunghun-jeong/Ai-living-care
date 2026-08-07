@@ -26,8 +26,12 @@
 새 디렉터리를 만들었으면 거기에 `CLAUDE.md`를 만들고 **부모 `CLAUDE.md`에도 한 줄** 넣는다.
 
 ```bash
-python3 anchor.py     # 빠진 앵커만 알려준다 (수 초)
+make hooks    # 최초 1회 — 이후 커밋할 때 자동으로 돈다
+make check    # 손으로 확인하고 싶을 때
 ```
+
+훅을 설치했으면 **잊어도 커밋 시점에 걸린다.** 훅을 안 깔았거나 `SKIP_ANCHOR=1` 로 넘겼어도
+PR 에서 CI 가 같은 검사를 한다 (`.github/workflows/check.yml`) — 그쪽이 병합 관문이다.
 
 ## 4. 결정 로그에 한 줄
 

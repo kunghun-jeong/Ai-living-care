@@ -13,8 +13,8 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 
 ## 주요 명령어
 
-- 구조 감사(구조를 바꿀 때만): `python3 sot_audit.py`
-- 앵커 확인: `python3 anchor.py`
+- **최초 1회**: `make hooks` — 커밋할 때 앵커 검사가 자동으로 돈다
+- 커밋 전 검사: `make check` (= `anchor.py` + `sot_audit.py`) · 회귀: `make test`
 - 순찰 검증(경량, ROS2만 필요): `cd tools/limo-patrol-viz && ./run_coverage.sh`
 - 전체 시뮬: `cd worker_ai_agent/limo-MCP && ros2 launch Simulation/sim_bringup.launch.py`
 - MCP 왕복: `cd worker_ai_agent/limo-MCP && python3 Scenarios/send_goal.py 1.0 0.0`

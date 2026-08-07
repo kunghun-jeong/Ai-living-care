@@ -1,0 +1,56 @@
+name: check
+
+# PR 에서 도는 진짜 관문. pre-commit 훅은 설치 안 한 사람에게는 없는 것과 같고
+# SKIP_ANCHOR 로 넘길 수도 있다 — 그래서 병합 전에 여기서 한 번 더 본다.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 보존 대상 대조가 27b0f30 을 필요로 한다
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: 앵커 — CLAUDE.md 가 자기 디렉터리를 가리키는가
+        run: python3 anchor.py
+
+      - name: 구조 — SOT.md 규범
+        run: python3 sot_audit.py
+
+      - name: 구문
+        run: python3 -m compileall -q $(git ls-files '*.py')
+
+      - name: 셸 구문
+        run: for s in $(git ls-files '*.sh'); do bash -n "$s"; done
+
+      - name: 안전 경로 회귀 (ROS2 불필요)
+        run: python3 worker_ai_agent/limo-MCP/verify_fixes.py
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - run: pip install "numpy>=1.26,<2" opencv-python-headless
+
+      # 논문·제안서가 인용하는 93.6% 가 좌표·CAM_RANGE 변경으로 조용히
+      # 바뀌는 것을 막는다. 하한 90% 를 넘기면 실패한다.
+      - name: 순찰 커버리지 하한 90%
+        run: |
+          cd tools/limo-patrol-viz
+          ./run_coverage.sh | tee /tmp/cov.txt | tail -6
+          pct=$(grep -o '= [0-9.]*%' /tmp/cov.txt | tail -1 | tr -dc '0-9.')
+          echo "커버리지 = ${pct}%"
+          python3 -c "import sys; sys.exit(0 if float('${pct}') >= 90.0 else 1)"
