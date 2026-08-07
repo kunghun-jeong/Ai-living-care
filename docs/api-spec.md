@@ -19,20 +19,25 @@
 
 ## tool 6종 (현재 노출된 전부)
 
-### `plan_and_navigate(x: float, y: float, frame: str = "map", yaw_deg: float = None) -> dict`
+### `plan_and_navigate(x: float, y: float, frame: str = "map", yaw_deg: Optional[float] = None) -> dict`
 
 목표 좌표까지 경로를 계획하고 이동을 시작한다. **비동기** — 즉시 반환하고 `get_status`로 폴링한다.
 
 ```json
 {"started": true}
 {"started": false, "reason": "invalid goal"}
+{"started": false, "reason": "nav2 action server unavailable"}
+{"started": false, "reason": "a goal sequence is already in progress"}
+{"started": false, "reason": "empty waypoint list"}
+{"started": false, "reason": "waypoint[0] has non-numeric coordinate: ..."}
 ```
+
+**Nav2가 없으면 `started: false`가 즉시 나온다.** 예전에는 `started: true`를 주고 백그라운드에서 실패해 호출자가 알 방법이 없었다 (F-49).
 
 - `_plan_fn`은 목표를 **검증만** 하고 그대로 웨이포인트 1개로 돌려준다. 실제 전역 경로계획은
   Nav2의 `NavigateToPose`가 내부적으로 수행한다.
 - ⚠️ 웨이포인트가 1개이므로 `prev_xy`가 없어 **`yaw_deg`를 생략하면 항상 0도(맵 +x축)를 보고 정지**한다.
-- ⚠️ 시그니처가 `float = None`이라 생성 스키마가 `{"type":"number","default":null}`인 자기모순이다.
-  LLM이 `yaw_deg: null`을 명시하면 ValidationError로 호출 전체가 실패한다. `Optional[float]`로 수정 필요.
+- ~~시그니처가 `float = None`이라 스키마가 자기모순~~ → **해소** (2026-08-06) `Optional[float]`.
 
 ### `navigate_waypoints(waypoints: list) -> dict`
 
@@ -43,9 +48,9 @@
 ```
 
 - `yaw_deg` 생략 시 이전 → 현재 방향으로 자동 계산. 첫 점은 0.0.
-- ⚠️ **`list` bare 어노테이션이라 아이템 검증이 전혀 없다.** `[{"x": 1, "y": 0}]`처럼 **정수**를 주면
-  rosidl의 `assert isinstance(value, float)`가 시퀀스 스레드 안에서 터지고, 그 스레드에 `try/except`가
-  없어 **조용히 죽는다.** 이후 `get_status`는 영원히 진행 중으로 보고한다. → pydantic 모델로 교체 필요.
+- `list` bare 어노테이션이지만 **스레드를 띄우기 전에 `validate_waypoints()`가 검사한다** (F-4 해소).
+  정수 좌표는 float으로 강제 변환하고, 형식·NaN·필수 키 누락은 `started: false` + 사유로 거부한다.
+  시퀀스 스레드에도 `try/except`가 있어 예외 시 goal을 취소하고 `sequence_result.reason`에 남긴다.
 
 ### `get_status() -> dict`
 
@@ -54,7 +59,10 @@
   "status": "navigating",
   "last_goal": {"x": 1.0, "y": 0.0, "frame": "map", "yaw_deg": 0.0},
   "sequence_progress": {"index": 0, "total": 1},
-  "sequence_result": {"completed": 1, "total": 1, "interrupted": false}
+  "sequence_result": {"completed": 1, "total": 1, "interrupted": false, "reason": "completed"},
+  "camera": {"have_frame": true, "age_sec": 0.31, "stale": false, "stale_after_sec": 2.0,
+             "received": 412, "dropped": 0, "last_error": null, "buffered": 30},
+  "detector_error": null
 }
 ```
 
@@ -99,8 +107,10 @@
 {"cancelled": false, "reason": "no active goal"}
 ```
 
-- ⚠️ **goal 수락이 5초를 넘으면 `_goal_handle`이 비어 있어 취소할 수 없다.** 그런데 Nav2는 목표를
-  수락했으므로 **로봇은 실제로 달린다.** RTF 0.04 환경에서 상시 발생하는 경로다. **안전 결함.**
+- goal 수락이 5초를 넘겨 포기한 뒤 Nav2가 늦게 수락하면 **그 콜백이 즉시 취소를 보낸다** (F-2 해소).
+- 완주 타임아웃(120초, **노드 시계** 기준)에 걸려도 goal을 취소한다 (F-48 해소). 예전에는 감시만
+  포기해 로봇이 계속 달렸다.
+- `cancel()` 사유는 항상 `interrupted` 하나다. 예전에는 타이밍에 따라 `cancelled`/`failed`로 갈렸다 (F-46 해소).
 
 ## 미노출 — 구현은 있으나 tool이 아닌 것 (G-3)
 
@@ -112,7 +122,7 @@
 | `wait_for_person(timeout)` | 발견까지 블로킹 대기 |
 | `get_scan_status()` | 스캔 상태 조회 |
 | `stop_person_scan()` | 스캔 정지 |
-| `check_object_state(object_class, frame_id)` | 대상 영역 크롭 JPEG 반환 (**증거 이미지**) |
+| `check_object_state(object_class, frame_id, min_conf=0.5)` | 대상 영역 크롭 JPEG 반환 (**증거 이미지**). `min_conf` 미만은 이미지 대신 사유를 돌려준다 (F-47) |
 
 **시나리오 1("할머니 괜찮은지 확인")의 탐색·판정 경로 전체가 여기 있다.**
 
@@ -141,3 +151,18 @@ tools/call cancel_task           → 취소
 ```
 
 기존 6종은 디버깅·회귀 테스트용으로 남긴다. 상세는 `interfaces/if04_secure_a2a_channel/CLAUDE.md`.
+
+## 실패 시 반환에 반드시 있는 것 (2026-08-06)
+
+「조용히 잘못 보고하는 것이 요란하게 실패하는 것보다 위험하다」를 반환 스키마로 옮긴 것:
+
+| 상황 | 예전 | 지금 |
+|---|---|---|
+| 카메라가 죽음 | 옛 사진을 정상 반환 | `get_camera_snapshot` → `{"image": null, "reason": "camera frame is stale", "camera": {...}}` |
+| YOLO 로딩 실패 | 조용히 기동, 첫 판정에서 터짐 | `get_status.detector_error` 에 사유, `detect_objects` 가 즉시 사유 반환 |
+| Nav2 부재 | `{"started": true}` | `{"started": false, "reason": "nav2 action server unavailable"}` |
+| 스캔 중 카메라 정지 | `found: false` (=「없음」으로 읽힘) | `{"found": false, "conclusive": false, "reason": "camera stopped producing frames ..."}` |
+| 저신뢰 오탐 | 크롭 이미지를 증거로 반환 | `{"image_jpeg": null, "reason": "confidence 0.08 < 0.50 — not used as evidence"}` |
+| 크롭 실패 | 방 전체 사진으로 조용히 대체 | `{"image_jpeg": null, "reason": "crop failed for detected bbox"}` |
+
+**`found: false` 는 `conclusive` 와 함께 읽어야 한다.** `conclusive: false` 는 「없다」가 아니라 「못 봤다」다.

@@ -57,6 +57,8 @@
 | **D-11** *(SOT)* | PF/RF/AF 디렉터리에서 `_function` 접미사를 뺀다 (`perception/` 등) | 명명 규칙 N-1의 명시적 예외. 상위 `worker_ai_agent/`가 문맥을 준다 |
 | **D-12** *(SOT)* | `service_functions/` 중간 계층을 **두지 않는다** | §2.2에서 "Service Functions"는 컴포넌트가 아니라 **행 레이블**. 실제 컴포넌트는 PF/RF/AF 셋 |
 | **D-13** *(SOT)* | 컴포넌트 디렉터리에 정식 명칭 전체를 쓴다 (`manager_ai_core`, `core` 아님) | 파일 하나만 열려 있어도 소속이 드러나야 하고, 축약형은 Manager/Worker 양쪽에서 충돌한다 |
+| **D-15** *(SOT)* | 배치 규칙 `SP-*` · 감사 규칙 `AR-*` · 하네스 로컬 체크 `H*-` 로 접두를 분리한다 | 같은 접두가 여러 네임스페이스에 있으면 "P-4를 지켰나"의 의미가 결정되지 않는다 |
+| **D-16** *(SOT)* | `SOT.md` §2 트리 · `sot_audit.py` 검사 대상 · 실제 디렉터리는 항상 집합 일치 | 셋 중 하나만 고치면 정본이 파생물보다 낡는다 |
 | **D-17** *(SOT)* | D-14의 보존 범위는 **구조·파일명·경로**이며 내용 동결이 아니다. 내용 변경은 결정 기록을 조건으로 허용 | 내용까지 얼리면 Phase 0 작업 7건과 안전 결함 수정이 전부 막힌다 (2차 재감사 실증) |
 | **D-14** *(SOT)* | `limo-MCP/`·`limo-patrol-viz/`를 **원본 그대로 보존**하고 각각 `worker_ai_agent/`·`tools/` 아래에 통째로 배치한다 | 기존 저장소 작업자가 영향 없이 계속 작업하기 위함. **컴포넌트 디렉터리는 규범을, 구현체는 코드를 갖는다.** 구조·파일명·경로를 얼린다 — 내용 변경은 결정 로그로 남긴다 (D-17) |
 
@@ -447,7 +449,7 @@ slide 21 원본 `{ found, room, posture, motion: none/12s, confidence, status, r
 | `failed` | 수행 실패 (SF 오류, 하드웨어) | 재시도 → 임계 초과 시 다른 Worker |
 | `partial` | 일부만 수행 (예: 4개 방 중 2개) | 잔여분에 대해 후속 정책 발행 |
 | `rejected` | Worker가 정책 수락 거부 (능력 불일치, 자원 부족) | 즉시 다른 Worker 재선택 |
-| `timeout` | `assurance/deadline-sec` 초과, report 없음 | Task cancel 후 재선택 |
+| `timeout` | `assurance/deadline-sec` 초과, report 없음 | **Task cancel 후 재선택**. 같은 Worker 재시도는 하지 않는다 — 응답이 없다는 것은 그 Worker가 살아 있다는 근거가 없다는 뜻이다 |
 
 > **`not_found` 는 docx의 열린 질문을 닫는 값이다.** "4곳을 모두 확인해도 못 찾은 경우의 후속 액션 미정" → `status: not_found` + `request: [caregiver_notify]` 로 `abnormal`과 동일한 에스컬레이션 경로를 탄다.
 
@@ -464,8 +466,8 @@ stateDiagram-v2
 
     Reported --> Assured : status=completed
     Reported --> Escalated : status=abnormal | not_found(소진)
-    Reported --> Retry : status=failed | timeout
-    Reported --> Reselect : status=rejected | not_found(후보 잔존)
+    Reported --> Retry : status=failed
+    Reported --> Reselect : status=rejected | timeout | not_found(후보 잔존)
     Reported --> PolicyGenerated : status=partial (잔여 정책 재생성)
 
     Retry --> Dispatched : 재시도 < N
@@ -664,7 +666,9 @@ join(sub_reports, mode) →
   and-all:  전부 completed → completed
             하나라도 abnormal → abnormal (request[] 합집합)
             하나라도 failed → partial
-  sequential: 후보를 순서대로 1개씩 시도, 최초 non-failed 채택
+  sequential: 단계 파이프라인 — A의 report를 B의 입력으로 넘긴다 (§7.1 정의)
+            앞 단계가 failed면 뒤 단계를 보내지 않고 partial
+  or-fallback: 후보를 순서대로 1개씩 시도, 최초 non-failed 채택
             → 후보 소진 시 failed (재시도 상한은 MAA가 건다)
   split:    파티션 커버리지 계산 → 미커버 영역 있으면 partial
 ```
@@ -891,7 +895,6 @@ v0.1이 지목한 `ultralytics` 미설치는 **해소됐다**. 카메라는 `tur
 | **U-4** | Worker 선택 점수 함수의 가중치 α,β,γ,δ | Phase 2 | Phase 2 |
 | **U-5** | Task 상태 전달 — 폴링 vs `notifications/progress` 스트리밍 | 순찰처럼 긴 작업의 UX | Phase 1 |
 | **U-6** | 시나리오 50개의 스키마와 저장 형식 (RL 학습 데이터) | Phase 3 학습 가능 여부. **지금 정해두지 않으면 나중에 전수 재작성** | **Phase 1까지** |
-| **U-7** | Gazebo 카메라 센서 추가 + `ultralytics` 설치 | Phase 0 0-8의 전제 | 즉시 |
 | **U-8** | `<goal>` GPS 좌표 오류의 슬라이드/논문 반영 | 대외 발표 정확성 | 즉시 |
 | **U-9** | W↔W 모델 M-1 vs M-2 확정 | Phase 3 | Phase 2 종료 시 |
 | **U-10** | 실제 LIMO 하드웨어 투입 시점 (현재 전부 시뮬) | 논문의 실증 강도 | Phase 1 |

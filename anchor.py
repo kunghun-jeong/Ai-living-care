@@ -41,6 +41,25 @@ for dp, dns, fns in os.walk(ROOT):
             missing.append((f"{r}/CLAUDE.md" if r != "." else "CLAUDE.md",
                             f"{kind} `{e}` 미등재"))
 
+# MCP tool 은 이 저장소의 유일한 외부 인터페이스라 파일과 같은 급의 앵커다.
+# tool 을 추가·개명하면 아래 두 문서에 한 줄 넣는다.
+TOOL_SRC = "worker_ai_agent/limo-MCP/MCP_server/MCP_server.py"
+TOOL_DOCS = ("docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md")
+
+src = os.path.join(ROOT, TOOL_SRC)
+if os.path.isfile(src):
+    tools = re.findall(r"@mcp\.tool\(\)\s*\n\s*(?:async\s+)?def\s+(\w+)",
+                       open(src, encoding="utf-8").read())
+    for doc in TOOL_DOCS:
+        p = os.path.join(ROOT, doc)
+        if not os.path.isfile(p):
+            missing.append((doc, "파일 없음 — MCP tool 앵커처"))
+            continue
+        txt = open(p, encoding="utf-8").read()
+        for name in tools:
+            if name not in txt:
+                missing.append((doc, f"MCP tool `{name}` 미등재"))
+
 if not missing:
     print("앵커 OK")
     sys.exit(0)
