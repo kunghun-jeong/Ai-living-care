@@ -1,7 +1,9 @@
 # Knowledge Graph (KG)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_agent/` · **Phase**: 0 · **구현 상태**: 미착수 — **G-6**
+> **역할** 사용자·공간·디바이스의 관계와 능력을 보유한다 — 접근은 IF-1 경유
+> **상태** Phase 0 · 미착수 · 갭 `G-6` · 작업 `0-10`
+> **읽을 절** spec **§3.1**(IF-1 계약) · **§2.3**(KG↔IAD 구분, 21줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` §2.1 · 스키마 `contracts/`
 
 사용자·공간·디바이스의 **관계와 능력**을 보유한다 — 누가 무엇을 할 수 있는가.
 `intent_audit_database/`(감사 이력)와는 별개다 (spec §2.3). 접근은 **IF-1 경유**.
