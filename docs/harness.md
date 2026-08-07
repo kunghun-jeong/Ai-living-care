@@ -9,7 +9,7 @@
 **무엇을 열지는 `docs/doc-map.md` §1 이 정한다.** 거기 없으면 이 문서만 따른다 (fail-closed).
 
 1. 건드릴 디렉터리의 `CLAUDE.md` — 그 컴포넌트의 계약과 알려진 함정.
-   **헤더가 지목한 spec 절만** 읽는다 — 962줄을 통째로 열지 않는다.
+   **헤더가 지목한 spec 절만** 읽는다 — 통째로 열지 않는다.
 2. 그 영역을 **처음 건드릴 때만** 아래 참고 노트 — 코드를 며칠 읽어야 알 수 있는 함정 모음
 3. 그 외에는 읽지 않는다.
 
@@ -21,7 +21,8 @@
 | Manager 신규 구현 | `docs/harness/manager-ai.md` |
 | Gazebo · Nav2 · 순찰 · 맵 | `docs/harness/simulation.md` |
 | 문서 · 디렉터리 구조 | `docs/harness/docs-and-structure.md` |
-| 논문 · IITP 제안서 | 노트 없음 — `docs/doc-map.md` §2 팀장 문서 + spec §11 + `docs/status.md` 수치·한정어 |
+| 매거진 논문 | 노트 없음 — `docs/doc-map.md` §2 팀장 문서 + spec §11 + `docs/status.md` 수치·한정어 |
+| IITP 제안서 | 노트 없음 — spec §11.1(`S-*` 정본)까지만. **spec 은 제안서의 기준 문서가 아니다** |
 
 ## 2. 작업한다
 

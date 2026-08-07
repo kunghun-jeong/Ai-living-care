@@ -2,7 +2,7 @@
 
 > **역할** Report 를 읽어 status 를 판정한다
 > **상태** Phase 0 · 미착수
-> **읽을 절** spec **§5.1**(스키마, 40줄) · **§5.2**(status 7종, 14줄) — 그 외 절은 열지 않는다
+> **읽을 절** spec **§5.1**(스키마) · **§5.2**(status 7종) — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §5.1 · §5.2
 
 Worker Report(JSON)를 읽어 임무 결과를 판정한다. 스키마: `contracts/worker_report/`

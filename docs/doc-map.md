@@ -12,6 +12,7 @@
 | **Perception · Reasoning · Action 코드** | ⛔ **담당 연구원 영역 (D-17).** 결함을 찾았으면 `docs/status.md` 에 기록만 | 전부 |
 | **순찰 · 시뮬 · 맵 · 좌표** | `docs/harness/simulation.md` · `tools/limo-patrol-viz/CLAUDE.md` | spec |
 | **문서 · 디렉터리 구조 변경** | `docs/harness/docs-and-structure.md` · `SOT.md` §1·§2·§4 | spec |
+| **결함을 발견했다** | 안전 경로(정지·취소 / 사람 판정 / 프레임 신선도 / 세션 키)면 `docs/status.md` 「안전 — 담당자 통지」, 그 외는 `docs/status-defects.md` | 다른 사람 코드 — 고치지 않는다 (D-17) |
 | **논문 · IITP 제안서 작성** | **아래 §2 팀장 문서** · spec **§11**(표준화 항목 36줄) · `docs/status.md`(수치와 한정어) | 컴포넌트 `CLAUDE.md` · 코드 |
 | **인터페이스 계약 정의** | `interfaces/if0N_*/CLAUDE.md` · spec **§3**(51줄) | spec 전체 |
 | **스키마(L1~L3·Report)** | `contracts/*/CLAUDE.md` · spec **§4**(L1·L2) 또는 **§5**(Report) | 나머지 절 |

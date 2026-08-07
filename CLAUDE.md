@@ -34,7 +34,7 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 - **현재 상태·갭·선결조건**: @docs/status.md — 건드릴 영역이 지금 깨져 있는지
 - 브랜치·PR·소유 경계: `CONTRIBUTING.md` — **최초 1회 읽는다**
 - 구조 정본: `SOT.md` — **구조를 바꿀 때만.** 명명·배치·감사 규칙 · 결정 `D-*`
-- 설계 정본: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` (962줄)
+- 설계 정본: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
   — **통독 금지.** 각 컴포넌트 `CLAUDE.md` 헤더가 지목한 **절만** 읽는다
 - 코드 아키텍처: `docs/architecture.md` — ⚠️ IF-4·IF-5 종단점에 알려진 불일치 (F-62)
 - API 스펙: `docs/api-spec.md`(MCP 작업자만) · 컨벤션: `docs/conventions.md` · 결정: `docs/decisions.md` · 옛 경로: `MIGRATION.md`

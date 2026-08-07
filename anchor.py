@@ -1,20 +1,37 @@
 #!/usr/bin/env python3
 """앵커 검사 — 문서가 가리키는 것이 실재하는가.
 
-    python3 anchor.py            빠진 앵커만 보고 (커밋 훅 · CI 가 실행)
+    python3 anchor.py            평시 — 막는 것만 막고 나머지는 알려만 준다
+    python3 anchor.py --strict   PR · CI — 알림도 전부 막는다
     python3 anchor.py --status   전 영역 현황 + 자동 로딩 실측 (파일에 쓰지 않는다)
+    python3 anchor.py --spec     설계 정본 절 색인 (파일에 쓰지 않는다)
+
+**규칙은 안내지 통제가 아니다.** 초기 단계 저장소에서는 결함을 겪는 비용보다
+움직이지 못하는 비용이 크다. 그래서 검사를 둘로 나눈다:
+
+  **막는다**   조용히 틀리면 위험하고, 고치는 데 한 줄이면 되는 것
+  **알린다**   알면 되는 것. 평시 커밋은 통과하고 **PR 에서 `--strict` 로 잡힌다**
+
+탐색 중에는 통과시키고 병합 전에 잡는다. 안 잡는 게 아니라 **잡는 시점을 늦춘다.**
 
 규칙은 하나다: **파일·디렉터리가 생기거나 이름이 바뀌면 그 자리 `CLAUDE.md` 에 한 줄 넣는다.**
 감사 도구가 아니다. 점수를 세지 않고 빠진 것만 알려준다.
 
 검사 일곱 — 전부 **양방향**이거나 실재를 본다:
-  A1  `CLAUDE.md` 가 자기 디렉터리의 하위·코드 파일을 가리키는가
-  A2  MCP tool 집합이 `api-spec.md` · `mcp_server/CLAUDE.md` 에 있는가 (유일한 외부 인터페이스)
-  A3  헤더의 `읽을 절` 이 spec 에 **실재하는 절**을 가리키는가
-  A4  루트가 50줄 이내이고 **`@` 재귀 총합**이 상한 이내인가 (매 세션 자동 로딩된다)
-  A5  안전 결함이 `status.md` 표 ↔ 컴포넌트 `상태` 줄 **양쪽에** 있는가 (D-18 인계 경로)
-  A6  `.gitignore` 의 경로 패턴이 실재하는 디렉터리를 가리키는가
-  A7  문서가 적은 파일 경로가 실재하는가 — 축약은 **유일하게 해석될 때만** 허용
+  A1  `CLAUDE.md` 가 자기 디렉터리의 하위·코드 파일을 가리키는가        [막는다]
+  A2  MCP tool 집합이 `api-spec.md` · `mcp_server/CLAUDE.md` 에 있는가   [막는다]
+  A5  안전 결함이 `status.md` 표 ↔ 컴포넌트 `상태` 줄 양쪽에 있는가     [막는다]
+  A4  루트가 50줄 이내인가 (매 세션 자동 로딩된다)                      [막는다]
+  --
+  A1' 표에 적힌 자식이 실재하는가 (유령 항목)                           [알린다]
+  A3  헤더의 `읽을 절` 이 spec 에 실재하는 절을 가리키는가              [알린다]
+  A4' `@` 재귀 총합이 상한 이내인가                                     [알린다]
+  A6  `.gitignore` 의 경로 패턴이 실재하는 디렉터리를 가리키는가        [알린다]
+  A7  문서가 적은 파일 경로가 실재하는가 (축약은 유일 해석만)           [알린다]
+
+「알린다」 쪽은 **재구조화·개명·정본 개정** 같은 드문 사건에만 걸린다. spec 절 하나를
+옮기면 헤더 14개가 함께 걸리는데, 정본을 활발히 고치는 시기에 그것으로 커밋을 막으면
+**개정을 벌하는 셈이 된다.**
 
 한 방향만 보는 검사는 지우는 쪽을 못 막는다. A1 과 A5 는 그래서 역방향을 함께 본다.
 """
@@ -30,14 +47,15 @@ PRESERVED = ("worker_ai_agent/limo-MCP", "tools/limo-patrol-viz")
 
 SPEC = "docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md"
 STATUS = "docs/status.md"
-SAFETY_MARK = "### 안전 — 담당자 통지"
+SAFETY_MARK = "## 안전 — 담당자 통지"
 TOOL_SRC = "worker_ai_agent/limo-MCP/MCP_server/MCP_server.py"
 TOOL_DOCS = ("docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md")
 IGNORE = ".gitignore"
 ROOT_MAX_LINES = 50
 AUTOLOAD_MAX_LINES = 420
 
-missing = []
+missing = []      # 막는다
+advisory = []     # 알린다 (--strict 에서만 막는다)
 
 
 def rel(p):
@@ -116,7 +134,7 @@ def check_ghosts():
                 continue
             for name in re.findall(r"`([\w.\-]+)/`", ln):
                 if not os.path.isdir(os.path.join(base, name)):
-                    missing.append((f"{doc}:{i}", f"표의 `{name}/` 이 실재하지 않음 — 유령 항목"))
+                    advisory.append((f"{doc}:{i}", f"표의 `{name}/` 이 실재하지 않음 — 유령 항목"))
 
 
 # ── A2 · MCP tool 집합 ───────────────────────────────────────────────────────
@@ -139,7 +157,7 @@ def check_spec_refs():
     """48개 헤더가 `§4.1` 같은 절 번호에 의존한다. spec 을 개정하거나 절을 재배치하면
     전부 조용히 어긋난다 — 경로와 달리 절 번호는 깨져도 눈에 안 띈다."""
     if not has(SPEC):
-        missing.append((SPEC, "설계 정본 부재 — `읽을 절` 검사 불가"))
+        advisory.append((SPEC, "설계 정본 부재 — `읽을 절` 검사 불가"))
         return
     have = set(re.findall(r"^#{2,3} (\d+(?:\.\d+)?)\.? ", read(SPEC), re.M))
     for r, _, _ in walk_docs():
@@ -149,7 +167,7 @@ def check_spec_refs():
             continue
         for sec in re.findall(r"§(\d+(?:\.\d+)?)", m.group(1)):
             if sec not in have:
-                missing.append((doc, f"spec 에 없는 절 `§{sec}` 지목"))
+                advisory.append((doc, f"spec 에 없는 절 `§{sec}` 지목"))
 
 
 # ── A4 · 자동 로딩 분량 ──────────────────────────────────────────────────────
@@ -178,7 +196,7 @@ def check_root_size():
                         f"{n}줄 — 루트는 {ROOT_MAX_LINES}줄 이내. **매 세션 자동 로딩된다**"))
     files, total = autoload_total()
     if total > AUTOLOAD_MAX_LINES:
-        missing.append(("CLAUDE.md",
+        advisory.append(("CLAUDE.md",
                         f"자동 로딩 {total}줄 (상한 {AUTOLOAD_MAX_LINES}) — "
                         f"`@` 는 재귀다. 지금 열리는 것: {' · '.join(files)}"))
 
@@ -244,7 +262,7 @@ def check_ignore_paths():
             continue
         head = re.split(r"[*?\[]", pat)[0].rstrip("/")
         if "/" in head and not os.path.exists(os.path.join(ROOT, head)):
-            missing.append((IGNORE, f"`{ln.strip()}` 가 없는 경로 `{head}` 를 지목 — 규칙이 죽어 있다"))
+            advisory.append((IGNORE, f"`{ln.strip()}` 가 없는 경로 `{head}` 를 지목 — 규칙이 죽어 있다"))
 
 
 # ── A7 · 문서가 적은 파일 경로가 실재하는가 (옛 DA-7 자리) ───────────────────
@@ -281,7 +299,40 @@ def check_doc_paths():
                 if len(hits) == 1:
                     continue
                 what = "실재하지 않음" if not hits else f"{len(hits)}곳으로 해석됨 — 모호하다"
-                missing.append((f"{doc}:{i}", f"경로 `{p}` {what}"))
+                advisory.append((f"{doc}:{i}", f"경로 `{p}` {what}"))
+
+
+# ── --spec · 설계 정본 절 색인 (파일에 쓰지 않는다) ──────────────────────────
+def spec_index():
+    """spec 의 절 색인을 **읽는 시점에** 만든다.
+
+    줄 번호와 절 크기는 spec 이 정본인 **파생 데이터**다. 문서에 박아 두면 spec 을 한 줄만
+    고쳐도 전부 밀린다 — 실제로 색인 16행 전량이 조용히 어긋나 있었고 아무도 몰랐다.
+    `make status` 와 같은 원리로 읽는 시점에 만든다: 충돌 0 · 낡을 수 없음.
+
+    그래서 컴포넌트 헤더의 `읽을 절` 은 **절 번호만** 쓴다. 크기가 궁금하면 여기서 본다.
+    """
+    if not has(SPEC):
+        print(f"설계 정본 부재: {SPEC}")
+        return
+    lines = read(SPEC).splitlines()
+    total = len(lines)
+    hs = [(i, l) for i, l in enumerate(lines, 1) if re.match(r"^#{2,3} ", l)]
+    print("=" * 88)
+    print(f"  설계 정본 절 색인 — {SPEC} ({total}줄)")
+    print("  읽는 시점에 만든다. 문서에 박지 않는다 — spec 을 고치면 전부 밀린다.")
+    print("=" * 88)
+    for k, (i, l) in enumerate(hs):
+        lvl = len(l) - len(l.lstrip("#"))
+        nxt = total + 1
+        for j, l2 in hs[k + 1:]:
+            if len(l2) - len(l2.lstrip("#")) <= lvl:
+                nxt = j
+                break
+        title = l.lstrip("# ").strip()
+        pad = "  " if lvl == 3 else ""
+        print(f"  {pad}§{title[:60]:<62}{'':<2}L{i:<6}{nxt - i:>4}줄")
+    print("\n  헤더의 `읽을 절` 이 지목한 절만 연다. 통독하지 않는다.")
 
 
 # ── --status · 전 영역 현황 (파일에 쓰지 않는다) ─────────────────────────────
@@ -313,17 +364,31 @@ def status():
         print(f"    {p:<38}{len(read(p).splitlines()):>5}줄")
 
 
-def report():
-    if not missing:
+def report(strict=False):
+    if advisory:
+        print(f"알림 {len(advisory)}건 — 지금 막지는 않는다. PR 전에 정리한다\n")
+        for where, what in advisory:
+            print(f"  {where:<52} {what}")
+        print()
+    if missing:
+        print(f"앵커 누락 {len(missing)}건 — 해당 CLAUDE.md 에 한 줄씩 추가할 것\n")
+        for where, what in missing:
+            print(f"  {where:<52} {what}")
+        return 1
+    if strict and advisory:
+        print("--strict — 알림도 통과시키지 않는다 (PR · CI)")
+        return 1
+    if not advisory:
         print("앵커 OK")
-        return 0
-    print(f"앵커 누락 {len(missing)}건 — 해당 CLAUDE.md 에 한 줄씩 추가할 것\n")
-    for where, what in missing:
-        print(f"  {where:<52} {what}")
-    return 1
+    else:
+        print("막는 것 없음 — 위 알림은 지금 고치지 않아도 커밋된다")
+    return 0
 
 
 if __name__ == "__main__":
+    if "--spec" in sys.argv:
+        spec_index()
+        sys.exit(0)
     if "--status" in sys.argv:
         status()
         sys.exit(0)
@@ -335,4 +400,4 @@ if __name__ == "__main__":
     check_safety_handoff()
     check_ignore_paths()
     check_doc_paths()
-    sys.exit(report())
+    sys.exit(report("--strict" in sys.argv))

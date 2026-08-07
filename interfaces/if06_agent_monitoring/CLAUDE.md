@@ -2,7 +2,7 @@
 
 > **역할** PF/RF/AF → WAA 관측 수집 — Report 의 재료가 여기서 온다
 > **상태** Phase 0 · 미착수
-> **읽을 절** spec **§3**(15줄) · **§5.1**(Report 스키마, 40줄) — 그 외 절은 열지 않는다
+> **읽을 절** spec **§3** · **§5.1**(Report 스키마) — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §3
 
 Service Function의 실행 상태와 관측값을 Worker AI Analyzer로 올린다.

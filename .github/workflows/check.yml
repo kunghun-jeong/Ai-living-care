@@ -21,7 +21,7 @@ jobs:
           python-version: "3.10"
 
       - name: 앵커 — CLAUDE.md 가 자기 디렉터리를 가리키는가
-        run: python3 anchor.py
+        run: python3 anchor.py --strict   # PR 에서는 알림도 통과시키지 않는다
 
       - name: 구조 — SOT.md 규범
         run: python3 sot_audit.py
@@ -42,12 +42,21 @@ jobs:
 
       - run: pip install "numpy>=1.26,<2" opencv-python-headless
 
-      # 논문·제안서가 인용하는 93.6% 가 좌표·CAM_RANGE 변경으로 조용히
-      # 바뀌는 것을 막는다. 하한 90% 를 넘기면 실패한다.
-      - name: 순찰 커버리지 하한 90%
+      # 논문·제안서가 인용하는 93.6% 가 좌표·CAM_RANGE 변경으로 조용히 바뀌는 것을 본다.
+      # **막지 않는다** — 순찰 로직을 실험적으로 바꾸는 것이 Phase 0 의 일이고,
+      # 탐색 중에 수치가 내려가는 것은 정상이다. 논문에 수치를 인용하기 전에 여기를 본다.
+      # Phase 1(견고화)에 들어가면 하한으로 되돌린다.
+      - name: 순찰 커버리지 (기준선 90% · 경고)
         run: |
           cd tools/limo-patrol-viz
           ./run_coverage.sh | tee /tmp/cov.txt | tail -6
           pct=$(grep -o '= [0-9.]*%' /tmp/cov.txt | tail -1 | tr -dc '0-9.')
           echo "커버리지 = ${pct}%"
-          python3 -c "import sys; sys.exit(0 if float('${pct}') >= 90.0 else 1)"
+          python3 -c "
+import sys
+p = float('${pct}')
+if p < 90.0:
+    print(f'::warning::순찰 커버리지 {p}% — 기준선 90% 아래다. 의도한 변경인지 PR 에 적을 것')
+else:
+    print(f'커버리지 {p}% — 기준선 이상')
+"

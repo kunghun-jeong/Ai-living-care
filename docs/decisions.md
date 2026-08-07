@@ -21,6 +21,8 @@
 | 날짜 | 결정 | 정본 반영 |
 |---|---|---|
 | 2026-08-07 | **커밋 author 는 각자 자기 GitHub 인증 이메일로 한다** — 공용 신원(`AI-Care <noreply@skku.edu>`)으로 28개가 쌓여 아무에게도 귀속되지 않았다. 과거 이력은 재작성하지 않는다(clone 파손 위험). **AI 공동저자 트레일러는 넣지 않는다** | `CONTRIBUTING.md` 「커밋 신원」 |
+| 2026-08-07 | **규칙은 guided soft rule 이다** — 검사를 「막는다 / 알린다」로 나누고 알림은 `--strict`(PR·CI)에서만 막는다. 커버리지 하한 90% 도 경고로 내렸다(Phase 1 에 복원). 실측: spec 절 하나를 옮기면 헤더 14개가 걸려 **정본 개정을 벌하고 있었다** | `anchor.py` · `CONTRIBUTING.md` · `check.yml` |
+| 2026-08-07 | **`status.md` 를 둘로 나눈다** — 결함 이력을 `status-defects.md` 로. 결함을 기록하면 자동 로딩 예산에 막히던 자기모순을 없앴다 (391 → 283줄) | `docs/status.md` · `docs/status-defects.md` |
 | 2026-08-07 | **브랜치를 2단으로 — `master` 가 협업자 통합 브랜치, `main` 은 소유자가 PR 로 승격하는 최종본** | `CONTRIBUTING.md` 「브랜치」 |
 | 2026-08-07 | **`main` 직접 푸시를 훅으로 막는다** — 규약 문장만으로는 안 지켜진다. `.githooks/pre-push` 가 **목적지**로 판정하므로 `HEAD:main` 우회도 막힌다. `master` 푸시와 브랜치 삭제, `SKIP_MAIN_PUSH=1` 은 통과 | `.githooks/pre-push` |
 | 2026-08-07 | **CI 를 `master` 푸시에서도 돌린다** — `master` 는 PR 을 안 거치므로 여기서 안 돌면 검사 없이 흘러간다 | `.github/workflows/check.yml` |
