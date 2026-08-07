@@ -1,7 +1,9 @@
 # Worker Selector
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_management_system/` · **Phase**: 2 · **구현 상태**: 미착수
+> **역할** 점수 함수로 Worker 를 고른다 — 가중치는 미결정 `U-4`
+> **상태** Phase 2 · 미착수
+> **읽을 절** spec **§7.1**(분해 모드, 23줄) · **§7.2**(16줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §7.2
 
 L2 정책의 `<required-skill>`을 만족하는 Worker를 골라 배포 대상을 확정한다.
 

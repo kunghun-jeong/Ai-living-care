@@ -1,7 +1,9 @@
 # IF-6 — Agent Monitoring Interface
 
-> **구조 정본**: `SOT.md` §3 · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §3
-> **종단점**: PF/RF/AF → WAA · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** PF/RF/AF → WAA 관측 수집 — Report 의 재료가 여기서 온다
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§3**(15줄) · **§5.1**(Report 스키마, 40줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §3
 
 Service Function의 실행 상태와 관측값을 Worker AI Analyzer로 올린다.
 WAA는 이걸 모아 **Worker Report**를 만든다 (`contracts/worker_report/`).

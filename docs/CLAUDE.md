@@ -1,6 +1,9 @@
 # docs — 문서 저장소
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
+> **역할** 설계·구조·상태·절차 문서. 라우팅은 `docs/doc-map.md` 가 한다
+> **상태** 상시
+> **읽을 절** 없음 — 이 디렉터리만으로 작업한다
+> **정본** 구조 `SOT.md` · 문서 라우팅 `docs/doc-map.md`
 
 | 경로 | 내용 | 신뢰도 |
 |---|---|---|

@@ -1,7 +1,9 @@
 # A2A Client (IF-4 Manager 측 종단점)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_agent/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** IF-4 Manager 측 종단점 — 정해진 상대에게 보내고 받는 것만 한다
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§6.4**(38줄) · **§6.5**(Phase 0 시퀀스, 47줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §6
 
 MAC이 만든 L2 정책을 Worker에 전달하고 Task 상태·Artifact를 수신한다.
 `worker_ai_agent/mcp_server/`의 대응 짝이며, 바인딩 정의는 `interfaces/if04_secure_a2a_channel/`에 있다.

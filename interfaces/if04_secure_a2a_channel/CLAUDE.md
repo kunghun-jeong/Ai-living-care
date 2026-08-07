@@ -1,7 +1,9 @@
 # IF-4 — Secure A2A Channel
 
-> **구조 정본**: `SOT.md` §3 · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §3
-> **종단점**: MAC ↔ WAC · **Phase**: 0 · **구현 상태**: 부분 — MCP 서버 동작, A2A 의미론 미구현
+> **역할** A2A-over-MCP 바인딩 — **이 프로젝트의 핵심 기여** (`S-4`)
+> **상태** Phase 0 · **부분** — MCP 서버는 동작, A2A 의미론 미구현
+> **읽을 절** spec **§6.2**(객체 매핑, 18줄) · **§6.3**(TaskState, 17줄) · **§9**(보안, 16줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §6
 
 **L2 고수준 정책, Task 상태, Artifact**를 전달하는 에이전트 간 채널.
 **A2A 의미론을 유지하면서 전송·직렬화는 MCP를 재사용한다.**

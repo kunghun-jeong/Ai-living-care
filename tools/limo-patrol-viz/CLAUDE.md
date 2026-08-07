@@ -1,7 +1,9 @@
 # limo-patrol-viz — 순찰 로직 검증 도구 (원본 보존)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `tools/` · **Phase**: 0 · **구현 상태**: 동작 — 원본 그대로 보존
+> **역할** Gazebo·Nav2·YOLO 없이 순찰 로직을 검증하고 커버리지를 잰다
+> **상태** Phase 0 · **동작** · 원본 보존 `D-14`
+> **읽을 절** spec **§10.2**(21줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · 수치는 **실행 출력** · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
 > **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다.
 > `github.com/kunghun-jeong/-Ai-living-care` 의 `main/limo-patrol-viz` 와 **내용이 동일**하다.
@@ -39,3 +41,10 @@ Jazzy 파싱은 통과한다. **Gazebo 플러그인 3블록만 Harmonic 문법�
 - `patrol_sim.py` — ROS2·GUI 없이 A*·레이캐스팅으로 커버리지 계산 (`run_coverage.sh`가 호출)
 - `patrol_viz.py` — RViz2 순찰 애니메이션 (`run_patrol.sh`가 호출)
 
+## 내부 구조 (원본 그대로 · D-14)
+
+- `patrol_sim.py` · `patrol_viz.py` — 커버리지 계산 / RViz 시연
+- `run_coverage.sh` · `run_patrol.sh` — 실행 진입점
+- `maps/` — `map.pgm` · `map.yaml` (없으면 모듈 로드 시점에 즉사한다)
+- `limo/` — `limo.urdf`
+- `tools/` — `make_urdf.sh` (가제보 플러그인을 의도적으로 제거한다, F-16)

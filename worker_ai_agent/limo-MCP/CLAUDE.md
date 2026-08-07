@@ -1,7 +1,9 @@
 # limo-MCP — LIMO Worker 구현체 (원본 보존)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `worker_ai_agent/` · **Phase**: 0 · **구현 상태**: 동작 — 원본 그대로 보존
+> **역할** LIMO Worker 구현체 — MCP 서버 · Worker 함수 · Gazebo 브링업
+> **상태** Phase 0 · **동작** · 원본 보존 `D-14`
+> **읽을 절** spec **§10.1**(47줄) · **§10.2**(시뮬 환경, 21줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §10.1 · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
 > **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다 (내용 수정은 D-17 범위 — 결정 기록 조건부 허용).
 > `github.com/kunghun-jeong/-Ai-living-care` 의 `main/limo-MCP` 와 **내용이 동일**하다.

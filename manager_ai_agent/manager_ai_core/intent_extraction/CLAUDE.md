@@ -1,7 +1,9 @@
 # Intent Extraction
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_core/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** L0 자연어를 어구로 분해한다 — **의미 해소는 하지 않는다**
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§4.2**(L1 스키마, 27줄) · **부록 A**(전 계층 트레이스, 18줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §4.2
 
 자연어 발화에서 의미 어구를 뽑는다. **여기서 의미를 해소하지 않는다** — 해소는 `kg_mapping/`의 일이다.
 

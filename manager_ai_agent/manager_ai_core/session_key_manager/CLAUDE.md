@@ -1,7 +1,9 @@
 # Session Key Manager
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_core/` · **Phase**: 1 · **구현 상태**: 미착수
+> **역할** IF-4 세션 키 발급·갱신 — 파이프라인과 직교
+> **상태** Phase 1 · 미착수
+> **읽을 절** spec **§9**(보안, 16줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §9 (표준화 `S-7`)
 
 IF-4의 세션 키를 발급·검증·갱신한다. Worker 측 대응은 `worker_ai_agent/worker_ai_core/session_key_handler/`.
 

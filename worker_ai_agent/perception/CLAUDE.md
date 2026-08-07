@@ -1,7 +1,9 @@
 # Perception Function (PF)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `worker_ai_agent/` · **Phase**: 0 · **구현 상태**: 구현됨 — **크리티컬 결함 2건**
+> **역할** 카메라 프레임 획득 — RF 가 쓰는 `FrameSource` 를 제공한다
+> **상태** Phase 0 · 구현됨(`limo-MCP`) · **크리티컬 결함** `F-1` `F-3` · 갭 `G-1` `G-2` · 작업 `0-7` `0-8`
+> **읽을 절** spec **§2.2**(13줄) · **§10.3**(코드 갭, 21줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §2.2 · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
 디바이스 데이터 획득과 상태 모델링. `/camera/image_raw`를 구독해 최신 프레임을 캐시한다.
 IF-5(←WAC) · IF-6(→WAA).

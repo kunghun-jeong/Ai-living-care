@@ -1,7 +1,9 @@
 # A2A Server + Agent Executor (IF-4 Worker 측 종단점)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `worker_ai_agent/` · **Phase**: 0 · **구현 상태**: 동작 — L4만 노출
+> **역할** IF-4 Worker 측 종단점 + Agent Executor
+> **상태** Phase 0 · 동작 — **L4 tool 만 노출**, L2 를 받는 층이 없다 · 갭 `G-3`
+> **읽을 절** spec **§6.4**(38줄) · **§6.5**(47줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · tool 시그니처는 **코드** · spec §6
 
 **파일**: `MCP_server.py` — `LimoGatewayNode` + MCP tool. stdio 트랜스포트.
 바인딩 정의는 `interfaces/if04_secure_a2a_channel/`에 있다.

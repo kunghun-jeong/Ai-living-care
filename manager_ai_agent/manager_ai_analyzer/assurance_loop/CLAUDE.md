@@ -1,7 +1,9 @@
 # Intent Assurance Loop
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_analyzer/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** 폐루프 상태기계 — 수렴하지 않으면 사람이 방치된다
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§5.3**(30줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §5.3
 
 판정에 따라 다음 행동을 결정하는 상태기계. 모든 전이는 IF-1로 IAD에 기록된다 (P-5).
 

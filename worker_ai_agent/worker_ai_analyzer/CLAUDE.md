@@ -1,7 +1,9 @@
 # Worker AI Analyzer (WAA)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `worker_ai_agent/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** SF 실행 상태를 모아 Worker Report 를 만든다
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§5.1**(Report 스키마, 40줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §5.1 · 스키마 `contracts/worker_report/`
 
 SF 실행 상태를 **IF-6**로 수집해 **Worker Report**를 만들고, A2A Task Status / Artifact로 변환해 상향 보고한다.
 자가진단도 담당한다. 스키마: `contracts/worker_report/`

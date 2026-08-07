@@ -1,7 +1,9 @@
 # IF-5 — SF-Facing Interface
 
-> **구조 정본**: `SOT.md` §3 · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §3
-> **종단점**: WAC → PF/RF/AF · **Phase**: 0 · **구현 상태**: 부분 — 현재는 함수 직접 호출
+> **역할** WAC → PF/RF/AF 호출 — 저수준 정책이 실제 함수가 되는 지점
+> **상태** Phase 0 · **부분** — 현재는 함수 직접 호출
+> **읽을 절** spec **§2.2**(Worker 컴포넌트, 13줄) · **§4.4**(L3, 80줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §3
 
 Worker AI Core가 **L3 저수준 정책**을 Service Function에 내리는 인터페이스.
 IETF I2NSF의 **NSF-Facing Interface**에 대응하는 이름이며, 이 대응이 표준화 논거다 (S-2).

@@ -1,7 +1,9 @@
 # Intent Query Composing
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_core/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** 바인딩 → L1 Intent Query JSON
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§4.2**(27줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §4.2 · 스키마 `contracts/intent_query/`
 
 바인딩을 모아 **L1 Intent Query(JSON)** 를 만든다. 아직 정책이 아니다 — 구조화된 의도다.
 

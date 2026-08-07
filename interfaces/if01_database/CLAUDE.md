@@ -1,7 +1,9 @@
 # IF-1 — Database Interface
 
-> **구조 정본**: `SOT.md` §3 · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §3
-> **종단점**: MAC ↔ KG/IAD, MAA ↔ IAD · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** KG·IAD 접근 — MAC/MAA 가 지식과 감사 이력에 닿는 유일한 경로
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§3.1**(IF-1 계약, 37줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §3.1
 
 KG 조회, intent·policy 감사 레코드 쓰기, KB audit을 담당한다.
 

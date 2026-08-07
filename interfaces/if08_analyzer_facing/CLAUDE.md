@@ -1,7 +1,9 @@
 # IF-8 — Analyzer-Facing Interface
 
-> **구조 정본**: `SOT.md` §3 · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §3
-> **종단점**: MAA ↔ WAA · **Phase**: 2 · **구현 상태**: 미착수
+> **역할** WAA ↔ MAA — Worker 측 판정과 Manager 측 해석을 잇는다
+> **상태** Phase 2 · 미착수
+> **읽을 절** spec **§3**(15줄) · **§5.3**(30줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §3
 
 상세 진단과 이상 이벤트를 에이전트 간에 주고받는다. **제어 평면과 분리된 관측 평면**이다.
 

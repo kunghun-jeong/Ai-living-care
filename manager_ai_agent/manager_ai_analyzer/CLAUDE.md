@@ -1,7 +1,9 @@
 # Manager AI Analyzer (MAA)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_agent/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** Worker Report 를 해석해 재시도·전환·에스컬레이션을 결정한다
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§5.2**(status 열거, 14줄) · **§5.3**(폐루프, 30줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §5
 
 Worker Report를 해석해 **임무 달성 여부를 판정**하고 재시도·Worker 전환·에스컬레이션을 결정한다.
 Intent Assurance 폐루프의 상태 전이 함수다.

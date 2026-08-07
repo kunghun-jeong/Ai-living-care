@@ -1,7 +1,9 @@
 # KG Mapping
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_core/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** 어구 → KG element=value 바인딩. IF-1 경유만
+> **상태** Phase 0 · 미착수 · 갭 `G-6`
+> **읽을 절** spec **§3.1**(IF-1 계약, 37줄) · **§4.2**(27줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §3.1
 
 추출된 어구를 KG에 조회해 `element = value` 바인딩으로 해소한다. **IF-1 경유** (`interfaces/if01_database/`).
 

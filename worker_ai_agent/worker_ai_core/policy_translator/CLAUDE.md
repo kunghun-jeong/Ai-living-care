@@ -1,7 +1,9 @@
 # Policy Translator
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `worker_ai_core/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** L2 device-agnostic 정책을 이 디바이스의 L3 로 번역한다
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§4.4**(80줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §4.4 · 스키마 `contracts/low_level_policy/`
 
 L2 `<living-care-policy>` → L3 `<limo-agent-policy>` 번역. 스키마는 `contracts/`.
 

@@ -1,7 +1,9 @@
 # Worker AI Core (WAC)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `worker_ai_agent/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** L2 → L3 번역 + 세션 키 검증. Worker 측 진입점
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§2.2**(13줄) · **§4.4**(L3, 80줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §4.4
 
 **Policy Translator + Session Key Handler.** L2를 받아 L3로 번역하고 SF에 IF-5로 내린다.
 

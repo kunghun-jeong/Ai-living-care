@@ -1,7 +1,9 @@
 # Manager AI Core (MAC)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_agent/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** L0(자연어) → L1(Intent Query) → L2(High-level Policy)
+> **상태** Phase 0 · 미착수 · 작업 `0-3`
+> **읽을 절** spec **§4.1**(계층 정의, 27줄) · **§4.2**(L1, 27줄) · **§4.3**(L2 ECA, 60줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §4
 
 **Intent Translator + Session Key Manager.** L0(자연어) → L1(Intent Query) → L2(High-level Policy) 변환의 주체.
 

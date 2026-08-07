@@ -1,7 +1,9 @@
 # IF-2 — Analytics Interface
 
-> **구조 정본**: `SOT.md` §3 · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §3
-> **종단점**: MAC ↔ MAA, WAC ↔ WAA · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** MAC ↔ MAA — Report 해석 결과와 재시도 판단이 오간다
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§3**(15줄) · **§5.3**(폐루프, 30줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §3
 
 해석된 report와 완료/재시도/전환 판정을 주고받는다. **Manager와 Worker 양쪽에 대칭으로 존재한다** (P-1).
 

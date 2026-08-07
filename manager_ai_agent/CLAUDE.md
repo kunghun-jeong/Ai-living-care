@@ -1,7 +1,9 @@
 # Manager AI Agent
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: 저장소 루트 · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** 의도 해석 → 고수준 정책 생성 → Worker 선택·배포 → Report 해석
+> **상태** Phase 0 · 미착수 — **코드 0줄**
+> **읽을 절** spec **§2.1**(Manager 컴포넌트, 12줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §2.1
 
 사용자의 자연어 의도를 해석해 **고수준 정책(L2)** 을 만들고, 적절한 Worker를 선택해 A2A로 배포하며,
 돌아온 Report를 해석해 재시도·전환·에스컬레이션을 결정한다.

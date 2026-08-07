@@ -1,7 +1,9 @@
 # IF-7 — AMS-Facing Interface
 
-> **구조 정본**: `SOT.md` §3 · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md` §3
-> **종단점**: MAMS ↔ WAMS · **Phase**: 2 · **구현 상태**: 미착수
+> **역할** WAMS → MAMS 실시간 자원 갱신 — **A2A 의 공백을 메우는 부분** (`S-3`)
+> **상태** Phase 2 · 미착수
+> **읽을 절** spec **§7.2**(16줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §3
 
 Worker의 능력·자원·가용성을 Manager 측 Registry에 공시·갱신한다. Agent Card 갱신 경로.
 

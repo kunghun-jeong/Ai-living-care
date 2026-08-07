@@ -1,7 +1,9 @@
 # Session Key Handler
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `worker_ai_core/` · **Phase**: 1 · **구현 상태**: 미착수
+> **역할** Core 단계 키 검증. **AF 직전 재검증과 이중 구조** (`S-7`)
+> **상태** Phase 1 · 미착수
+> **읽을 절** spec **§9**(16줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §9
 
 MAC의 `session_key_manager/`가 발급한 세션 키를 검증한다.
 

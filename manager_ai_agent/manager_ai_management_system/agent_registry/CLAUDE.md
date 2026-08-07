@@ -1,7 +1,9 @@
 # Agent Registry
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_management_system/` · **Phase**: 0 · **구현 상태**: 미착수
+> **역할** Agent Card 보관·조회 — **후보만 제공한다.** 선택은 `worker_selector/`
+> **상태** Phase 0 · 미착수
+> **읽을 절** spec **§6.4**(Worker MCP 인터페이스, 38줄) · **§7.2**(16줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §7.2
 
 Worker의 접속 정보와 능력을 보관·조회한다. A2A Agent Card의 수집처. IF-3·IF-7 경유.
 

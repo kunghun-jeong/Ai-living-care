@@ -1,7 +1,9 @@
 # Intent Audit Database (IAD)
 
-> **구조 정본**: `SOT.md` · **설계 정본**: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
-> **상위**: `manager_ai_agent/` · **Phase**: 1 · **구현 상태**: 미착수
+> **역할** 전 계층 의도·정책·결과의 감사 이력 — append-only
+> **상태** Phase 1 · 미착수
+> **읽을 절** spec **§2.3**(KG↔IAD 구분, 20줄) · **§3.1**(IF-1, 37줄) — 그 외 절은 열지 않는다
+> **정본** 구조 `SOT.md` · spec §2.3
 
 intent·policy 이력, 스키마 프롬프트, 검증 규칙을 보관한다. **Intent Validator 기능을 포함**한다.
 
