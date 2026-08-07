@@ -4,7 +4,7 @@
 > `worker_ai_core/`, `worker_ai_analyzer/`, `worker_ai_management_system/`
 >
 > 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
-> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다.
+> 작업 절차는 `docs/harness.md` — 앵커 갱신과 결정 로그 한 줄이 전부다.
 
 ## 0. 먼저 알아야 할 것
 
@@ -21,9 +21,9 @@ Phase 0 작업 0-5·0-7~0-12가 전부 여기 해당한다.
 
 ## 1. 읽을 것
 
-1. @docs/status.md 의 갭·결함 표 — **건드릴 모듈의 G-*/F-* 를 먼저 확인**
+1. `docs/status.md` 의 갭·결함 표 — **건드릴 모듈의 G-*/F-* 를 먼저 확인**
 2. 해당 컴포넌트 `CLAUDE.md`
-3. @docs/conventions.md §2(의존성 주입) §4(에러 처리) §6(동시성)
+3. `docs/conventions.md` §2(의존성 주입) §4(에러 처리) §6(동시성)
 
 ## 3. 모듈별 필수 검증
 

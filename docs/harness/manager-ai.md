@@ -3,7 +3,7 @@
 > 대상: `manager_ai_agent/**` (MAC · MAA · MAMS · KG · IAD · mcp_client)
 >
 > 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
-> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다.
+> 작업 절차는 `docs/harness.md` — 앵커 갱신과 결정 로그 한 줄이 전부다.
 
 ## 0. 먼저 알아야 할 것
 
@@ -16,14 +16,14 @@
 ## 1. 읽을 것
 
 1. `manager_ai_agent/<대상>/CLAUDE.md` — 그 컴포넌트의 책임과 계약 초안
-2. @docs/architecture.md §계층 구조 — L0~L4가 어디서 무엇으로 바뀌는지
+2. `docs/architecture.md` §계층 구조 — L0~L4가 어디서 무엇으로 바뀌는지
 3. 설계 정본의 **해당 절만**:
    - MAC → §4 (Intent-Policy Continuum, L1/L2 스키마)
    - MAA → §5 (Report 스키마, status 열거, 폐루프)
    - MAMS → §7 (정책 분해, Worker 선택, dispatch-mode)
    - KG/IAD → §3.1 (IF-1 계약), §2.3 (KG vs IAD 구분)
    - mcp_client → §6 (A2A-over-MCP 바인딩)
-4. @docs/conventions.md §2 — **의존성 주입 패턴을 그대로 따른다**
+4. `docs/conventions.md` §2 — **의존성 주입 패턴을 그대로 따른다**
 
 ## 3. 컴포넌트별 필수 검증
 
@@ -72,7 +72,7 @@
 
 ### (e) mcp_client — IF-4 Manager 측
 
-@docs/harness/mcp.md 를 함께 읽는다. 추가로:
+`docs/harness/mcp.md` 를 함께 읽는다. 추가로:
 
 | # | 검증 |
 |---|---|

@@ -3,7 +3,7 @@
 > 대상: `worker_ai_agent/limo-MCP/Simulation/**`, `tools/limo-patrol-viz/**`
 >
 > 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
-> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다.
+> 작업 절차는 `docs/harness.md` — 앵커 갱신과 결정 로그 한 줄이 전부다.
 
 ## 0. 먼저 알아야 할 것
 

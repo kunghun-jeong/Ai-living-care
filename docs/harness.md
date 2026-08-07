@@ -6,7 +6,7 @@
 
 ## 1. 읽는다 — 필요한 것만
 
-**무엇을 열지는 @docs/doc-map.md §1 이 정한다.** 거기 없으면 이 문서만 따른다 (fail-closed).
+**무엇을 열지는 `docs/doc-map.md` §1 이 정한다.** 거기 없으면 이 문서만 따른다 (fail-closed).
 
 1. 건드릴 디렉터리의 `CLAUDE.md` — 그 컴포넌트의 계약과 알려진 함정.
    **헤더가 지목한 spec 절만** 읽는다 — 962줄을 통째로 열지 않는다.
@@ -15,12 +15,13 @@
 
 | 건드리는 것 | 참고 노트 |
 |---|---|
-| MCP tool · A2A / IF-4 | @docs/harness/mcp.md |
-| Perception · Reasoning · Action · `limo-MCP/` | @docs/harness/worker-agent.md |
-| Manager 신규 구현 | @docs/harness/manager-ai.md |
-| Gazebo · Nav2 · 순찰 · 맵 | @docs/harness/simulation.md |
-| 문서 · 디렉터리 구조 | @docs/harness/docs-and-structure.md |
-| 논문 · IITP 제안서 | 노트 없음 — @docs/doc-map.md §2 팀장 문서 + spec §11 + `docs/status.md` 수치·한정어 |
+| MCP tool · A2A / IF-4 | `docs/harness/mcp.md` |
+| Perception · Reasoning · Action · `limo-MCP/` **코드** | ⛔ 담당 연구원 영역 — `docs/status.md` 에 결함만 기록 (D-17) |
+| 〃 의 **규범**(`CLAUDE.md`) 또는 담당자 본인 | `docs/harness/worker-agent.md` |
+| Manager 신규 구현 | `docs/harness/manager-ai.md` |
+| Gazebo · Nav2 · 순찰 · 맵 | `docs/harness/simulation.md` |
+| 문서 · 디렉터리 구조 | `docs/harness/docs-and-structure.md` |
+| 논문 · IITP 제안서 | 노트 없음 — `docs/doc-map.md` §2 팀장 문서 + spec §11 + `docs/status.md` 수치·한정어 |
 
 ## 2. 작업한다
 
@@ -40,7 +41,7 @@ PR 에서 CI 가 같은 검사를 한다 (`.github/workflows/check.yml`) — 그
 
 ## 4. 결정 로그에 한 줄
 
-@docs/decisions.md 맨 위에 **한 줄**. 날짜 · 무엇을 · 왜.
+`docs/decisions.md` 맨 위에 **한 줄**. 날짜 · 무엇을 · 왜.
 스키마 · 인터페이스 계약 · 상태 열거값 · 의존성을 바꿨다면 그것만 한 줄 더 붙인다.
 
 ---
@@ -51,7 +52,7 @@ PR 에서 CI 가 같은 검사를 한다 (`.github/workflows/check.yml`) — 그
 **실패 경로를 한 번 실행해 보고 그 결과를 결정 로그에 적는다.** 이것만이 유일한 추가 요구다.
 
 > 독거 어르신 돌봄 로봇이다. **조용히 잘못 보고하는 것이 요란하게 실패하는 것보다 위험하다.**
-> 지금 알려진 결함은 @docs/status.md 에 있다 — 건드릴 영역에 해당 항목이 있는지만 확인한다.
+> 지금 알려진 결함은 `docs/status.md` 에 있다 — 건드릴 영역에 해당 항목이 있는지만 확인한다.
 
 ## 구조를 바꿀 때만
 

@@ -4,11 +4,11 @@
 > `worker_ai_agent/mcp_server/`, `manager_ai_agent/mcp_client/`, `interfaces/if04_secure_a2a_channel/`
 >
 > 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
-> 작업 절차는 @docs/harness.md — 앵커 갱신과 결정 로그 한 줄이 전부다. 이 문서는 MCP 고유 항목만 다룬다.
+> 작업 절차는 `docs/harness.md` — 앵커 갱신과 결정 로그 한 줄이 전부다. 이 문서는 MCP 고유 항목만 다룬다.
 
 ## 1. 읽을 것
 
-1. @docs/api-spec.md — **현재 tool 6종의 정확한 시그니처와 알려진 결함**
+1. `docs/api-spec.md` — **현재 tool 6종의 정확한 시그니처와 알려진 결함**
 2. `worker_ai_agent/mcp_server/CLAUDE.md` — 규범과 U-1(SDK 버전)
 3. `interfaces/if04_secure_a2a_channel/CLAUDE.md` — A2A ↔ MCP 객체 매핑, TaskState 정렬
 4. 필요 시 설계 정본 §6 (A2A-over-MCP 바인딩 프로파일)
