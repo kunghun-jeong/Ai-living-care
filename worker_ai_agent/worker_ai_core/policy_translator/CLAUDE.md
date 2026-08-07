@@ -2,7 +2,7 @@
 
 > **역할** L2 device-agnostic 정책을 이 디바이스의 L3 로 번역한다
 > **상태** Phase 0 · 미착수
-> **읽을 절** spec **§4.4**(80줄) — 그 외 절은 열지 않는다
+> **읽을 절** spec **§4.4** — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §4.4 · 스키마 `contracts/low_level_policy/`
 
 L2 `<living-care-policy>` → L3 `<limo-agent-policy>` 번역. 스키마는 `contracts/`.

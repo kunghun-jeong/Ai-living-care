@@ -2,7 +2,7 @@
 
 > **역할** IF-4 Worker 측 종단점 + Agent Executor
 > **상태** Phase 0 · 동작 — **L4 tool 만 노출**, L2 를 받는 층이 없다 · 갭 `G-3`
-> **읽을 절** spec **§6.4**(38줄) · **§6.5**(47줄) — 그 외 절은 열지 않는다
+> **읽을 절** spec **§6.4** · **§6.5** — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · tool 시그니처는 **코드** · spec §6
 
 **파일**: `MCP_server.py` — `LimoGatewayNode` + MCP tool. stdio 트랜스포트.

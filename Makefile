@@ -9,13 +9,14 @@
 PY ?= python3
 
 .DEFAULT_GOAL := help
-.PHONY: help hooks check test status anchor structure
+.PHONY: help hooks check test status spec anchor structure
 
 help:
 	@echo "  make hooks   pre-commit 훅 설치 (최초 1회)"
-	@echo "  make check   앵커 + 구조 검사 (수 초, 커밋 전)"
+	@echo "  make check   앵커 + 구조 검사 — PR 기준(--strict). 커밋 훅은 더 완만하다"
 	@echo "  make test    회귀 테스트 (로봇 불필요, 약 1분)"
 	@echo "  make status  전 영역 현황 — 48개 CLAUDE.md 헤더를 읽어 한 화면에"
+	@echo "  make spec    설계 정본 절 색인 — 시작 줄·크기를 읽는 시점에"
 
 hooks:
 	@git config core.hooksPath .githooks
@@ -26,10 +27,13 @@ hooks:
 status:
 	@$(PY) anchor.py --status
 
+spec:
+	@$(PY) anchor.py --spec
+
 check: anchor structure
 
 anchor:
-	@$(PY) anchor.py
+	@$(PY) anchor.py --strict
 
 structure:
 	@$(PY) sot_audit.py > /dev/null && echo "구조 OK" || ($(PY) sot_audit.py; exit 1)

@@ -9,7 +9,7 @@
 |---|---|---|
 | `harness.md` · `harness/` | **작업 하네스** — 작업 전 반드시 읽는다 | 정본 |
 | `doc-map.md` | **정본 소유권 + 전파 체크리스트** | 정본 |
-| `architecture.md` · `api-spec.md` · `conventions.md` · `status.md` · `decisions.md` | 파생 문서 | 정본 |
+| `architecture.md` · `api-spec.md` · `conventions.md` · `status.md`(지금 작업에 영향 주는 것) · `status-defects.md`(F-1~F-63 이력, 자동 로딩 안 됨) · `decisions.md` | 파생 문서 | 정본 |
 | `spec/` | **설계 정본.** 정규화 용어, IF-1~IF-8, L0~L4, A2A-over-MCP 바인딩, 로드맵, 표준화 항목 | **정본** |
 | `context/` | 배경 — A2A 개념 매핑, RCP/MCP 결정 기록, ViLaR-IMO 연계, 연구 자료 계보 | 참고 |
 | `handoff/` | 세션 인수인계 — 왜 그렇게 했는지, 다시 겪지 않아도 될 함정 | 참고 |

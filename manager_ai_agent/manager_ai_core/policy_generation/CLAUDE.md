@@ -2,7 +2,7 @@
 
 > **역할** L1 → L2 ECA 정책. **device-agnostic 이어야 fan-out 이 성립한다**
 > **상태** Phase 0 · 미착수 · 미결정 `U-2` `U-3`
-> **읽을 절** spec **§4.3**(L2 ECA XML, 60줄) — 그 외 절은 열지 않는다
+> **읽을 절** spec **§4.3**(L2 ECA XML) — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §4.3
 
 L1 + Schema Prompt를 LLM에 넣어 **L2 High-level Policy (ECA XML)** 를 생성한다.
