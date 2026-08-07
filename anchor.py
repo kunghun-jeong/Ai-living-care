@@ -7,13 +7,16 @@
 규칙은 하나다: **파일·디렉터리가 생기거나 이름이 바뀌면 그 자리 `CLAUDE.md` 에 한 줄 넣는다.**
 감사 도구가 아니다. 점수를 세지 않고 빠진 것만 알려준다.
 
-검사 다섯:
+검사 일곱 — 전부 **양방향**이거나 실재를 본다:
   A1  `CLAUDE.md` 가 자기 디렉터리의 하위·코드 파일을 가리키는가
   A2  MCP tool 집합이 `api-spec.md` · `mcp_server/CLAUDE.md` 에 있는가 (유일한 외부 인터페이스)
   A3  헤더의 `읽을 절` 이 spec 에 **실재하는 절**을 가리키는가
   A4  루트가 50줄 이내이고 **`@` 재귀 총합**이 상한 이내인가 (매 세션 자동 로딩된다)
-  A5  미해소 안전 결함이 귀속 컴포넌트의 `상태` 줄에 떠 있는가 (D-18 인계 경로)
+  A5  안전 결함이 `status.md` 표 ↔ 컴포넌트 `상태` 줄 **양쪽에** 있는가 (D-18 인계 경로)
   A6  `.gitignore` 의 경로 패턴이 실재하는 디렉터리를 가리키는가
+  A7  문서가 적은 파일 경로가 실재하는가 — 축약은 **유일하게 해석될 때만** 허용
+
+한 방향만 보는 검사는 지우는 쪽을 못 막는다. A1 과 A5 는 그래서 역방향을 함께 본다.
 """
 import os
 import re
@@ -70,16 +73,50 @@ def state_line(doc):
     return m.group(1) if m else None
 
 
-# ── A1 · CLAUDE.md 가 자기 디렉터리를 가리키는가 ─────────────────────────────
+# ── A1 · CLAUDE.md ↔ 실제 디렉터리 (양방향) ──────────────────────────────────
+def named_in(txt):
+    """**백틱 안에 적힌 것만** 등재로 친다. 본문 부분문자열은 치지 않는다 —
+    `manager_ai_agent/spec/` 를 만들어도 부모 문서에 "spec" 이 흔해서 통과하던 구멍이었다.
+
+    백틱 한 칸을 공백으로 쪼갠 뒤 각 낱말의 **경로 접두**를 넣는다:
+    `python3 anchor.py` → `anchor.py` · `Worker_functions/Perceptions.py` → `Worker_functions`.
+    `docs/spec/x.md` 는 `docs` · `docs/spec` 만 넣는다 — 맨 `spec` 은 넣지 않는다.
+    """
+    out = set()
+    for span in re.findall(r"`([^`\n]+)`", txt):
+        for word in span.split():
+            word = word.strip(",.;:()[]").rstrip("/")
+            parts = word.split("/")
+            for i in range(1, len(parts) + 1):
+                out.add("/".join(parts[:i]))
+    return out
+
+
 def check_anchors():
     for r, dns, fns in walk_docs():
         doc = doc_of(r)
-        txt = read(doc)
-        named = set(re.findall(r"`([\w.\-/]+?)/?`", txt))
+        named = named_in(read(doc))
         for e in sorted(dns) + sorted(f for f in fns if f.endswith(CODE)):
-            if e not in named and e not in txt:
+            if e not in named:
                 kind = "디렉터리" if e in dns else "파일"
                 missing.append((doc, f"{kind} `{e}` 미등재"))
+
+
+def check_ghosts():
+    """**표에 적힌 자식이 실재하는가.** 개명하면 새 이름은 A1 이 잡지만 옛 이름은 표에 남는다.
+
+    본문 전체가 아니라 **표 행만** 본다. 본문에는 예시·비교·금지 경로가 섞여 있어
+    전체를 보면 오탐이 16건 났다. 구성 표에서 자식이 사라지는 것을 잡는 게 원래 목적이다.
+    """
+    for r, _, _ in walk_docs():
+        doc = doc_of(r)
+        base = ROOT if r == "." else os.path.join(ROOT, r)
+        for i, ln in enumerate(read(doc).splitlines(), 1):
+            if not ln.lstrip().startswith("|"):
+                continue
+            for name in re.findall(r"`([\w.\-]+)/`", ln):
+                if not os.path.isdir(os.path.join(base, name)):
+                    missing.append((f"{doc}:{i}", f"표의 `{name}/` 이 실재하지 않음 — 유령 항목"))
 
 
 # ── A2 · MCP tool 집합 ───────────────────────────────────────────────────────
@@ -160,7 +197,12 @@ def check_safety_handoff():
         missing.append((STATUS, f"「{SAFETY_MARK}」 절 없음 — 안전 결함 인계 경로 (D-18)"))
         return
     block = re.split(r"\n#{2,3} ", parts[1])[0]
-    for fid, owner in re.findall(r"^\| \*\*(F-\d+)\*\* \| `([\w./\-]+)` \|", block, re.M):
+    rows = re.findall(r"^\| \*\*(F-\d+)\*\* \| `([\w./\-]+)` \|", block, re.M)
+
+    # 정방향 — 표에 있으면 그 컴포넌트 `상태` 줄에도 있어야 한다
+    owners = {}
+    for fid, owner in rows:
+        owners.setdefault(fid, []).append(owner)
         doc = f"{owner}/CLAUDE.md"
         if not has(doc):
             missing.append((STATUS, f"`{fid}` 귀속 `{owner}` 에 CLAUDE.md 없음"))
@@ -168,6 +210,21 @@ def check_safety_handoff():
         st = state_line(doc)
         if not st or f"`{fid}`" not in st:
             missing.append((doc, f"안전 결함 `{fid}` 이 `상태` 줄에 없음 — D-18 인계"))
+
+    # 역방향 — `상태` 줄에 있으면 표에도 있어야 한다.
+    # 이쪽이 없으면 **표에서 행을 지우는 것만으로 안전 결함이 통로에서 사라진다.**
+    # 막히지 않는 쪽이 더 위험한 방향이라 양방향이 아니면 이 장치는 절반만 작동한다.
+    for r, _, _ in walk_docs():
+        doc = doc_of(r)
+        st = state_line(doc)
+        if not st:
+            continue
+        for fid in re.findall(r"`(F-\d+)`", st):
+            if fid not in owners:
+                missing.append((doc, f"`상태` 줄의 `{fid}` 이 status.md 안전 표에 없음 — 행을 지웠는가"))
+            elif r not in owners[fid]:
+                place = "`·`".join(owners[fid])
+                missing.append((doc, f"`{fid}` 의 안전 표 귀속은 `{place}` 인데 여기에 박혀 있음"))
 
 
 # ── A6 · .gitignore 가 실재하는 경로를 가리키는가 ────────────────────────────
@@ -188,6 +245,43 @@ def check_ignore_paths():
         head = re.split(r"[*?\[]", pat)[0].rstrip("/")
         if "/" in head and not os.path.exists(os.path.join(ROOT, head)):
             missing.append((IGNORE, f"`{ln.strip()}` 가 없는 경로 `{head}` 를 지목 — 규칙이 죽어 있다"))
+
+
+# ── A7 · 문서가 적은 파일 경로가 실재하는가 (옛 DA-7 자리) ───────────────────
+PATH_RE = re.compile(r"`([\w.\-/]*/[\w.\-]+\.(?:py|sh|md|ya?ml|json|world|urdf|rviz|xml|txt))`")
+WALK_SKIP = {".git", "_to_delete", "_bundle", "node_modules", "__pycache__"}
+
+
+def repo_files():
+    out = []
+    for dp, dns, fns in os.walk(ROOT):
+        dns[:] = [x for x in dns if x not in WALK_SKIP]
+        out += [rel(os.path.join(dp, f)) for f in fns]
+    return out
+
+
+def check_doc_paths():
+    """문서가 가리키는 파일이 실재하는가. 지금까지 이 자리를 지킨 건 사람의 주의력뿐이었다.
+
+    **축약 표기는 규약으로 인정한다** — `limo-MCP/Scenarios/x.json` 처럼 앞을 생략해도
+    저장소 안에서 **유일하게 해석되면** 통과한다. 둘 이상으로 해석되면 그것도 결함이다:
+    읽는 사람이 어느 파일인지 알 수 없다.
+    """
+    every = repo_files()
+    for r, _, _ in walk_docs():
+        doc = doc_of(r)
+        base = "" if r == "." else r
+        for i, ln in enumerate(read(doc).splitlines(), 1):
+            for p in PATH_RE.findall(ln):
+                direct = os.path.normpath(os.path.join(base, p)).replace(os.sep, "/")
+                if has(p) or has(direct):
+                    continue
+                tail = "/" + p.lstrip("./")
+                hits = [e for e in every if e.endswith(tail)]
+                if len(hits) == 1:
+                    continue
+                what = "실재하지 않음" if not hits else f"{len(hits)}곳으로 해석됨 — 모호하다"
+                missing.append((f"{doc}:{i}", f"경로 `{p}` {what}"))
 
 
 # ── --status · 전 영역 현황 (파일에 쓰지 않는다) ─────────────────────────────
@@ -234,9 +328,11 @@ if __name__ == "__main__":
         status()
         sys.exit(0)
     check_anchors()
+    check_ghosts()
     check_tools()
     check_spec_refs()
     check_root_size()
     check_safety_handoff()
     check_ignore_paths()
+    check_doc_paths()
     sys.exit(report())

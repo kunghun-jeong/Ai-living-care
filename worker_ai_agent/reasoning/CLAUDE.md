@@ -41,7 +41,7 @@ FrameSource = Callable[..., Optional[dict]]
 ## ⚠️ G-3 — API 5종이 MCP tool로 미노출
 
 `start_person_scan` · `wait_for_person` · `check_object_state` · `stop_person_scan` · `get_scan_status`가
-**구현돼 있으나** `../mcp_server/MCP_server.py`에 tool 데코레이터가 없다.
+**구현돼 있으나** `../limo-MCP/MCP_server/MCP_server.py`에 tool 데코레이터가 없다.
 시나리오 1의 탐색·판정 경로를 외부에서 호출할 수 없다. **구현이 아니라 노출만 하면 되는 저비용 작업 (0-9).**
 
 ## 주의
