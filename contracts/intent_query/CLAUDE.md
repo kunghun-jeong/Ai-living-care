@@ -3,7 +3,7 @@
 > **역할** MAC `query_composing/` 이 만들고 `policy_generation/` 이 소비
 > **상태** Phase 0 · **미작성** · 작업 `0-4`
 > **읽을 절** spec **§4.2** — 그 외 절은 열지 않는다
-> **정본** **이 디렉터리** (`SP-4`: 스키마는 `contracts/` 먼저 → spec 반영 → 코드)
+> **정본** 스키마는 **이 디렉터리** · 구조는 `SOT.md` §2 (`SP-4`: `contracts/` 먼저 → spec → 코드)
 
 ## 형태 (spec 기준 — 확정 아님)
 
