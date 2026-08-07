@@ -13,8 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # 보존 대상 대조가 27b0f30 을 필요로 한다
 
       - uses: actions/setup-python@v5
         with:

@@ -1,6 +1,6 @@
 # MIGRATION — 기존 저장소 작업자를 위한 안내
 
-> **이 문서는 `restructure/sot-v0.2` 브랜치에만 있다. `main`은 변경되지 않았다.**
+> **옛 경로 ↔ 새 경로 대응표.** 기존 클론에서 경로를 못 찾을 때 여기서 찾는다.
 >
 > 구조 규범은 `SOT.md`, 설계는 `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`.
 > 검증은 `python3 sot_audit.py` (R1~R10, 104항목).
@@ -9,7 +9,7 @@
 
 **`limo-MCP/` 와 `limo-patrol-viz/` 는 내용이 하나도 바뀌지 않았다. 부모 디렉터리만 바뀌었다.**
 
-| 기존 (`main`) | 신규 (브랜치) |
+| 옛 경로 (`27b0f30`) | 현재 경로 |
 |---|---|
 | `limo-MCP/` | `worker_ai_agent/limo-MCP/` |
 | `limo-patrol-viz/` | `tools/limo-patrol-viz/` |
