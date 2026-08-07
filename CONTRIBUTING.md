@@ -26,12 +26,31 @@ git config --global user.email "<GitHub 계정에 인증된 주소>"
 (`12345678+사용자명@users.noreply.github.com`)를 쓴다 — 이것도 정상 귀속된다.
 **이 저장소에만 다르게 쓰려면 `--global` 을 뺀다.**
 
-## 브랜치
-
-`main` 에 직접 커밋하지 않는다. 자기 영역 이름으로 브랜치를 판다.
+## 브랜치 — 2단
 
 ```
-<영역>/<하려는 일>
+main     최종본. 저장소 소유자가 master 를 검토한 뒤 PR 로 승격한다. 직접 푸시 금지
+master   협업자가 일하는 곳. 여기로 커밋·푸시한다
+```
+
+**작은 변경은 `master` 에 바로 커밋한다.**
+
+```bash
+git switch master && git pull
+# 작업
+git add -A && git commit -m "무엇을 왜"
+git push                          # upstream 은 자동으로 잡힌다 (push.autoSetupRemote)
+```
+
+`.githooks/pre-push` 가 **`main` 으로 가는 푸시를 거부한다** — 브랜치 이름이 아니라
+**목적지**를 보므로 `git push origin HEAD:main` 같은 우회도 막힌다. 승격은 GitHub 에서
+`master → main` PR 로 하며, 그건 서버 쪽이라 훅과 무관하게 동작한다.
+정말 넘겨야 하면 `SKIP_MAIN_PUSH=1 git push origin main`.
+
+**리뷰가 필요하거나 같은 영역에 둘이 붙으면 브랜치를 판다. base 는 `master` 다.**
+
+```
+<영역>/<하려는 일>          (git switch -c 로 판다. base = master)
 
 kg/place-index            manager_ai_agent/knowledge_graph/
 mac/intent-extraction     manager_ai_agent/manager_ai_core/
@@ -47,8 +66,10 @@ docs/harness-fix          문서·구조
 ## PR
 
 1. `make check` 가 통과하는지 먼저 본다 (앵커 + 구조).
-2. PR 을 연다. [템플릿](.github/pull_request_template.md)이 자동으로 붙는다.
+2. PR 을 연다 — **base 는 `master`.** [템플릿](.github/pull_request_template.md)이 자동으로 붙는다.
+   (`master → main` 승격 PR 만 base 가 `main` 이고, 그건 소유자가 연다.)
 3. CI 가 돈다 — 앵커 · 구조 · 구문 · 순찰 커버리지 하한 90%.
+   `master` 직접 푸시에서도 돈다 (`check.yml` 트리거 `[master, main]`).
 4. **소유 경계에 걸리면 담당자 승인이 필수다** (아래).
 
 작게 자른다. 한 PR 에 한 가지. 리뷰어가 30분 안에 다 읽을 수 있어야 한다.

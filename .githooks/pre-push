@@ -1,0 +1,45 @@
+#!/bin/sh
+# 브랜치는 2단이다 (CONTRIBUTING 「브랜치」).
+#
+#   main     최종본 — 저장소 소유자가 master 를 검토한 뒤 **PR 로 승격**한다
+#   master   협업자가 일하는 곳 — 여기로 커밋·푸시한다
+#
+# 이 훅은 `main` 으로 가는 푸시만 거부한다. 승격은 GitHub 의 master → main PR 로 하며,
+# 그건 서버 쪽이라 이 훅과 무관하게 동작한다.
+#
+# 규약으로만 적어 두면 지켜지지 않는다는 것을 이 저장소에서 이미 확인했다.
+# 정말 넘겨야 하면:  SKIP_MAIN_PUSH=1 git push origin main
+#
+# stdin 으로 "<local ref> <local sha> <remote ref> <remote sha>" 가 줄 단위로 들어온다.
+
+[ -n "$SKIP_MAIN_PUSH" ] && exit 0
+
+zero=0000000000000000000000000000000000000000
+blocked=""
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$remote_ref" in
+        refs/heads/main)
+            # 브랜치 삭제(--delete)는 판단하지 않는다
+            [ "$local_sha" = "$zero" ] && continue
+            blocked=1
+            ;;
+    esac
+done
+
+if [ -n "$blocked" ]; then
+    cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    echo "pre-push: 'main' 은 최종본이다 — 직접 푸시할 수 없다. 푸시 중단"
+    echo
+    echo "  현재 브랜치: $cur"
+    echo "  협업자는 master 로 푸시한다:"
+    echo
+    echo "      git switch master && git pull"
+    echo "      git push                       # upstream 은 자동으로 잡힌다"
+    echo
+    echo "  main 으로의 승격은 GitHub 에서 master -> main PR 로 한다 (소유자 검토)."
+    echo "  정말 넘겨야 하면:  SKIP_MAIN_PUSH=1 git push origin main"
+    exit 1
+fi
+
+exit 0
