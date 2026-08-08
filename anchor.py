@@ -64,6 +64,10 @@ PRESERVED = ("worker_ai_agent/limo-MCP", "tools/limo-patrol-viz")
 SPEC = "docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md"
 STATUS = "docs/status.md"
 SAFETY_MARK = "## 안전 — 담당자 통지"
+SAFETY_DIR = "docs/safety"               # 미해소 안전 결함 — 하나가 파일 하나 (D-18)
+DEFECTS = "docs/status-defects.md"
+# A10 정의처. `D-*` 는 뺀다 — spec §0.2 와 `SOT.md` §6 양쪽 갱신이 규범이다 (doc-map §3).
+ID_DEFS = {"F": (STATUS, DEFECTS), "G": (SPEC,), "U": (SPEC,), "S": (SPEC,)}
 TOOL_SRC = "worker_ai_agent/limo-MCP/MCP_server/MCP_server.py"
 TOOL_DOCS = ("docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md")
 IGNORE = ".gitignore"
@@ -196,18 +200,42 @@ def check_ghosts():
 
 
 # ── A2 · MCP tool 집합 ───────────────────────────────────────────────────────
+def norm_params(s):
+    """`x: float, y: float, frame: str = "map"` → `x:float,y:float,frame:str="map"`.
+
+    비교하는 것은 **파라미터 목록뿐**이다. 반환 타입은 뺀다 — `get_camera_snapshot` 처럼
+    코드에 애노테이션이 없는데 문서가 실제 거동(`list | dict`)을 적어 두는 편이 정확한
+    경우가 있고, 그건 갈라짐이 아니라 문서가 더 많이 아는 것이다.
+    """
+    return re.sub(r"\s+", "", s)
+
+
 def check_tools():
+    """A2 — MCP tool 은 **코드가 정본**이다 (doc-map §3).
+
+    이름 집합만 보던 것을 **시그니처까지** 넓혔다. 파라미터를 하나 더하거나 기본값을
+    바꿔도 `api-spec.md` 는 조용히 낡았는데, 그 문서가 MCP 작업자의 유일한 계약서다.
+    이름 누락은 **막고**(그 tool 이 있는 줄도 모르게 된다) 시그니처 불일치는 **알린다**
+    (탐색 중에 인자를 바꾸는 것은 정상이고, 병합 전에 맞추면 늦지 않다).
+    """
     if not has(TOOL_SRC):
         return
-    tools = re.findall(r"@mcp\.tool\(\)\s*\n\s*(?:async\s+)?def\s+(\w+)", read(TOOL_SRC))
+    sigs = re.findall(r"@mcp\.tool\(\)\s*\n\s*(?:async\s+)?def\s+(\w+)\(([^)]*)\)", read(TOOL_SRC))
     for doc in TOOL_DOCS:
         if not has(doc):
             missing.append((doc, "파일 없음 — MCP tool 앵커처"))
             continue
         txt = read(doc)
-        for name in tools:
+        for name, params in sigs:
             if name not in txt:
                 missing.append((doc, f"MCP tool `{name}` 미등재"))
+                continue
+            m = re.search(r"`" + re.escape(name) + r"\(([^)]*)\)", txt)
+            if not m:                       # 이름만 산문에 있고 시그니처 표기가 없는 문서
+                continue
+            if norm_params(m.group(1)) != norm_params(params):
+                advisory.append((doc, f"`{name}` 시그니처 불일치 — 코드 `({params})` "
+                                      f"· 문서 `({m.group(1)})`"))
 
 
 # ── A3 · 「읽을 절」 이 실재하는가 ────────────────────────────────────────────
@@ -260,6 +288,34 @@ def check_root_size():
 
 
 # ── A5 · 안전 결함 인계 (D-18) ───────────────────────────────────────────────
+def safety_rows():
+    """미해소 안전 결함 — **하나가 파일 하나.** `(ID, 귀속, 제목, 경로)`
+
+    표에 행을 끼워 넣던 방식은 담당자 둘이 각각 결함을 올리면 충돌했다 (실측).
+    결정 로그와 같은 문제이고 같은 해법을 쓴다 — 한 사람이 한 파일만 만든다.
+
+    **`status.md` 에는 D-18 절차가 남는다.** 그 문서가 매 세션 자동 로딩되기 때문이다.
+    목록은 `make status` 가 맨 위에 띄우고, 각 결함의 존재는 귀속 컴포넌트 `상태` 줄이
+    이미 이고 다닌다 — 그 컴포넌트를 건드리는 사람은 그 `CLAUDE.md` 를 먼저 읽는다.
+    """
+    out = []
+    d = os.path.join(ROOT, SAFETY_DIR)
+    if not os.path.isdir(d):
+        return out
+    for f in sorted(os.listdir(d)):
+        if not f.endswith(".md") or f == "CLAUDE.md":
+            continue
+        txt = read(f"{SAFETY_DIR}/{f}")
+        m = re.search(r"^# (F-\d+)\s*·\s*(.*)$", txt, re.M)
+        o = re.search(r"^> \*\*귀속\*\* `([\w./\-]+)`", txt, re.M)
+        if not m or not o:
+            advisory.append((f"{SAFETY_DIR}/{f}",
+                             "`# F-NN · 제목` 또는 `> **귀속** `경로`` 줄이 없음 — A5 가 못 읽는다"))
+            continue
+        out.append((m.group(1), o.group(1), m.group(2), f"{SAFETY_DIR}/{f}"))
+    return out
+
+
 def check_safety_handoff():
     """소유 경계(D-17)는 「고치지 마라」이지 「묻어라」가 아니다.
     `status.md` 안전 표의 미해소 결함은 귀속 컴포넌트 `CLAUDE.md` 의 `상태` 줄에 떠 있어야
@@ -268,20 +324,18 @@ def check_safety_handoff():
     if not has(STATUS):
         missing.append((STATUS, "현황 정본 부재 — 안전 결함 인계 검사 불가"))
         return
-    parts = read(STATUS).split(SAFETY_MARK)
-    if len(parts) < 2:
+    if SAFETY_MARK not in read(STATUS):
         missing.append((STATUS, f"「{SAFETY_MARK}」 절 없음 — 안전 결함 인계 경로 (D-18)"))
         return
-    block = re.split(r"\n#{2,3} ", parts[1])[0]
-    rows = re.findall(r"^\| \*\*(F-\d+)\*\* \| `([\w./\-]+)` \|", block, re.M)
+    rows = [(fid, owner) for fid, owner, _, _ in safety_rows()]
 
-    # 정방향 — 표에 있으면 그 컴포넌트 `상태` 줄에도 있어야 한다
+    # 정방향 — 파일이 있으면 그 컴포넌트 `상태` 줄에도 있어야 한다
     owners = {}
     for fid, owner in rows:
         owners.setdefault(fid, []).append(owner)
         doc = f"{owner}/CLAUDE.md"
         if not has(doc):
-            missing.append((STATUS, f"`{fid}` 귀속 `{owner}` 에 CLAUDE.md 없음"))
+            missing.append((SAFETY_DIR, f"`{fid}` 귀속 `{owner}` 에 CLAUDE.md 없음"))
             continue
         st = state_line(doc)
         if not st or f"`{fid}`" not in st:
@@ -297,10 +351,40 @@ def check_safety_handoff():
             continue
         for fid in re.findall(r"`(F-\d+)`", st):
             if fid not in owners:
-                missing.append((doc, f"`상태` 줄의 `{fid}` 이 status.md 안전 표에 없음 — 행을 지웠는가"))
+                missing.append((doc, f"`상태` 줄의 `{fid}` 에 해당하는 "
+                                     f"`{SAFETY_DIR}/` 파일이 없음 — 파일을 지웠는가"))
             elif r not in owners[fid]:
                 place = "`·`".join(owners[fid])
                 missing.append((doc, f"`{fid}` 의 안전 표 귀속은 `{place}` 인데 여기에 박혀 있음"))
+
+
+# ── A10 · 같은 ID 가 두 번 정의되지 않았는가 ─────────────────────────────────
+def check_id_collisions():
+    """**둘이 동시에 `F-70` 을 쓰면 아무도 모른다** — 실측으로 확인한 구멍이다.
+
+    서로 다른 결함 둘이 같은 번호를 갖고도 `--strict` 가 통과했다. 병합은 두 행을 나란히
+    남기므로 git 도 조용하다. 협업자가 둘 이상이면 채번 경합은 시간 문제다.
+
+    **정의처만 본다** — 표 행 시작(`| **F-70** |`)이 정의고, 본문 인용은 아니다.
+    옛 `DA-5`(참조된 ID 가 정의처에 실재하는가)의 반대 방향이다. 그쪽은 「없는 것을
+    가리킴」, 이쪽은 「같은 것을 두 번 만듦」이고, 협업에서 실제로 터지는 것은 이쪽이다.
+
+    `D-*` 는 보지 않는다 — spec §0.2 와 `SOT.md` §6 에 **양쪽 동시 갱신**이 규범이라
+    두 곳에 나오는 것이 정상이다 (doc-map §3).
+    """
+    where = {}
+    for pre, docs in ID_DEFS.items():
+        for doc in docs:
+            if not has(doc):
+                continue
+            for i, ln in enumerate(read(doc).splitlines(), 1):
+                m = re.match(r"^\| \*\*(" + pre + r"-\d+)\*\* \|", ln)
+                if m:
+                    where.setdefault(m.group(1), []).append(f"{doc}:{i}")
+    for tid, spots in sorted(where.items()):
+        if len(spots) > 1:
+            advisory.append((spots[0], f"`{tid}` 가 {len(spots)}곳에서 정의됨 — "
+                                       f"{' · '.join(spots[1:])} (채번 경합)"))
 
 
 # ── A6 · .gitignore 가 실재하는 경로를 가리키는가 ────────────────────────────
@@ -496,6 +580,15 @@ def status():
     """
     rows = sorted((r, state_line(doc_of(r)) or "—") for r, _, _ in walk_docs() if r != ".")
     plain = lambda t: re.sub(r"[`*]", "", t)
+    sf = safety_rows()
+    if sf:
+        # 맨 위다. 독거 어르신 돌봄 로봇이고, 이건 「나중에 볼 것」이 아니다.
+        print("=" * 96)
+        print(f"  ⚠ 미해소 안전 결함 {len(sf)}건 — 담당자 통지 (D-18) · {SAFETY_DIR}/")
+        print("=" * 96)
+        for fid, owner, title, _ in sorted(sf, key=lambda x: int(x[0][2:])):
+            print(f"  {fid:<7}{owner:<34}{plain(title)[:50]}")
+        print("\n  담당자는 고치고 **실패 경로를 한 번 실행한 뒤** 파일과 `상태` 줄을 함께 지운다.\n")
     print("=" * 96)
     print("  영역 현황 — 각 CLAUDE.md 헤더의 `상태` 줄 (파일에 쓰지 않는다)")
     print("=" * 96)
@@ -552,6 +645,7 @@ if __name__ == "__main__":
     check_spec_refs()
     check_root_size()
     check_safety_handoff()
+    check_id_collisions()
     check_ignore_paths()
     check_doc_paths()
     sys.exit(report("--strict" in sys.argv))

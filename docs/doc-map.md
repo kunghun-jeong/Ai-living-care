@@ -10,10 +10,10 @@
 | **무엇이 바뀌었는지 알고 싶다** (세션 시작) | `make status` — 상태 줄 + 최근 커밋·결정을 한 화면에. `make` 없으면 `python anchor.py --status` | 문서를 뒤지지 않는다 — 이건 명령이다 |
 | **MCP tool 추가·수정** | `docs/harness/mcp.md` · `docs/api-spec.md` · `worker_ai_agent/mcp_server/CLAUDE.md` | spec 전체 (필요한 절은 §6) |
 | **Manager 컴포넌트 신규 구현** | 그 컴포넌트 `CLAUDE.md` → 헤더가 지목한 spec 절 · `docs/harness/manager-ai.md` | spec 전체 · `SOT.md` |
-| **Perception · Reasoning · Action 코드** | ⛔ **담당 연구원 영역 (D-17).** 결함을 찾았으면 `docs/status.md` 에 기록만 | 전부 |
+| **Perception · Reasoning · Action 코드** | ⛔ **담당 연구원 영역 (D-17).** 결함을 찾았으면 기록만 — 위 「결함을 발견했다」 행. 훅이 커밋 때 경계를 알린다(막지는 않는다) | 전부 |
 | **순찰 · 시뮬 · 맵 · 좌표** | `docs/harness/simulation.md` · `tools/limo-patrol-viz/CLAUDE.md` | spec |
 | **문서 · 디렉터리 구조 변경** | `docs/harness/docs-and-structure.md` · `SOT.md` §1·§2·§4 | spec |
-| **결함을 발견했다** | 안전 경로(정지·취소 / 사람 판정 / 프레임 신선도 / 세션 키)면 `docs/status.md` 「안전 — 담당자 통지」, 그 외는 `docs/status-defects.md` | 다른 사람 코드 — 고치지 않는다 (D-17) |
+| **결함을 발견했다** | 안전 경로(정지·취소 / 사람 판정 / 프레임 신선도 / 세션 키)면 `docs/safety/` 에 **파일 하나** + 귀속 컴포넌트 `상태` 줄, 그 외는 `docs/status-defects.md` | 다른 사람 코드 — 고치지 않는다 (D-17) |
 | **표준 기고문 · I-D 작성** | `docs/standards/CLAUDE.md` · spec **§11.1**(`S-*` 정본) · `docs/status.md`(수치와 한정어) | spec 나머지 · 코드 |
 | **매거진 논문 작성** | **아래 §2 팀장 문서** · spec **§11**(표준화 항목) · `docs/status.md`(수치와 한정어) | 컴포넌트 `CLAUDE.md` · 코드 |
 | **IITP 제안서 작성** | spec **§11.1**(`S-*` 정본) · `docs/status.md`(수치와 한정어) — **spec 은 제안서의 기준 문서가 아니다**(spec 서두). 인용은 §11.1 까지 | spec 나머지 · 컴포넌트 `CLAUDE.md` · 코드 |
@@ -59,10 +59,10 @@ make status          # make 가 없으면: python anchor.py --status
 | 컴포넌트 정식 명칭·약칭 | spec §2.1 / §2.2 | `SOT.md` §2.1, 각 컴포넌트 `CLAUDE.md` 제목 | 별칭은 spec §2.1 각주에만 |
 | 디렉터리 배치·명명 규칙 | **`SOT.md`** §1·§2 | `docs/architecture.md`, `sot_audit.py`, `MIGRATION.md` | 트리와 검사 대상이 **집합 일치**해야 함 |
 | 인터페이스 IF-1~IF-8 | spec §3 | `SOT.md` §3, `interfaces/*/CLAUDE.md`, `architecture.md` | 종단점·전달 내용·Phase |
-| **MCP tool 시그니처** | **코드** (`MCP_server.py`의 `@mcp.tool()`) | `docs/api-spec.md`, `mcp_server/CLAUDE.md` | **코드가 정본이다.** `anchor.py` 가 이름 집합을 강제 |
+| **MCP tool 시그니처** | **코드** (`MCP_server.py`의 `@mcp.tool()`) | `docs/api-spec.md`, `mcp_server/CLAUDE.md` | **코드가 정본이다.** `A2` 가 이름은 **막고** 파라미터 목록 불일치는 **알린다** (반환 타입은 비교 안 함) |
 | L1·L2·L3·Report 스키마 | **`contracts/`** | spec §4·§5, 관련 `CLAUDE.md` | 미작성 — 작성 즉시 정본이 `contracts/`로 |
 | 갭 `G-*` | spec §10.3 | `docs/status.md`, 해당 컴포넌트 `CLAUDE.md` | 루트에는 두지 않는다 |
-| 포렌식 결함 `F-*` | **`docs/status.md`**(안전 표) · **`docs/status-defects.md`**(전문) | 없음 | 안전 결함만 자동 로딩되는 쪽에 남긴다 |
+| 포렌식 결함 `F-*` | **`docs/safety/`**(미해소 안전, 하나가 파일 하나) · **`docs/status-defects.md`**(그 외 전문) | 귀속 컴포넌트 `상태` 줄의 ID (A5 가 양방향 강제) | `status.md` 에는 **절차만** 남는다 — 목록은 `make status` 맨 위 · 채번 충돌은 `A10` |
 | **그 밖의 결정** | **`docs/decisions/`** — 결정 하나가 **파일 하나** | 없음 | `decisions.md` 는 2026-08-08 까지의 **동결 이력**. 새 행을 넣지 않는다 |
 | 수치 표기 규약 (한정어 4분류) | `docs/harness/docs-and-structure.md` `HD-1` | `docs/papers/CLAUDE.md` | 원고 쓰는 사람이 하네스 노트를 열지 않아 복제를 허용 |
 | 설계 결정 `D-1~D-8` | spec §0.2 | `docs/decisions/` (색인만) | |

@@ -50,6 +50,30 @@ fi
 # 막지 않는 이유: 상태가 정말 안 바뀌는 변경(오타·주석·리팩터)이 훨씬 많다.
 # 그것까지 막으면 규칙이 일을 방해하고, 방해하는 규칙은 우회된다.
 changed=$(git diff --cached --name-only --diff-filter=ACM)
+
+# ── 소유 경계 경고 (D-17) — 막지 않는다 ──────────────────────────────────────
+# 이 트리의 **코드**는 담당 연구원 소유다. 다른 사람은 읽고 결함을 기록할 뿐 고치지 않는다.
+# 2026-08-06 에 생태계 담당이 이 경계를 넘어 8개 파일을 고쳤고 전부 되돌렸다 —
+# 그때 있던 기계 장치(옛 DA-6, 보존 blob 고정)는 폐기됐고 대체가 없었다.
+# 담당자 배정이 없어 CODEOWNERS 를 못 쓰고, `master` 는 직접 푸시라 리뷰도 못 막는다.
+# 그래서 막지 않고 **묻는다.** 담당자 본인이면 OWNER=1 로 넘긴다.
+# 각 트리의 CLAUDE.md 는 우리가 만든 규범이라 예외다.
+if [ -z "$OWNER" ]; then
+    crossed=$(printf '%s\n' "$changed" \
+        | grep -E '^(worker_ai_agent/limo-MCP|tools/limo-patrol-viz)/' \
+        | grep -v '/CLAUDE\.md$')
+    if [ -n "$crossed" ]; then
+        echo ""
+        echo "  ─ 소유 경계 (D-17) — 커밋은 그대로 진행된다 ────────────────"
+        echo "  담당 연구원 소유 트리의 코드가 스테이지돼 있다:"
+        printf '%s\n' "$crossed" | sed 's/^/      /'
+        echo ""
+        echo "  담당자 본인이면 그대로 커밋한다 (OWNER=1 로 이 안내를 끈다)."
+        echo "  아니라면 되돌리고 docs/safety/ 또는 docs/status-defects.md 에 결함만 남긴다."
+        echo "  ────────────────────────────────────────────────────────────"
+    fi
+fi
+
 nudge=""
 while IFS= read -r f; do
     [ -n "$f" ] || continue
