@@ -33,10 +33,22 @@ if ! "$PY" anchor.py; then
     exit 1
 fi
 
-# 스테이지된 파이썬 파일 구문 검사 — 깨진 파일이 main 에 들어가는 것만 막는다
+# 스테이지된 파이썬 파일 구문 검사 — 깨진 파일이 main 에 들어가는 것만 막는다.
+#
+# `py_compile` 을 쓰지 않는다. 그건 `.pyc` 를 **실제로 쓰는데**, 저장소 경로가 길면
+# `__pycache__/....pyc.<임시번호>` 가 Windows MAX_PATH(260자)를 넘어 실패하고
+# **「구문 오류」라는 틀린 이유로 커밋을 막는다** (실측: 266자에서 재현, 이 저장소는 175자로
+# 여유 85자뿐이다 — 협업자 폴더 이름이 길면 넘는다). `compile()` 은 아무것도 쓰지 않는다.
 staged=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
 if [ -n "$staged" ]; then
-    if ! "$PY" -m py_compile $staged; then
+    if ! "$PY" -c 'import sys
+bad = 0
+for f in sys.argv[1:]:
+    try:
+        compile(open(f, encoding="utf-8").read(), f, "exec")
+    except SyntaxError as e:
+        print(f"  {f}:{e.lineno}: {e.msg}"); bad = 1
+sys.exit(bad)' $staged; then
         echo "pre-commit: 구문 오류 — 커밋 중단"
         exit 1
     fi
