@@ -55,6 +55,9 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 SKIP = {".git", "_to_delete", "_bundle", "node_modules", "__pycache__", "slides", "maps"}
 CODE = (".py", ".sh")            # 미등재면 막는다 — 실행되는 것이라 조용히 틀리면 위험하다
 DATA = (".json", ".xml")         # 미등재면 알린다 — A8. 계약이지 실행물은 아니다
+# 원고가 사는 곳에서는 `.md` 도 산출물이다. `docs/` 전역에 걸면 시끄럽기만 하다 —
+# 문서를 하나 더 쓰는 것은 늘 일어나는 일이고, 원고가 늘어나는 것은 그렇지 않다.
+DATA_MD = ("docs/papers", "docs/standards")
 # 원본 보존 대상 (D-14 · D-17) — 우리 파일이 아니다. 최상위 CLAUDE.md 하나로만 앵커한다.
 PRESERVED = ("worker_ai_agent/limo-MCP", "tools/limo-patrol-viz")
 
@@ -147,9 +150,10 @@ def check_anchors():
             if e not in named:
                 kind = "디렉터리" if e in dns else "파일"
                 missing.append((doc, f"{kind} `{e}` 미등재"))
-        for e in sorted(f for f in fns if f.endswith(DATA)):
+        data = DATA + ((".md",) if r in DATA_MD else ())
+        for e in sorted(f for f in fns if f.endswith(data) and f != "CLAUDE.md"):
             if e not in named:
-                advisory.append((doc, f"스키마·데이터 `{e}` 미등재 — 계약이면 정본이다"))
+                advisory.append((doc, f"산출물 `{e}` 미등재 — 스키마·원고는 그 자리가 정본이다"))
 
 
 # ── A9 · 등재된 자식 디렉터리에 `CLAUDE.md` 가 있는가 ─────────────────────────
