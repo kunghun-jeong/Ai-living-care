@@ -17,7 +17,7 @@
 규칙은 하나다: **파일·디렉터리가 생기거나 이름이 바뀌면 그 자리 `CLAUDE.md` 에 한 줄 넣는다.**
 감사 도구가 아니다. 점수를 세지 않고 빠진 것만 알려준다.
 
-검사 일곱 — 전부 **양방향**이거나 실재를 본다:
+검사 아홉 — 전부 **양방향**이거나 실재를 본다:
   A1  `CLAUDE.md` 가 자기 디렉터리의 하위·코드 파일을 가리키는가        [막는다]
   A2  MCP tool 집합이 `api-spec.md` · `mcp_server/CLAUDE.md` 에 있는가   [막는다]
   A5  안전 결함이 `status.md` 표 ↔ 컴포넌트 `상태` 줄 양쪽에 있는가     [막는다]
@@ -28,6 +28,17 @@
   A4' `@` 재귀 총합이 상한 이내인가                                     [알린다]
   A6  `.gitignore` 의 경로 패턴이 실재하는 디렉터리를 가리키는가        [알린다]
   A7  문서가 적은 파일 경로가 실재하는가 (축약은 유일 해석만)           [알린다]
+  A8  데이터·스키마 파일(`.json`·`.xml`)이 등재됐는가                   [알린다]
+  A9  등재된 자식 디렉터리에 `CLAUDE.md` 가 있는가                      [알린다]
+
+A7 은 `CLAUDE.md` 뿐 아니라 **라우팅·규약 문서**(`ROUTING_DOCS`)도 본다. 실측으로 확인한
+비대칭이었다 — `doc-map.md` 가 가리키는 문서를 지워도 평시·PR 모두 무반응이었다.
+**가장 많이 읽히는 문서가 가장 안 지켜지고 있었다.**
+
+A8·A9 는 「존재」 앵커의 사각을 메운다. `CODE` 가 `.py`·`.sh` 뿐이라 다음 산출물
+(`contracts/` 스키마 · `docs/papers/` 원고)이 통째로 무반응이었고, 자기 `CLAUDE.md` 가 없는
+디렉터리는 `make status` 에 영영 나오지 않아 **협업자에게 존재하지 않았다.**
+둘 다 「알린다」다 — 탐색 중에 새 파일을 두는 것을 막을 이유는 없다.
 
 「알린다」 쪽은 **재구조화·개명·정본 개정** 같은 드문 사건에만 걸린다. spec 절 하나를
 옮기면 헤더 14개가 함께 걸리는데, 정본을 활발히 고치는 시기에 그것으로 커밋을 막으면
@@ -37,11 +48,13 @@
 """
 import os
 import re
+import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SKIP = {".git", "_to_delete", "_bundle", "node_modules", "__pycache__", "slides", "maps"}
-CODE = (".py", ".sh")
+CODE = (".py", ".sh")            # 미등재면 막는다 — 실행되는 것이라 조용히 틀리면 위험하다
+DATA = (".json", ".xml")         # 미등재면 알린다 — A8. 계약이지 실행물은 아니다
 # 원본 보존 대상 (D-14 · D-17) — 우리 파일이 아니다. 최상위 CLAUDE.md 하나로만 앵커한다.
 PRESERVED = ("worker_ai_agent/limo-MCP", "tools/limo-patrol-viz")
 
@@ -51,8 +64,18 @@ SAFETY_MARK = "## 안전 — 담당자 통지"
 TOOL_SRC = "worker_ai_agent/limo-MCP/MCP_server/MCP_server.py"
 TOOL_DOCS = ("docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md")
 IGNORE = ".gitignore"
+DECISIONS = "docs/decisions.md"
 ROOT_MAX_LINES = 50
 AUTOLOAD_MAX_LINES = 420
+RECENT_COMMITS = 8
+RECENT_DECISIONS = 3
+
+# A7 이 함께 보는 라우팅·규약 문서. 루트 4종 + `docs/` 최상위 + 하네스 노트.
+# **목록을 박지 않고 훑는다** — 새 하네스 노트를 추가한 사람이 여기도 고쳐야 한다면
+# 이 목록 자체가 낡는다. `docs/spec/` · `context/` · `handoff/` 는 뺀다:
+# 앞은 정본이라 경로 표기가 예시투성이고, 뒤 둘은 `REFERENCE-ONLY` 라 낡는 것이 정상이다.
+ROUTING_ROOT = ("README.md", "CONTRIBUTING.md", "SOT.md", "MIGRATION.md")
+ROUTING_DIRS = ("docs", "docs/harness")
 
 missing = []      # 막는다
 advisory = []     # 알린다 (--strict 에서만 막는다)
@@ -111,6 +134,12 @@ def named_in(txt):
 
 
 def check_anchors():
+    """A1 [막는다] 디렉터리 · 실행 파일 · A8 [알린다] 데이터·스키마 파일.
+
+    등급을 나누는 기준은 「고치는 데 한 줄이면 되는가」가 아니라 **조용히 틀리면 위험한가**다.
+    실행되는 것(`.py`·`.sh`)이 문서에 없으면 다음 사람이 그것이 도는 줄 모른다. 스키마는
+    아직 아무도 실행하지 않으므로 PR 까지 미뤄도 늦지 않다.
+    """
     for r, dns, fns in walk_docs():
         doc = doc_of(r)
         named = named_in(read(doc))
@@ -118,6 +147,30 @@ def check_anchors():
             if e not in named:
                 kind = "디렉터리" if e in dns else "파일"
                 missing.append((doc, f"{kind} `{e}` 미등재"))
+        for e in sorted(f for f in fns if f.endswith(DATA)):
+            if e not in named:
+                advisory.append((doc, f"스키마·데이터 `{e}` 미등재 — 계약이면 정본이다"))
+
+
+# ── A9 · 등재된 자식 디렉터리에 `CLAUDE.md` 가 있는가 ─────────────────────────
+def check_child_docs():
+    """`CLAUDE.md` 가 없는 디렉터리는 `make status` 에 나오지 않는다.
+
+    A1 은 부모가 자식을 **가리키는지**만 본다. 자식이 자기 문서를 갖는지는 아무도 안 봤고,
+    실측 결과 그런 디렉터리는 감사 전항목 초록인 채로 **협업자에게 존재하지 않았다.**
+    `SOT.md` SP-5 가 규범으로 요구하던 것을 여기서 처음 관측한다 (AR-4 는 하드코딩 목록만 본다).
+
+    보존 대상(D-14 · D-17)은 예외다 — 남의 트리 안에 우리 문서를 심으라는 요구가 된다.
+    """
+    for r, dns, _ in walk_docs():
+        if r in PRESERVED:
+            continue
+        for d in sorted(dns):
+            child = d if r == "." else f"{r}/{d}"
+            if any(child == x or child.startswith(x + "/") for x in PRESERVED):
+                continue
+            if not has(f"{child}/CLAUDE.md"):
+                advisory.append((f"{child}/", "`CLAUDE.md` 부재 — `make status` 에 나오지 않는다 (SP-5)"))
 
 
 def check_ghosts():
@@ -154,7 +207,7 @@ def check_tools():
 
 # ── A3 · 「읽을 절」 이 실재하는가 ────────────────────────────────────────────
 def check_spec_refs():
-    """48개 헤더가 `§4.1` 같은 절 번호에 의존한다. spec 을 개정하거나 절을 재배치하면
+    """컴포넌트 헤더 전부가 `§4.1` 같은 절 번호에 의존한다. spec 을 개정하거나 절을 재배치하면
     전부 조용히 어긋난다 — 경로와 달리 절 번호는 깨져도 눈에 안 띈다."""
     if not has(SPEC):
         advisory.append((SPEC, "설계 정본 부재 — `읽을 절` 검사 불가"))
@@ -278,17 +331,31 @@ def repo_files():
     return out
 
 
+def routing_docs():
+    """라우팅·규약 문서를 **훑어서** 모은다 (목록을 박지 않는다 — 박으면 여기가 낡는다)."""
+    out = [p for p in ROUTING_ROOT if has(p)]
+    for d in ROUTING_DIRS:
+        full = os.path.join(ROOT, d)
+        if not os.path.isdir(full):
+            continue
+        out += [f"{d}/{f}" for f in sorted(os.listdir(full)) if f.endswith(".md")]
+    return out
+
+
 def check_doc_paths():
     """문서가 가리키는 파일이 실재하는가. 지금까지 이 자리를 지킨 건 사람의 주의력뿐이었다.
 
     **축약 표기는 규약으로 인정한다** — `limo-MCP/Scenarios/x.json` 처럼 앞을 생략해도
     저장소 안에서 **유일하게 해석되면** 통과한다. 둘 이상으로 해석되면 그것도 결함이다:
     읽는 사람이 어느 파일인지 알 수 없다.
+
+    `CLAUDE.md` 와 **라우팅 문서**를 같이 본다. 라우팅 문서는 매 세션 자동 로딩되거나
+    신규 합류자의 첫 문서인데 검사 밖이었다 — `doc-map` 이 없는 문서를 가리켜도 조용했다.
     """
     every = repo_files()
-    for r, _, _ in walk_docs():
-        doc = doc_of(r)
-        base = "" if r == "." else r
+    seen = [doc_of(r) for r, _, _ in walk_docs()] + routing_docs()
+    for doc in dict.fromkeys(seen):          # 두 목록이 겹친다 (`docs/harness/CLAUDE.md`)
+        base = os.path.dirname(doc)
         for i, ln in enumerate(read(doc).splitlines(), 1):
             for p in PATH_RE.findall(ln):
                 direct = os.path.normpath(os.path.join(base, p)).replace(os.sep, "/")
@@ -336,6 +403,58 @@ def spec_index():
 
 
 # ── --status · 전 영역 현황 (파일에 쓰지 않는다) ─────────────────────────────
+def git(*a):
+    """git 출력을 읽는다. git 이 없거나 저장소가 아니면 조용히 빈 문자열."""
+    try:
+        p = subprocess.run(["git", "-C", ROOT] + list(a),
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        return p.stdout.strip() if p.returncode == 0 else ""
+    except (OSError, ValueError):
+        return ""
+
+
+def recent():
+    """**무엇이 바뀌었나.** `상태` 줄은 사람이 적은 것이고 이쪽은 git 이 아는 사실이다.
+
+    둘을 한 화면에 두는 것이 핵심이다 — 어긋나면 그 자리에서 드러난다. 규칙을 다 지킨
+    갱신(코드 추가 + 부모 등재)이어도 `상태` 줄을 안 고치면 위 표는 **옛 값을 자신 있게**
+    보여준다. 그것을 혼자 두면 비어 있는 것보다 나쁘다.
+
+    여기서도 파일에 쓰지 않는다. git 과 `decisions.md` 가 정본이고 이 블록은 창일 뿐이다.
+    """
+    log = git("log", f"-{RECENT_COMMITS}", "--date=short", "--format=%ad  %an  %s")
+    if log:
+        print("\n" + "-" * 96)
+        print(f"  최근 변경 — git log (최근 {RECENT_COMMITS}커밋)")
+        for ln in log.splitlines():
+            print(f"    {ln[:92]}")
+        branch = git("rev-parse", "--abbrev-ref", "HEAD")
+        rows = [x for x in git("status", "--porcelain").splitlines() if x]
+        print(f"\n    현재 브랜치 {branch or '?'}"
+              + (f" · 커밋 안 된 변경 {len(rows)}개" if rows else " · 작업 트리 깨끗"))
+        # 커밋 안 된 변경은 **병합·브랜치 전환을 건너며 조용히 사라지는 유일한 것**이다.
+        # fda5e22 「유실 복구」가 그것이었다 — 커밋 간 diff 에는 흔적이 없어 CI 도 못 본다.
+        # 그래서 세션 시작 화면에 파일 이름까지 띄운다.
+        for x in rows[:8]:
+            print(f"      {x[:88]}")
+        if len(rows) > 8:
+            print(f"      … 외 {len(rows) - 8}개")
+        if rows:
+            print("      ↑ 커밋하지 않은 채 브랜치를 옮기거나 병합하면 이것이 사라진다")
+
+    if has(DECISIONS):
+        rows = [ln for ln in read(DECISIONS).splitlines()
+                if re.match(r"^\| \d{4}-\d{2}-\d{2} \|", ln)][:RECENT_DECISIONS]
+        if rows:
+            print(f"\n  최근 결정 — {DECISIONS}")
+            for ln in rows:
+                c = [x.strip() for x in ln.strip("|").split("|")]
+                what = re.sub(r"[`*]", "", c[1])
+                print(f"    {c[0]}  {what[:78]}")
+    if log or has(DECISIONS):
+        print("\n    「상태」 줄과 여기가 어긋나 보이면 그 디렉터리 CLAUDE.md 를 고칠 때다.")
+
+
 def status():
     """각 `CLAUDE.md` 헤더의 `상태` 줄을 읽어 한 화면에 모은다.
 
@@ -362,6 +481,7 @@ def status():
     print(f"  매 세션 자동 로딩 (`@` 재귀 실측) — {total}줄 / 상한 {AUTOLOAD_MAX_LINES}줄")
     for p in files:
         print(f"    {p:<38}{len(read(p).splitlines()):>5}줄")
+    recent()
 
 
 def report(strict=False):
@@ -393,6 +513,7 @@ if __name__ == "__main__":
         status()
         sys.exit(0)
     check_anchors()
+    check_child_docs()
     check_ghosts()
     check_tools()
     check_spec_refs()

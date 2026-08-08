@@ -7,13 +7,13 @@
 
 | 경로 | 내용 | 신뢰도 |
 |---|---|---|
-| `harness.md` · `harness/` | **작업 하네스** — 작업 전 반드시 읽는다 | 정본 |
+| `harness.md` · `harness/` | **작업 하네스** — §0 은 **세션 시작에 한 번** (`make status`). 영역별 노트 색인은 `harness/CLAUDE.md` | 정본 |
 | `doc-map.md` | **정본 소유권 + 전파 체크리스트** | 정본 |
 | `architecture.md` · `api-spec.md` · `conventions.md` · `standards/`(I-D·기고문 원고) · `papers/`(논문 원고) · `status.md`(지금 작업에 영향 주는 것) · `status-defects.md`(F-1~F-63 이력, 자동 로딩 안 됨) · `decisions.md` | 파생 문서 | 정본 |
 | `spec/` | **설계 정본.** 정규화 용어, IF-1~IF-8, L0~L4, A2A-over-MCP 바인딩, 로드맵, 표준화 항목 | **정본** |
 | `context/` | 배경 — A2A 개념 매핑, RCP/MCP 결정 기록, ViLaR-IMO 연계, 연구 자료 계보 | 참고 |
 | `handoff/` | 세션 인수인계 — 왜 그렇게 했는지, 다시 겪지 않아도 될 함정 | 참고 |
-| `audit/` | IETF-125/126 승계 판정 | **참고 전용, 결정 아님** |
+| `audit/` | IETF-125/126 승계 판정 (`audit/CLAUDE.md`) | **참고 전용, 결정 아님** |
 | `slides/` | UKC2026 발표 덱 (42MB, git 제외) | 원본 |
 
 ## 읽는 순서

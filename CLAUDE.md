@@ -18,7 +18,7 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 
 - **최초 1회**: `make hooks` (make 없으면 `git config core.hooksPath .githooks`)
 - 커밋 전: `make check` (= `python3 anchor.py` + `python3 sot_audit.py`) · 회귀: `make test`
-- **전 영역 현황 한 화면**: `make status` — 48개 `CLAUDE.md` 헤더 + 자동 로딩 실측
+- **세션 시작에 한 번**: `make status` (또는 `python anchor.py --status`) — 전 영역 `상태` + 최근 변경
 - 순찰 검증(경량): `cd tools/limo-patrol-viz && ./run_coverage.sh`
 - 전체 시뮬: `cd worker_ai_agent/limo-MCP && ros2 launch Simulation/sim_bringup.launch.py`
 - MCP 왕복: `cd worker_ai_agent/limo-MCP && python3 Scenarios/send_goal.py 1.0 0.0`

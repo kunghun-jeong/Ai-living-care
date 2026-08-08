@@ -7,6 +7,7 @@
 
 | 하려는 일 | 열 문서 | 안 여는 것 |
 |---|---|---|
+| **무엇이 바뀌었는지 알고 싶다** (세션 시작) | `make status` — 상태 줄 + 최근 커밋·결정을 한 화면에. `make` 없으면 `python anchor.py --status` | 문서를 뒤지지 않는다 — 이건 명령이다 |
 | **MCP tool 추가·수정** | `docs/harness/mcp.md` · `docs/api-spec.md` · `worker_ai_agent/mcp_server/CLAUDE.md` | spec 전체 (필요한 절은 §6) |
 | **Manager 컴포넌트 신규 구현** | 그 컴포넌트 `CLAUDE.md` → 헤더가 지목한 spec 절 · `docs/harness/manager-ai.md` | spec 전체 · `SOT.md` |
 | **Perception · Reasoning · Action 코드** | ⛔ **담당 연구원 영역 (D-17).** 결함을 찾았으면 `docs/status.md` 에 기록만 | 전부 |
@@ -30,10 +31,10 @@
 **한 화면에서 전 영역 현황을 보려면:**
 
 ```bash
-make status          # = python3 anchor.py --status
+make status          # make 가 없으면: python anchor.py --status
 ```
 
-48개 `CLAUDE.md` 헤더의 `> **상태**` 줄을 **읽는 시점에** 모아 보여준다.
+각 `CLAUDE.md` 헤더의 `> **상태**` 줄 + **최근 커밋·결정**을 **읽는 시점에** 모아 보여준다.
 **파일에 쓰지 않는다** — 생성물을 커밋하면 매 PR 이 그 블록을 건드려 충돌하기 때문이다
 (실측: 평면 수확 3/4 충돌 · 계층 수확 1/4 · 미수확 0/4). 파일이 아니라 낡을 수가 없다.
 

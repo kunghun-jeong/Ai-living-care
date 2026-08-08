@@ -6,7 +6,9 @@
 #
 # ROS2 가 필요한 것은 여기 없다 — 시뮬·실기는 각 디렉터리 CLAUDE.md 참조.
 
-PY ?= python3
+# python3 이 없는 환경이 있다 (이 팀의 기본은 Windows + Git Bash — 거기엔 `python` 만 있다).
+# 훅은 이미 폴백을 갖고 있었는데 Makefile 만 없어서 `make status` 가 안 돌았다.
+PY ?= $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null || echo python3)
 
 .DEFAULT_GOAL := help
 .PHONY: help hooks check test status spec anchor structure
@@ -15,7 +17,7 @@ help:
 	@echo "  make hooks   pre-commit 훅 설치 (최초 1회)"
 	@echo "  make check   앵커 + 구조 검사 — PR 기준(--strict). 커밋 훅은 더 완만하다"
 	@echo "  make test    회귀 테스트 (로봇 불필요, 약 1분)"
-	@echo "  make status  전 영역 현황 — 48개 CLAUDE.md 헤더를 읽어 한 화면에"
+	@echo "  make status  세션 시작에 한 번 — 전 영역 상태 + 최근 커밋·결정"
 	@echo "  make spec    설계 정본 절 색인 — 시작 줄·크기를 읽는 시점에"
 
 hooks:

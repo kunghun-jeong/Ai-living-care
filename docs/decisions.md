@@ -20,6 +20,9 @@
 
 | 날짜 | 결정 | 정본 반영 |
 |---|---|---|
+| 2026-08-08 | **갱신을 「막는 것」이 아니라 「보이는 것」으로 다룬다** — 세션 시작 단계(`harness.md` §0)를 신설하고 `make status` 에 최근 커밋·결정·**커밋 안 된 변경**을 붙였다. 자동 로딩 네 문서는 남이 컴포넌트에서 일해도 변하지 않아 **새 세션이 갱신을 볼 창구가 없었다**. 앵커 사각도 함께 메웠다(A7 라우팅 문서 · A8 스키마 파일 · A9 자식 `CLAUDE.md`) — **전부 「알린다」라 커밋을 막지 않는다** | `docs/harness.md` §0 · `docs/doc-map.md` §1 · `anchor.py` A7·A8·A9·`--status` · `CONTRIBUTING.md` |
+| 2026-08-08 | **`상태` 줄과 git 을 한 화면에 둔다** — `상태` 줄은 사람이 적은 것이고 git 은 사실이다. 어긋나면 그 자리에서 드러난다. 훅이 커밋 때 한 줄 넛지하고 **막지 않는다**(상태가 안 바뀌는 변경이 훨씬 많다). CI 는 보호 문서 순삭제 20줄 이상을 경고한다 — `master` 가 공용 직접 푸시 브랜치라 병합 해소가 남의 커밋을 되돌릴 수 있다 | `.githooks/pre-commit` · `.github/workflows/check.yml` |
+| 2026-08-08 | **`Makefile` 의 `python3` 고정을 폴백으로** — 이 팀 기본 환경(Windows + Git Bash)에 `python3` 이 없어 `make status` 가 돌지 않았다. 훅에는 폴백이 있었는데 `Makefile` 에만 없었다. 「48개」 같은 파생 수치도 함께 제거(실제 52개) — 2026-08-07 결정을 자기 자신에게 적용 | `Makefile` · `CLAUDE.md` · `docs/doc-map.md` |
 | 2026-08-07 | **커밋 author 는 각자 자기 GitHub 인증 이메일로 한다** — 공용 신원(`AI-Care <noreply@skku.edu>`)으로 28개가 쌓여 아무에게도 귀속되지 않았다. 과거 이력은 재작성하지 않는다(clone 파손 위험). **AI 공동저자 트레일러는 넣지 않는다** | `CONTRIBUTING.md` 「커밋 신원」 |
 | 2026-08-07 | **spec 파생 수치(줄 번호·절 크기)를 문서에 두지 않는다** — 절 색인은 `make spec` 이 읽는 시점에 만들고, 컴포넌트 헤더의 `읽을 절` 은 **절 번호만** 쓴다. 근거: 색인 전 행이 spec 편집으로 조용히 어긋나 있었고 아무도 몰랐다. `make status` 와 같은 원리 — 읽는 시점에 만들면 낡을 수가 없다 | `anchor.py --spec` · `Makefile` · `docs/spec/CLAUDE.md` · 컴포넌트 헤더 전체 |
 | 2026-08-07 | **`pre-push` 를 승격 판정으로 정밀화** — `main` 으로 가는 푸시 중 `master` 를 거치지 않은 것만 막는다. 부모만 보면 `main == master` 인 정상 상태에서 직접 커밋이 승격과 구분되지 않아 **병합 커밋 여부**를 함께 본다. 훅·Makefile 안내문을 Bash/CMD/PowerShell 로 병기 (기존 표기는 이 팀의 Windows 환경에서 동작하지 않았다) | `.githooks/*` · `CONTRIBUTING.md` |

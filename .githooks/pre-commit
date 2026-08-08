@@ -42,4 +42,36 @@ if [ -n "$staged" ]; then
     fi
 fi
 
+# ── 상태 줄 넛지 — 알리기만 한다 ─────────────────────────────────────────────
+# 앵커(A1)는 **새 파일**만 본다. 기존 파일의 내용이 바뀌는 것은 아무도 안 보는데,
+# 협업에서 실제로 자주 일어나는 건 그쪽이다. 코드가 바뀌었는데 그 자리 `상태` 줄이
+# 그대로면 `make status` 는 남에게 **옛 값을 자신 있게** 보여준다 — 비어 있는 것보다 나쁘다.
+#
+# 막지 않는 이유: 상태가 정말 안 바뀌는 변경(오타·주석·리팩터)이 훨씬 많다.
+# 그것까지 막으면 규칙이 일을 방해하고, 방해하는 규칙은 우회된다.
+changed=$(git diff --cached --name-only --diff-filter=ACM)
+nudge=""
+while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in CLAUDE.md | */CLAUDE.md) continue ;; esac
+    d=$(dirname "$f")
+    while [ "$d" != "." ] && [ ! -f "$d/CLAUDE.md" ]; do d=$(dirname "$d"); done
+    [ "$d" = "." ] && continue                       # 루트는 넛지하지 않는다 (생태계 파일)
+    printf '%s\n' "$changed" | grep -qxF "$d/CLAUDE.md" && continue
+    case " $nudge " in *" $d "*) continue ;; esac
+    nudge="$nudge $d"
+done <<CHANGED
+$changed
+CHANGED
+
+if [ -n "$nudge" ]; then
+    echo ""
+    echo "  ─ 알림 — 커밋은 그대로 진행된다 ────────────────────────────"
+    echo "  아래 디렉터리의 파일이 바뀌었는데 그 CLAUDE.md 는 그대로다."
+    echo "  상태가 달라졌다면 '> **상태**' 줄 한 줄만 고친다 — make status 가 그 줄을 읽고,"
+    echo "  그게 다른 협업자가 당신의 진척을 보는 유일한 자리다."
+    for d in $nudge; do echo "      $d/CLAUDE.md"; done
+    echo "  ────────────────────────────────────────────────────────────"
+fi
+
 exit 0

@@ -73,7 +73,7 @@
 |---|---|
 | **F-56** | `U-7`이 spec §12에 **두 번 정의**돼 있다 (doc-map §1의 「ID 중복 정의 금지」 위반) |
 | **F-57** | **D-15·D-16이 `SOT.md`에만 있다.** 하네스가 「막겠다」고 이름 붙인 실패(D-14)가 그 하네스를 만든 커밋에서 재발했다 |
-| **F-58** | **`if04/CLAUDE.md` 매핑표가 spec보다 2행 적은데**(`tasks/cancel`·`AUTH_REQUIRED`) doc-map §4는 그쪽을 정본으로 승격하라 한다. 둘 다 R4 항목 |
+| **F-58** | **`interfaces/if04_secure_a2a_channel/CLAUDE.md` 매핑표가 spec보다 2행 적은데**(`tasks/cancel`·`AUTH_REQUIRED`) doc-map §4는 그쪽을 정본으로 승격하라 한다. 둘 다 R4 항목 |
 | **F-59** | D-9~D-14의 spec 반영 여부를 `SOT.md`·`decisions.md`·`status.md`가 서로 다르게 적었고 **둘이 거짓**이다 |
 | **F-60** | **93.6%가 doc-map 미허가 위치에 복제**돼 있다 (spec §11.3, `harness/simulation.md` §5 — 하네스 자신) |
 | **F-61** | **MCP SDK 버전 판정이 같은 증거로 정반대 결론**을 낸다 (`harness/mcp.md` §7 vs spec §6.4). 루트는 「≥2.0」을 사실로, U-1은 미확인으로 적는다 |
