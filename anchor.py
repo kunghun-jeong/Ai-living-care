@@ -30,6 +30,7 @@
   A7  문서가 적은 파일 경로가 실재하는가 (축약은 유일 해석만)           [알린다]
   A8  데이터·스키마 파일(`.json`·`.xml`)이 등재됐는가                   [알린다]
   A9  등재된 자식 디렉터리에 `CLAUDE.md` 가 있는가                      [알린다]
+  A11 워크플로 YAML 이 파싱되는가 — 깨지면 CI 가 **안 돈다**            [막는다]
 
 A7 은 `CLAUDE.md` 뿐 아니라 **라우팅·규약 문서**(`ROUTING_DOCS`)도 본다. 실측으로 확인한
 비대칭이었다 — `doc-map.md` 가 가리키는 문서를 지워도 평시·PR 모두 무반응이었다.
@@ -71,6 +72,7 @@ ID_DEFS = {"F": (STATUS, DEFECTS), "G": (SPEC,), "U": (SPEC,), "S": (SPEC,)}
 TOOL_SRC = "worker_ai_agent/limo-MCP/MCP_server/MCP_server.py"
 TOOL_DOCS = ("docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md")
 IGNORE = ".gitignore"
+WORKFLOWS = ".github/workflows"
 DECISIONS = "docs/decisions.md"          # 이력 표 (동결)
 DECISIONS_DIR = "docs/decisions"         # 신규 — 결정 하나가 파일 하나
 ROOT_MAX_LINES = 50
@@ -361,6 +363,39 @@ def check_safety_handoff():
                 missing.append((doc, f"`{fid}` 의 안전 표 귀속은 `{place}` 인데 여기에 박혀 있음"))
 
 
+# ── A11 · 워크플로 YAML 이 파싱되는가 ────────────────────────────────────────
+def check_workflows():
+    """**깨진 워크플로는 붉게 실패하지 않는다 — 아예 실행되지 않는다.**
+
+    실측: 여러 줄 `python3 -c "..."` 가 0열에서 시작해 `run: |` 블록을 끊었고, 그 뒤
+    **16번의 푸시에서 CI 가 한 번도 돌지 않았다.** 그동안 `CONTRIBUTING.md` 는 「PR 에서
+    CI 가 같은 검사를 한다 — 그쪽이 병합 관문이다」라고 적고 있었다. **관문이 사라졌는데
+    아무도 몰랐고**, 알림 메일만 쌓였다. 이 저장소가 가장 싫어하는 형태다.
+
+    그래서 **막는다.** CI 가 자기 자신을 못 잡는 유일한 결함이라 여기 말고 잡을 데가 없고,
+    유효하지 않은 워크플로를 일부러 커밋하고 싶은 순간은 없다 — 마찰이 0 이다.
+
+    `pyyaml` 이 없으면 조용히 넘어간다. 검사 하나 때문에 의존성을 강요하지 않는다.
+    """
+    d = os.path.join(ROOT, WORKFLOWS)
+    if not os.path.isdir(d):
+        return
+    try:
+        import yaml
+    except ImportError:
+        return
+    for f in sorted(os.listdir(d)):
+        if not f.endswith((".yml", ".yaml")):
+            continue
+        try:
+            yaml.safe_load(read(f"{WORKFLOWS}/{f}"))
+        except yaml.YAMLError as e:
+            m = getattr(e, "problem_mark", None)
+            missing.append((f"{WORKFLOWS}/{f}" + (f":{m.line + 1}" if m else ""),
+                            f"YAML 파싱 실패 — 이 워크플로는 **실행되지 않는다**. "
+                            f"{getattr(e, 'problem', '')} (여러 줄 스크립트를 `run:` 에 넣지 말 것)"))
+
+
 # ── A10 · 같은 ID 가 두 번 정의되지 않았는가 ─────────────────────────────────
 def check_id_collisions():
     """**둘이 동시에 `F-70` 을 쓰면 아무도 모른다** — 실측으로 확인한 구멍이다.
@@ -643,6 +678,7 @@ if __name__ == "__main__":
         sys.exit(0)
     check_anchors()
     check_child_docs()
+    check_workflows()
     check_ghosts()
     check_tools()
     check_spec_refs()

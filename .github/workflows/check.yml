@@ -44,6 +44,9 @@ jobs:
   # **막지 않는다** — 문서를 크게 정리하는 것은 정상이고, 그것까지 막으면 정리를 벌하는 셈이다.
   loss:
     runs-on: ubuntu-latest
+    # 「경고만 한다」고 선언한 잡이다. 스크립트가 삐끗해도 CI 를 붉게 만들지 않는다 —
+    # 선언한 등급과 실제 종료 코드가 어긋나면 그게 다시 소음이 되고, 소음은 무시된다.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,6 +80,9 @@ jobs:
   # **경고만 한다.** 선언 자체를 안 한 경우는 못 잡는다 — 그건 규약의 몫이다.
   reflected:
     runs-on: ubuntu-latest
+    # 「경고만 한다」고 선언한 잡이다. 스크립트가 삐끗해도 CI 를 붉게 만들지 않는다 —
+    # 선언한 등급과 실제 종료 코드가 어긋나면 그게 다시 소음이 되고, 소음은 무시된다.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -120,6 +126,9 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    # 「경고만 한다」고 선언한 잡이다. 스크립트가 삐끗해도 CI 를 붉게 만들지 않는다 —
+    # 선언한 등급과 실제 종료 코드가 어긋나면 그게 다시 소음이 되고, 소음은 무시된다.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -132,17 +141,17 @@ jobs:
       # **막지 않는다** — 순찰 로직을 실험적으로 바꾸는 것이 Phase 0 의 일이고,
       # 탐색 중에 수치가 내려가는 것은 정상이다. 논문에 수치를 인용하기 전에 여기를 본다.
       # Phase 1(견고화)에 들어가면 하한으로 되돌린다.
+      # ⚠ 여기 있던 여러 줄 `python3 -c "..."` 가 **0열에서 시작해 `run: |` 블록을 끊었다.**
+      # YAML 이 그 다음 줄을 최상위 키로 읽어 파일 전체가 invalid 가 됐고, 워크플로가
+      # **16번 동안 한 번도 실행되지 않았다** — 「PR 에서 CI 가 잡는다」가 그동안 거짓이었다.
+      # 여러 줄 스크립트를 YAML 에 넣지 않는다. 한 줄로 되는 건 `awk` 로 한다.
       - name: 순찰 커버리지 (기준선 90% · 경고)
         run: |
           cd tools/limo-patrol-viz
           ./run_coverage.sh | tee /tmp/cov.txt | tail -6
           pct=$(grep -o '= [0-9.]*%' /tmp/cov.txt | tail -1 | tr -dc '0-9.')
-          echo "커버리지 = ${pct}%"
-          python3 -c "
-import sys
-p = float('${pct}')
-if p < 90.0:
-    print(f'::warning::순찰 커버리지 {p}% — 기준선 90% 아래다. 의도한 변경인지 PR 에 적을 것')
-else:
-    print(f'커버리지 {p}% — 기준선 이상')
-"
+          if [ -z "$pct" ]; then
+            echo "::warning::커버리지 수치를 못 읽었다 — run_coverage.sh 가 실패했거나 출력 형식이 바뀌었다"
+            exit 0
+          fi
+          awk -v p="$pct" 'BEGIN { if (p+0 < 90) print "::warning::순찰 커버리지 " p "% — 기준선 90% 아래다. 의도한 변경인지 PR 에 적을 것"; else print "커버리지 " p "% — 기준선 이상" }'
