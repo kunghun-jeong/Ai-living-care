@@ -67,7 +67,8 @@ SAFETY_MARK = "## 안전 — 담당자 통지"
 TOOL_SRC = "worker_ai_agent/limo-MCP/MCP_server/MCP_server.py"
 TOOL_DOCS = ("docs/api-spec.md", "worker_ai_agent/mcp_server/CLAUDE.md")
 IGNORE = ".gitignore"
-DECISIONS = "docs/decisions.md"
+DECISIONS = "docs/decisions.md"          # 이력 표 (동결)
+DECISIONS_DIR = "docs/decisions"         # 신규 — 결정 하나가 파일 하나
 ROOT_MAX_LINES = 50
 AUTOLOAD_MAX_LINES = 420
 RECENT_COMMITS = 8
@@ -417,6 +418,37 @@ def git(*a):
         return ""
 
 
+def decisions():
+    """최근 결정 — **결정 하나가 파일 하나다.**
+
+    표 맨 위에 한 줄을 넣는 방식은 **완전히 분리된 작업끼리도 충돌시킨다** — 실측에서
+    KG 담당과 MAC 담당이 서로 다른 컴포넌트만 건드렸는데 `decisions.md` 에서 충돌했다.
+    하네스 §4 가 모든 작업에 결정 한 줄을 요구하므로 **모든 PR 이 그 파일을 지난다.**
+
+    더 나쁜 것은 그 다음이다: 충돌 해소가 남의 줄을 떨어뜨려도 `anchor.py` 도
+    `sot_audit.py` 도 통과한다 (실측). **충돌과 무관측이 겹치면 조용히 사라진다.**
+
+    `make status` 가 상태 수확에서 쓴 것과 같은 수법이다 — 한 사람이 한 파일만 만들면
+    충돌이 0 이고, 모으는 일은 읽는 시점에 한다.
+    """
+    out = []
+    d = os.path.join(ROOT, DECISIONS_DIR)
+    if os.path.isdir(d):
+        for f in sorted(os.listdir(d), reverse=True):
+            m = re.match(r"^(\d{4}-\d{2}-\d{2})-.+\.md$", f)
+            if not m:
+                continue
+            head = next((l[2:] for l in read(f"{DECISIONS_DIR}/{f}").splitlines()
+                         if l.startswith("# ")), f)
+            out.append((m.group(1), re.sub(r"^\d{4}-\d{2}-\d{2}\s*·\s*", "", head)))
+    if not out and has(DECISIONS):          # 아직 파일이 없으면 이력 표에서 읽는다
+        for ln in read(DECISIONS).splitlines():
+            if re.match(r"^\| \d{4}-\d{2}-\d{2} \|", ln):
+                c = [x.strip() for x in ln.strip("|").split("|")]
+                out.append((c[0], c[1]))
+    return out[:RECENT_DECISIONS]
+
+
 def recent():
     """**무엇이 바뀌었나.** `상태` 줄은 사람이 적은 것이고 이쪽은 git 이 아는 사실이다.
 
@@ -446,16 +478,13 @@ def recent():
         if rows:
             print("      ↑ 커밋하지 않은 채 브랜치를 옮기거나 병합하면 이것이 사라진다")
 
-    if has(DECISIONS):
-        rows = [ln for ln in read(DECISIONS).splitlines()
-                if re.match(r"^\| \d{4}-\d{2}-\d{2} \|", ln)][:RECENT_DECISIONS]
-        if rows:
-            print(f"\n  최근 결정 — {DECISIONS}")
-            for ln in rows:
-                c = [x.strip() for x in ln.strip("|").split("|")]
-                what = re.sub(r"[`*]", "", c[1])
-                print(f"    {c[0]}  {what[:78]}")
-    if log or has(DECISIONS):
+    rows = decisions()
+    if rows:
+        src = DECISIONS_DIR + "/" if os.path.isdir(os.path.join(ROOT, DECISIONS_DIR)) else DECISIONS
+        print(f"\n  최근 결정 — {src}")
+        for date, what in rows:
+            print(f"    {date}  {re.sub(r'[`*]', '', what)[:78]}")
+    if log or rows:
         print("\n    「상태」 줄과 여기가 어긋나 보이면 그 디렉터리 CLAUDE.md 를 고칠 때다.")
 
 

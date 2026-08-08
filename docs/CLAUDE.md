@@ -9,21 +9,23 @@
 |---|---|---|
 | `harness.md` · `harness/` | **작업 하네스** — §0 은 **세션 시작에 한 번** (`make status`). 영역별 노트 색인은 `harness/CLAUDE.md` | 정본 |
 | `doc-map.md` | **정본 소유권 + 전파 체크리스트** | 정본 |
-| `architecture.md` · `api-spec.md` · `conventions.md` · `standards/`(I-D·기고문 원고) · `papers/`(논문 원고) · `status.md`(지금 작업에 영향 주는 것) · `status-defects.md`(F-1~F-63 이력, 자동 로딩 안 됨) · `decisions.md` | 파생 문서 | 정본 |
+| `decisions/` | **결정 정본 — 결정 하나가 파일 하나** (충돌 0). `decisions.md` 는 2026-08-08 까지의 동결 이력 | **정본** |
+| `architecture.md` · `api-spec.md` · `conventions.md` · `standards/`(I-D·기고문 원고) · `papers/`(논문 원고) · `status.md`(지금 작업에 영향 주는 것) · `status-defects.md`(F-1~F-63 이력, 자동 로딩 안 됨) | 파생 문서 | 정본 |
 | `spec/` | **설계 정본.** 정규화 용어, IF-1~IF-8, L0~L4, A2A-over-MCP 바인딩, 로드맵, 표준화 항목 | **정본** |
 | `context/` | 배경 — A2A 개념 매핑, RCP/MCP 결정 기록, ViLaR-IMO 연계, 연구 자료 계보 | 참고 |
 | `handoff/` | 세션 인수인계 — 왜 그렇게 했는지, 다시 겪지 않아도 될 함정 | 참고 |
 | `audit/` | IETF-125/126 승계 판정 (`audit/CLAUDE.md`) | **참고 전용, 결정 아님** |
 | `slides/` | UKC2026 발표 덱 (42MB, git 제외) | 원본 |
 
-## 읽는 순서
+## 무엇을 열지는 여기서 정하지 않는다
 
-1. 루트 `CLAUDE.md` — 전체 그림과 현재 Phase
-2. `../SOT.md` — 구조·명명 규범
-3. `spec/` §1~§5 — 설계 원칙, 컴포넌트, 인터페이스, 정책 계층, Report
-4. `spec/` §10 — 기존 자산, 시뮬 환경, 크리티컬 갭, Phase 계획
-5. `handoff/` — 실제로 겪은 함정
-6. 담당 컴포넌트의 `CLAUDE.md`
+**`docs/doc-map.md` §1 이 정한다** — 하려는 일을 거기서 찾아 적힌 것만 연다.
+절차는 `docs/harness.md` (§0 세션 시작 → §1 읽는다 → 작업 → 앵커 → 결정 파일).
+
+> 예전에 이 자리에 「읽는 순서 1~6」이 있었다 — `SOT.md` → spec §1~§5 → §10 → `handoff/`
+> 순서로 **통독**하라는 것이었고, 3계층 문서(2026-08-06)와 `doc-map` 라우팅 이전의 규범이다.
+> 지금은 **통독하지 않고**, `handoff/` 는 `REFERENCE-ONLY` 라 **인용하지 않는다.**
+> 남겨 두면 `docs/` 를 만지러 온 세션이 여는 첫 문서가 폐기된 순서를 지시하게 된다.
 
 ## 주의
 

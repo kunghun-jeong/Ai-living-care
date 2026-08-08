@@ -18,7 +18,7 @@
 | **매거진 논문 작성** | **아래 §2 팀장 문서** · spec **§11**(표준화 항목) · `docs/status.md`(수치와 한정어) | 컴포넌트 `CLAUDE.md` · 코드 |
 | **IITP 제안서 작성** | spec **§11.1**(`S-*` 정본) · `docs/status.md`(수치와 한정어) — **spec 은 제안서의 기준 문서가 아니다**(spec 서두). 인용은 §11.1 까지 | spec 나머지 · 컴포넌트 `CLAUDE.md` · 코드 |
 | **인터페이스 계약 정의** | `interfaces/if0N_*/CLAUDE.md` · spec **§3** | spec 전체 |
-| **스키마(L1~L3·Report)** | `contracts/*/CLAUDE.md` · spec **§4**(L1·L2) 또는 **§5**(Report) | 나머지 절 |
+| **스키마(L1~L3·Report)** | `contracts/*/CLAUDE.md` · **그 헤더가 지목한 절만** (`§4.1`~`§4.4` · `§5.1`~`§5.2`, 각 27~80줄) | `§4` 통째(196줄) — 헤더가 더 좁게 지목한다 |
 | **스키마 검증기** | `contracts/*/CLAUDE.md` 규칙 3 — **검증기 프레임워크는 미결정**(`U-*` 후보). 정하기 전에는 스키마만 두지 않는다 | spec 나머지 |
 | **브랜치를 파거나 PR 을 연다** | `CONTRIBUTING.md` | 나머지 전부 |
 | 위에 없음 | `docs/harness.md` 공통 절차 | 나머지 전부 |
@@ -63,8 +63,10 @@ make status          # make 가 없으면: python anchor.py --status
 | L1·L2·L3·Report 스키마 | **`contracts/`** | spec §4·§5, 관련 `CLAUDE.md` | 미작성 — 작성 즉시 정본이 `contracts/`로 |
 | 갭 `G-*` | spec §10.3 | `docs/status.md`, 해당 컴포넌트 `CLAUDE.md` | 루트에는 두지 않는다 |
 | 포렌식 결함 `F-*` | **`docs/status.md`**(안전 표) · **`docs/status-defects.md`**(전문) | 없음 | 안전 결함만 자동 로딩되는 쪽에 남긴다 |
-| 설계 결정 `D-1~D-8` | spec §0.2 | `docs/decisions.md` (색인만) | |
-| 구조 결정 `D-9~D-18` | `SOT.md` §6 | spec §0.2, `docs/decisions.md` (색인만) | **양쪽 동시 갱신** |
+| **그 밖의 결정** | **`docs/decisions/`** — 결정 하나가 **파일 하나** | 없음 | `decisions.md` 는 2026-08-08 까지의 **동결 이력**. 새 행을 넣지 않는다 |
+| 수치 표기 규약 (한정어 4분류) | `docs/harness/docs-and-structure.md` `HD-1` | `docs/papers/CLAUDE.md` | 원고 쓰는 사람이 하네스 노트를 열지 않아 복제를 허용 |
+| 설계 결정 `D-1~D-8` | spec §0.2 | `docs/decisions/` (색인만) | |
+| 구조 결정 `D-9~D-18` | `SOT.md` §6 | spec §0.2, `docs/decisions/` (색인만) | **양쪽 동시 갱신** |
 | 미결정 `U-*` | spec §12 | `docs/status.md` | ID 중복 정의 금지 |
 | 표준화 항목 `S-*` | spec §11.1 | `interfaces/*/CLAUDE.md` | S-4=A2A-over-MCP 바인딩, S-7=세션 키 |
 | 논문·표준 **원고** | `docs/papers/` · `docs/standards/` | 없음 | **정의는 spec §11.1, 원고는 여기.** 반대 방향으로 고치지 않는다 |
