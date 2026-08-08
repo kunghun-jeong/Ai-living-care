@@ -1,8 +1,7 @@
 # AI Living Care
 
-> **작업하러 오셨다면 여기가 아닙니다.** 이 문서는 시스템이 무엇을 하는지 설명합니다.
-> 코드·문서를 만지려면 [`CLAUDE.md`](CLAUDE.md)(무엇을 열지 정하는 곳) 와
-> [`CONTRIBUTING.md`](CONTRIBUTING.md)(브랜치·PR·소유 경계) 를 먼저 읽고 `make hooks` 를 한 번 실행합니다.
+> **팀에 합류하셨다면 → [팀 온보딩](#팀-온보딩--이-한-장이면-시작한다).** 그 한 장이면 일을 시작할 수 있습니다.
+> 이 문서의 나머지는 시스템이 무엇을 하는지 설명합니다.
 
 독거 어르신 돌봄 로봇. **"할머니 괜찮은지 확인해 줘"** 한 마디로 로봇이 집 안을
 순찰하고, 사람을 찾고, 상태를 판단해 보고하는 시스템.
@@ -47,23 +46,82 @@ LLM이 하는 일은 두 가지뿐 — **①어디부터 갈지 정하기**, **�
 > `limo-MCP/` 와 `limo-patrol-viz/` 는 **원본을 그대로 보존**한다 (D-14). 각 트리의 코드는
 > 담당 연구원 소유이며, 구조·파일명·경로를 바꾸지 않는다.
 
-### 새로 합류했다면
+---
 
-[`CLAUDE.md`](CLAUDE.md) 하나만 읽는다. 나머지는 거기서 라우팅된다.
+## 팀 온보딩 — 이 한 장이면 시작한다
 
-문서는 세 계층이다 — **`@` 표시는 매 세션 자동 로딩**(루트 + doc-map + harness + status),
-**무표는 gateway 뒤 lazy**(필요할 때만 연다). 설계 정본은 **통독하지 않는다** —
-각 컴포넌트 `CLAUDE.md` 헤더가 지목한 절만 읽는다. **자동 로딩 실측치는 `make status` 맨 아래에 나온다**
-— 문서에 숫자를 적지 않는다. `@` 는 재귀 import 라(최대 5홉) 루트 밖에서 쓰면 눈덩이가 된다.
+> **규칙은 안내지 통제가 아니다.** 커밋을 막는 것은 넷뿐이고 전부 「한 줄 빠뜨림」이다.
+> 나머지는 PR 에서 알리거나, 한 줄 말하고 그냥 통과시킨다.
 
-- **브랜치·PR·소유 경계**: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- 작업 시작점(하려는 일 → 열 문서): [`docs/doc-map.md`](docs/doc-map.md)
-- 작업 절차: [`docs/harness.md`](docs/harness.md)
-- 지금 무엇이 깨져 있는지: [`docs/status.md`](docs/status.md)
-- 옛 경로를 찾는 중이라면: [`MIGRATION.md`](MIGRATION.md)
-- 전체 계층 그림: [`docs/architecture.md`](docs/architecture.md)
-  — ⚠️ 그림의 IF-4·IF-5 종단점에 알려진 불일치가 있다 (F-62, `docs/status.md`)
-- 개발 경위: [`docs/handoff/`](docs/handoff/) — **참고 원본, 정본 아님**
+### 1. 최초 1회
+
+```bash
+make hooks     # make 가 없으면: git config core.hooksPath .githooks && chmod +x .githooks/*
+git config --global user.email "<GitHub 계정에 인증된 주소>"
+```
+
+두 번째 줄을 빠뜨리면 **커밋이 아무에게도 귀속되지 않는다** — 이 저장소에서 실제로 28개가 그랬다.
+자세한 건 [`CONTRIBUTING.md`](CONTRIBUTING.md) 「커밋 신원」.
+
+### 2. 세션마다 한 번 — 일 시작 전에
+
+```bash
+make status    # make 가 없으면: python anchor.py --status
+```
+
+한 화면에 다섯이 나온다 — **미해소 안전 결함 · 전 영역 상태 · 최근 커밋 · 최근 결정 · 커밋 안 된 변경.**
+매 세션 자동으로 열리는 문서들은 **남이 일해도 변하지 않는다.** 갱신을 보는 창구는 여기뿐이다.
+
+### 3. 일할 때 — 다섯 줄
+
+1. **건드릴 디렉터리의 `CLAUDE.md` 만 읽는다.** 무엇을 열지는 [`docs/doc-map.md`](docs/doc-map.md) §1 이 정한다.
+2. **설계 정본을 통독하지 않는다** — 그 헤더의 `읽을 절` 이 지목한 절만 연다.
+3. 파일·디렉터리가 생기면 **그 자리 `CLAUDE.md` 에 한 줄.** 새 디렉터리엔 `CLAUDE.md` 를 만든다.
+4. 결정은 [`docs/decisions/`](docs/decisions/) 에 **파일 하나** — 표에 줄을 넣지 않는다.
+   그 파일의 `정본 반영` 줄에 **따라 고쳐야 할 문서**를 적는다. CI 가 실제로 고쳐졌는지 본다.
+5. **`상태` 줄에 「지금 무엇으로」를 넣는다.** 논문·표준 담당자는 그 한 줄로 구현 절을 쓴다.
+
+```
+✅  Phase 1 · 구현 중 · LM encoder(BERT-base, LSTM 에서 전환) · 작업 0-5
+❌  Phase 1 · 진행 중
+```
+
+### 4. 병렬로 일할 때 — 부딪히지 않는 법
+
+- **자기 디렉터리 안에서는 마음껏 병렬로.** 6인 동시 작업 병합 실측에서 충돌 0.
+- 결정·안전 결함은 **각자 파일 하나**라 절대 부딪히지 않는다.
+- **부딪히는 곳은 하나뿐 — 같은 부모 밑에 둘이 동시에 새 디렉터리를 만들 때.** 순서를 정한다.
+  (부딪혀도 git 이 멈추고, 잘못 풀면 커밋이 막힌다. 조용히 사라지지 않는다.)
+
+### 5. ⛔ 남의 트리
+
+```
+worker_ai_agent/limo-MCP/**      코드는 담당 연구원 소유
+tools/limo-patrol-viz/**         코드는 담당 연구원 소유
+```
+
+**읽고 결함만 남긴다.** 안전 경로(정지·취소 / 사람 판정 / 프레임 신선도 / 세션 키)면
+[`docs/safety/`](docs/safety/) 에 파일 하나 + 귀속 컴포넌트의 `상태` 줄에 같은 ID,
+그 외는 [`docs/status-defects.md`](docs/status-defects.md). 훅이 커밋 때 알려준다(막지는 않는다).
+담당자 본인이면 `OWNER=1`.
+
+### 6. 브랜치
+
+`master` 가 협업자가 일하는 곳이다. **작은 변경은 바로 커밋한다.** `main` 은 소유자가 승격한다.
+같은 영역에 둘이 붙거나 리뷰가 필요하면 `<영역>/<하려는 일>` 로 브랜치를 판다 (base = `master`).
+
+### 7. 그 밖에 열 문서
+
+| 하려는 일 | 열 문서 |
+|---|---|
+| 무엇을 열지 모르겠다 | [`docs/doc-map.md`](docs/doc-map.md) §1 |
+| 작업 절차 전체 | [`docs/harness.md`](docs/harness.md) |
+| 브랜치 · PR · 소유 경계 | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| 지금 무엇이 깨져 있나 | [`docs/status.md`](docs/status.md) |
+| 이 사실을 어디에 쓰지 | [`docs/canon.md`](docs/canon.md) |
+| 전체 계층 그림 | [`docs/architecture.md`](docs/architecture.md) — ⚠️ IF-4·IF-5 종단점 불일치 (`F-62`) |
+| 옛 경로를 찾는 중 | [`MIGRATION.md`](MIGRATION.md) |
+| 개발 경위 | [`docs/handoff/`](docs/handoff/) — **참고 원본, 인용하지 않는다** |
 
 ---
 
@@ -74,16 +132,15 @@ LLM이 하는 일은 두 가지뿐 — **①어디부터 갈지 정하기**, **�
 Gazebo도 Nav2도 필요 없다. RViz2와 Python만 있으면 된다.
 
 ```bash
-# 최초 1회 — 커밋할 때 앵커 검사가 자동으로 돈다
-make hooks                                    # make 가 없으면 아래 한 줄로 대체
-# git config core.hooksPath .githooks && chmod +x .githooks/*
-
 cd tools/limo-patrol-viz
 ./run_coverage.sh     # GUI 없이 커버리지 수치 + patrol_sim.png
 ./run_patrol.sh       # RViz2에서 로봇이 실제로 순찰하는 것 + 카메라 스트리밍
 ```
 
 현재 결과: **경로점 7개 · 6.3분 · 커버리지 93.6% · 2m² 이상 사각지대 0개**
+— **기하 시뮬레이션 결과이지 실측이 아니다.** 한정어를 떼고 인용하지 않는다 (`F-17`).
+
+> 코드·문서를 만질 거라면 위 [팀 온보딩](#팀-온보딩--이-한-장이면-시작한다) 의 「최초 1회」를 먼저 한다.
 
 ### 전체 시뮬레이션 (Gazebo + Nav2)
 
