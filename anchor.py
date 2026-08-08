@@ -75,8 +75,11 @@ DECISIONS = "docs/decisions.md"          # 이력 표 (동결)
 DECISIONS_DIR = "docs/decisions"         # 신규 — 결정 하나가 파일 하나
 ROOT_MAX_LINES = 50
 AUTOLOAD_MAX_LINES = 420
-RECENT_COMMITS = 8
-RECENT_DECISIONS = 3
+# 6인이 각자 상위 dir 을 전담하면 한 라운드에 6커밋 + 병합 5개가 쌓인다. 창을 8로 두고
+# 병합을 세면 **절반이 창 밖으로 밀린다** (실측: 6인 중 3인만 보였다). 병합 커밋은
+# 「무엇이 바뀌었나」를 말하지 않으므로 세지 않고, 창은 한 라운드가 다 들어가게 잡는다.
+RECENT_COMMITS = 10
+RECENT_DECISIONS = 6
 
 # A7 이 함께 보는 라우팅·규약 문서. 루트 4종 + `docs/` 최상위 + 하네스 노트.
 # **목록을 박지 않고 훑는다** — 새 하네스 노트를 추가한 사람이 여기도 고쳐야 한다면
@@ -542,10 +545,10 @@ def recent():
 
     여기서도 파일에 쓰지 않는다. git 과 `decisions.md` 가 정본이고 이 블록은 창일 뿐이다.
     """
-    log = git("log", f"-{RECENT_COMMITS}", "--date=short", "--format=%ad  %an  %s")
+    log = git("log", "--no-merges", f"-{RECENT_COMMITS}", "--date=short", "--format=%ad  %an  %s")
     if log:
         print("\n" + "-" * 96)
-        print(f"  최근 변경 — git log (최근 {RECENT_COMMITS}커밋)")
+        print(f"  최근 변경 — git log (병합 제외 최근 {RECENT_COMMITS}커밋)")
         for ln in log.splitlines():
             print(f"    {ln[:92]}")
         branch = git("rev-parse", "--abbrev-ref", "HEAD")
