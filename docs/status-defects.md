@@ -124,3 +124,14 @@
 | **F-18** | `map.yaml`을 아무도 읽지 않고 같은 값이 두 파일에 하드코딩 | 맵 교체 시 조용히 옛 원점으로 계산 |
 | **F-19** | D-14가 spec §0.2에 미반영 | **해소** (2026-08-06) — spec §0.2 결정표에 추가 |
 
+## `TODO(확인 필요)`
+
+`docs/status.md` 에서 옮겨 왔다 — 매 세션 자동 로딩되는 문서가 **확인해야 할 잡항목**까지
+이고 다닐 이유는 없다. 확인되면 지우고, 확인 결과가 작업을 막으면 `status.md` 「착수 전」으로 올린다.
+
+- `requirements.txt`에 `rclpy`·`cv2`·`numpy`·`PIL` 미선언 — ROS2 배포판 제공 가정으로 보이나 미확인
+- apt 목록에 `ros-jazzy-tf2-ros-py`(`patrol_viz.py`가 import), `ros-jazzy-xacro`(`make_urdf.sh`) 누락
+- 린트·포매터 규약 (설정 파일 없음)
+- 테스트 프레임워크 (테스트 0건) — `pytest` 가정이나 미확정
+- `tools/limo-patrol-viz/maps/map.pgm`의 조달 경로 (자산 표에 없음)
+- 실물 LIMO의 카메라 토픽명·인코딩
