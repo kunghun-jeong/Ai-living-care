@@ -1,13 +1,16 @@
 # limo-MCP — LIMO Worker 구현체 (원본 보존)
 
 > **역할** LIMO Worker 구현체 — MCP 서버 · Worker 함수 · Gazebo 브링업
-> **상태** Phase 0 · **동작** · 원본 보존 `D-14`
+> **상태** Phase 0 · **동작** · 원본 보존 `D-14` · Nav2 대안으로 A* pathplanning/moving_path 추가(Gazebo 없이 이동 검증 가능)
 > **읽을 절** spec **§10.1** · **§10.2**(시뮬 환경) — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §10.1 · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
 > **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다 (내용 수정은 D-17 범위 — 결정 기록 조건부 허용).
-> 이 저장소의 **최초 커밋 `27b0f30` 시점 `limo-MCP/`** 와 **내용이 동일**하다 (blob 대조 확인).
-> 옛 트리는 `tree/27b0f30/limo-MCP` 에서 볼 수 있다 — `main` 은 그 뒤로 전진했다.
+> 최초 커밋 `27b0f30` 시점과 **더 이상 byte-identical이 아니다** — `Actions.py`·`Reasonings.py`·
+> `MCP_server.py` 내용을 고치고 `Worker_functions/Visualization.py`를 새로 추가했다 (2026-08-10,
+> D-17 범위 내용 수정). 구조·파일명·경로는 그대로다. 근거: `docs/decisions/2026-08-10-astar-kinematic-sim.md`
+> · `docs/decisions/2026-08-10-worker-side-kg-lookup-phase0.md`.
+> 옛 트리는 `tree/27b0f30/limo-MCP` 에서 볼 수 있다.
 
 ## 왜 여기 있는가
 
@@ -28,6 +31,7 @@ worker_ai_agent/
 | `Worker_functions/Perceptions.py` | Perception Function (PF) → `../perception/` |
 | `Worker_functions/Reasonings.py` | Reasoning Function (RF) → `../reasoning/` |
 | `Worker_functions/Actions.py` | Action Function (AF) → `../action/` |
+| `Worker_functions/Visualization.py` | (신규, 2026-08-10) RViz2 실시간 시각화 — `patrol_viz.py`와 같은 토픽 재사용, 원본 목록엔 없던 파일 |
 | `MCP_server/MCP_server.py` | A2A Server + Agent Executor → `../mcp_server/` |
 | `Simulation/` | 시뮬레이션 (비컴포넌트) |
 | `Scenarios/` | 검증 클라이언트 (비컴포넌트) |
