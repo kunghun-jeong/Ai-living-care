@@ -30,17 +30,38 @@ def _goal_xy_yaw(waypoint, prev_xy: Optional[tuple] = None) -> tuple:
     return x, y, frame, yaw_deg
 
 
+def _normalize_angle(angle: float) -> float:
+    return (angle + math.pi) % (2 * math.pi) - math.pi
+
+
+# 시나리오 1(README)과 같은 스폰 — A* 웨이포인트 추종의 초기 위치로 쓴다.
+_SIM_SPAWN = {"x": 3.5, "y": 1.0, "yaw": 0.0}
+_SIM_V_LIN = 0.22  # m/s (tools/limo-patrol-viz/patrol_sim.py의 V_LIN과 동일)
+_SIM_V_ANG = 0.50  # rad/s
+_SIM_DT = 0.1      # s, 적분 스텝(실제 시간으로 페이싱)
+
+
 class ActionModule:
-    def __init__(self, node, nav_action: str = "navigate_to_pose"):
+    def __init__(self, node, nav_action: str = "navigate_to_pose", viz=None):
         self.status = "idle"
         self.last_goal = None
         self.sequence_progress = None
         self.sequence_result = None
 
+        self._node = node
         self._goal_handle = None
         self._action_client = ActionClient(node, NavigateToPose, nav_action)
         self._sequence_thread: Optional[threading.Thread] = None
         self._sequence_interrupt = threading.Event()
+
+        # --- A* 웨이포인트 추종 (Nav2·Gazebo 없이 운동학만 적분하는 소프트웨어 시뮬레이션) ---
+        self._sim_pose: Optional[dict] = None  # {"x","y","yaw"} — 실물 오도메트리가 아니라 자체 적분값
+        self._path_thread: Optional[threading.Thread] = None
+        self._path_interrupt = threading.Event()
+        self._path_status = "idle"
+        self._path_progress = None
+        self._path_result = None
+        self._viz = viz  # Visualization.PoseVisualizer 또는 None — RViz2로 pose를 실시간 스트리밍
 
     # ------------------------------------------------------------------ #
     # waypoint 리스트 -> 순차적인 ROS2 NavigateToPose 액션으로 번역해 전송
@@ -140,6 +161,131 @@ class ActionModule:
         self._goal_handle.cancel_goal_async()
         self._goal_handle = None
         self.status = "cancelled"
+        return {"cancelled": True}
+
+    # ------------------------------------------------------------------ #
+    # 리모컨 IR 신호 (스텁) — 실제 송신 하드웨어는 미구현, 로그만 남긴다
+    # ------------------------------------------------------------------ #
+    def send_signal(
+        self,
+        device: str,
+        command: str,
+        value: Optional[float] = None,
+        unit: Optional[str] = None,
+    ) -> dict:
+        """리모컨으로 `device`에 IR 신호를 보냈다고 가정하고 로그만 남긴다.
+
+        실제 IR 송신 하드웨어가 붙기 전까지는 항상 성공을 반환한다.
+        """
+        self._node.get_logger().info(
+            f"[IR-SIGNAL] device={device} command={command} value={value} unit={unit}"
+        )
+        return {"sent": True, "device": device, "command": command, "value": value, "unit": unit}
+
+    # ------------------------------------------------------------------ #
+    # A* 웨이포인트 추종 — Nav2·Gazebo·실물 오도메트리 없이 운동학만 적분한다
+    # (tools/limo-patrol-viz/patrol_sim.py의 advance_to와 같은 모델, 실시간 페이싱)
+    # ------------------------------------------------------------------ #
+    def _ensure_sim_pose(self) -> dict:
+        """sim_pose가 아직 없으면 스폰 위치로 초기화한다 (pathplanning의 시작점으로도 쓰인다)."""
+        if self._sim_pose is None:
+            self._sim_pose = dict(_SIM_SPAWN)
+        return self._sim_pose
+
+    @property
+    def last_sim_pose(self) -> dict:
+        return self._ensure_sim_pose()
+
+    def is_running_path(self) -> bool:
+        return self._path_thread is not None and self._path_thread.is_alive()
+
+    def move_along_path(self, waypoints: list, timeout: float = 120.0) -> dict:
+        if self.is_running_sequence() or self.is_running_path():
+            return {"started": False, "reason": "a motion is already in progress"}
+        if not waypoints:
+            return {"started": False, "reason": "empty waypoint list"}
+        for wp in waypoints:
+            if not isinstance(wp, dict) or "x" not in wp or "y" not in wp:
+                return {"started": False, "reason": f"invalid waypoint: {wp!r}"}
+
+        self._ensure_sim_pose()
+        if self._viz is not None:
+            self._viz.publish_waypoints(waypoints)
+            self._viz.reset_trail()
+
+        self._path_interrupt.clear()
+        self._path_result = None
+        total = len(waypoints)
+        self._path_status = "moving"
+        self._path_progress = {"index": 0, "total": total}
+
+        def run() -> None:
+            deadline = time.time() + timeout
+            for i, wp in enumerate(waypoints):
+                self._path_progress = {"index": i, "total": total}
+                if not self._advance_sim_to(wp["x"], wp["y"], deadline):
+                    if self._path_interrupt.is_set():
+                        self._path_status = "cancelled"
+                        self._path_result = {"completed": i, "total": total, "interrupted": True}
+                    else:
+                        self._path_status = "failed"
+                        self._path_result = {"completed": i, "total": total, "reason": "timeout"}
+                    return
+            self._path_status = "succeeded"
+            self._path_result = {"completed": total, "total": total, "interrupted": False}
+
+        self._path_thread = threading.Thread(target=run, daemon=True)
+        self._path_thread.start()
+        return {"started": True}
+
+    def _advance_sim_to(self, nx: float, ny: float, deadline: float) -> bool:
+        """제자리 회전 후 직진 — patrol_sim.py의 advance_to를 실시간 페이싱으로 옮긴 것.
+
+        중단/타임아웃이면 False, 정상 도착이면 True를 반환한다.
+        """
+        pose = self._sim_pose
+        tgt = math.atan2(ny - pose["y"], nx - pose["x"])
+        dyaw = _normalize_angle(tgt - pose["yaw"])
+        turn_dur = abs(dyaw) / _SIM_V_ANG
+        move_dur = math.hypot(nx - pose["x"], ny - pose["y"]) / _SIM_V_LIN
+
+        for phase, dur in (("turn", turn_dur), ("move", move_dur)):
+            t0 = time.monotonic()
+            x0, y0, yaw0 = pose["x"], pose["y"], pose["yaw"]
+            while True:
+                if self._path_interrupt.is_set() or time.time() > deadline:
+                    return False
+                elapsed = time.monotonic() - t0
+                if elapsed >= dur:
+                    break
+                f = elapsed / dur if dur > 0 else 1.0
+                if phase == "turn":
+                    pose["yaw"] = yaw0 + dyaw * f
+                else:
+                    pose["x"], pose["y"] = x0 + (nx - x0) * f, y0 + (ny - y0) * f
+                if self._viz is not None:
+                    self._viz.publish_pose(pose)
+                time.sleep(_SIM_DT)
+            if phase == "turn":
+                pose["yaw"] = yaw0 + dyaw
+            else:
+                pose["x"], pose["y"] = nx, ny
+            if self._viz is not None:
+                self._viz.publish_pose(pose)
+        return True
+
+    def get_path_status(self) -> dict:
+        return {
+            "status": self._path_status,
+            "pose": self._sim_pose,
+            "progress": self._path_progress,
+            "result": self._path_result,
+        }
+
+    def cancel_path(self) -> dict:
+        if not self.is_running_path():
+            return {"cancelled": False, "reason": "no path motion in progress"}
+        self._path_interrupt.set()
         return {"cancelled": True}
 
     def _send_goal_and_wait(self, x: float, y: float, frame: str, yaw_deg: float, timeout: float = 120.0) -> dict:

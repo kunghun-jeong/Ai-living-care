@@ -1,0 +1,96 @@
+{
+  "scenario_id": "turn_on_air_conditioner",
+  "input": {
+    "intent": "turn_on_device",
+    "object": "air_conditioner",
+    "set_to": 24,
+    "unit": "celsius"
+  },
+  "steps": [
+    {
+      "id": "resolve_control_position",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {"name": "$input.object"},
+      "next": "check_resolved"
+    },
+    {
+      "id": "check_resolved",
+      "type": "branch",
+      "condition": "resolve_control_position.resolved",
+      "on_true": "plan_path_to_control_position",
+      "on_false": "fail"
+    },
+    {
+      "id": "plan_path_to_control_position",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$resolve_control_position.x",
+        "y": "$resolve_control_position.y",
+        "frame": "$resolve_control_position.frame"
+      },
+      "next": "check_path_found"
+    },
+    {
+      "id": "check_path_found",
+      "type": "branch",
+      "condition": "plan_path_to_control_position.waypoints",
+      "on_true": "move_to_control_position",
+      "on_false": "fail"
+    },
+    {
+      "id": "move_to_control_position",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {"waypoints": "$plan_path_to_control_position.waypoints"},
+      "next": "wait_arrival"
+    },
+    {
+      "id": "wait_arrival",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {"field": "status", "equals": "succeeded"},
+      "stop_when": {"tool": "get_path_status", "field": "status", "equals": "failed"},
+      "poll_interval": 0.5,
+      "timeout": 120.0
+    },
+    {
+      "id": "check_arrival",
+      "type": "branch",
+      "condition": "wait_arrival.matched",
+      "on_true": "send_power_on_signal",
+      "on_false": "fail"
+    },
+    {
+      "id": "send_power_on_signal",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "$input.object",
+        "command": "power_on"
+      },
+      "next": "set_temperature"
+    },
+    {
+      "id": "set_temperature",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "$input.object",
+        "command": "set_temperature",
+        "value": "$input.set_to",
+        "unit": "$input.unit"
+      },
+      "next": "success"
+    }
+  ],
+  "fail": {"error": "location_unresolved_or_path_failed"}
+}

@@ -37,13 +37,13 @@ DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
 - 설계 정본: `docs/spec/AI-Care_Unified_Architecture_Spec_v0.2.md`
   — **통독 금지.** 각 컴포넌트 `CLAUDE.md` 헤더가 지목한 **절만** 읽는다
 - 코드 아키텍처: `docs/architecture.md` — ⚠️ IF-4·IF-5 종단점에 알려진 불일치 (F-62)
-- API 스펙: `docs/api-spec.md`(MCP 작업자만) · 컨벤션: `docs/conventions.md` · 결정: `docs/decisions.md` · 옛 경로: `MIGRATION.md`
+- API 스펙: `docs/api-spec.md`(MCP 작업자만) · 컨벤션: `docs/conventions.md` · 결정·정본 변경: `docs/decisions/CLAUDE.md` · 정본 위치: `docs/canon.md` · 옛 경로: `MIGRATION.md`
 - **참고 원본 (`REFERENCE-ONLY` · 정본 아님)**: `docs/context/` · `docs/handoff/`
   — spec v0.2 가 이미 소화한 입력 자료다. **인용하지 말 것** — 정본은 spec
 
 ## 작업 규칙
 
 - **작업 전 그 디렉터리의 `CLAUDE.md`만 읽는다.** 절차는 @docs/harness.md.
-- 파일·디렉터리가 생기거나 이름이 바뀌면 **그 자리 `CLAUDE.md` 에 한 줄** · 결정은 한 줄.
+- 파일·디렉터리가 생기거나 이름이 바뀌면 **그 자리 `CLAUDE.md` 에 한 줄** · 결정은 `docs/decisions/` 에 파일 하나, 정본 반영은 같은 변경에서.
 - **사실만 기록한다.** 확인 못 한 것은 `TODO(확인 필요)` — 추측으로 채우지 않는다.
 - 두 감사 스크립트는 **실행 가능성을 보증하지 않는다.** 갭 6건(G-1~G-6)과 안전 결함은 @docs/status.md.
