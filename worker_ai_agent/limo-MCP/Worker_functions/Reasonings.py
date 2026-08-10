@@ -4,15 +4,21 @@ ROS2/MCP에 의존하지 않는 순수 로직. 실제 백엔드(YOLO, Nav2, 크�
 주입하고, 주입하지 않으면 no-op으로 동작하므로 로봇 없이 단독 테스트가 가능하다.
 """
 
+import math
+import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from typing import Callable, Optional
 
+import numpy as np
+
 DetectFn = Callable[[object], list]          # frame -> [{"class", "conf", "bbox"}]
 PlanFn = Callable[[dict, dict], list]        # start, goal -> [{"x", "y", "yaw"}]
 CropFn = Callable[[object, list], bytes]     # frame, bbox -> jpeg bytes
 FrameSource = Callable[..., Optional[dict]]  # (frame_id=None) -> {"frame_id", "frame", "stamp", "pose"}
+ResolveFn = Callable[[str], dict]            # name -> {"x", "y", "frame", "yaw_deg"} (모르면 LookupError)
+AstarFn = Callable[[dict, dict], list]       # start, goal -> [{"x","y"}, ...] (경로 없으면 빈 리스트)
 
 
 def _no_op_detect(_frame) -> list:
@@ -29,6 +35,111 @@ def _no_op_crop(_frame, _bbox) -> bytes:
 
 def _no_op_frame_source(_frame_id: Optional[str] = None) -> Optional[dict]:
     return None
+
+
+def _no_op_resolve(_name: str) -> dict:
+    raise LookupError("no location resolver configured")
+
+
+def _no_op_astar(_start: dict, _goal: dict) -> list:
+    return []
+
+
+# ---------------------------------------------------------------------- #
+# A* 경로계획 — tools/limo-patrol-viz/patrol_sim.py와 같은 맵·같은 알고리즘.
+# Nav2·Gazebo 없이 map.pgm 점유격자 위에서 직접 계산한다(순수 로직, cv2는 이
+# 함수 안에서만 import).
+# ---------------------------------------------------------------------- #
+_MAP_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "tools", "limo-patrol-viz", "maps"
+)
+_MAP_RESOLUTION, _MAP_ORIGIN_X, _MAP_ORIGIN_Y = 0.05, -10.0, -10.0  # maps/map.yaml과 동일
+_ROBOT_RADIUS_M = 0.22  # 충돌 여유 (patrol_sim.py의 ROBOT_R과 동일)
+
+_grid_cache: Optional[dict] = None
+
+
+def _load_grid() -> dict:
+    global _grid_cache
+    if _grid_cache is not None:
+        return _grid_cache
+
+    import cv2
+
+    with open(os.path.join(_MAP_DIR, "map.pgm"), "rb") as f:
+        img = cv2.imdecode(np.frombuffer(f.read(), np.uint8), cv2.IMREAD_GRAYSCALE)
+    height, width = img.shape
+    free = (img > 250).astype(np.uint8)
+    dist_m = cv2.distanceTransform(free, cv2.DIST_L2, 5) * _MAP_RESOLUTION
+    drivable = dist_m >= _ROBOT_RADIUS_M
+    _grid_cache = {"height": height, "width": width, "dist_m": dist_m, "drivable": drivable}
+    return _grid_cache
+
+
+def _to_px(x: float, y: float, height: int) -> tuple:
+    return int(round((x - _MAP_ORIGIN_X) / _MAP_RESOLUTION)), int(
+        round(height - (y - _MAP_ORIGIN_Y) / _MAP_RESOLUTION)
+    )
+
+
+def _to_m(px: int, py: int, height: int) -> tuple:
+    return _MAP_ORIGIN_X + px * _MAP_RESOLUTION, _MAP_ORIGIN_Y + (height - py) * _MAP_RESOLUTION
+
+
+def astar_plan(start: dict, goal: dict) -> list:
+    """map.pgm 점유격자 위에서 A*로 `start`(x,y)에서 `goal`(x,y)까지 경로를 찾는다.
+
+    patrol_sim.py와 동일한 비용함수(벽 근접 페널티)·솎기(0.2m 간격)를 쓴다.
+    성공하면 [{"x","y"}, ...], 갈 수 없으면 빈 리스트.
+    """
+    import heapq
+
+    grid = _load_grid()
+    height, width = grid["height"], grid["width"]
+    drivable, dist_m = grid["drivable"], grid["dist_m"]
+
+    def snap(p):
+        if drivable[p[1], p[0]]:
+            return p
+        ys, xs = np.nonzero(drivable)
+        k = np.argmin((xs - p[0]) ** 2 + (ys - p[1]) ** 2)
+        return int(xs[k]), int(ys[k])
+
+    s = snap(_to_px(start["x"], start["y"], height))
+    g = snap(_to_px(goal["x"], goal["y"], height))
+
+    neighbors = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+    open_heap = [(0.0, s)]
+    came_from: dict = {}
+    g_score = {s: 0.0}
+    while open_heap:
+        _, cur = heapq.heappop(open_heap)
+        if cur == g:
+            break
+        for dx, dy in neighbors:
+            nx, ny = cur[0] + dx, cur[1] + dy
+            if not (0 <= nx < width and 0 <= ny < height) or not drivable[ny, nx]:
+                continue
+            step = math.hypot(dx, dy)
+            cost = g_score[cur] + step * (1.0 + 2.0 * max(0.0, 0.6 - dist_m[ny, nx]))
+            if cost < g_score.get((nx, ny), 1e18):
+                g_score[(nx, ny)] = cost
+                came_from[(nx, ny)] = cur
+                h = math.hypot(nx - g[0], ny - g[1])
+                heapq.heappush(open_heap, (cost + h, (nx, ny)))
+
+    if g not in came_from and g != s:
+        return []
+
+    path_px, cur = [], g
+    while cur != s:
+        path_px.append(cur)
+        cur = came_from[cur]
+    path_px.append(s)
+    path_px.reverse()
+    path_px = path_px[::4] or [path_px[-1]]
+
+    return [{"x": wx, "y": wy} for wx, wy in (_to_m(px, py, height) for px, py in path_px)]
 
 
 _yolo_model = None
@@ -161,12 +272,16 @@ class ReasoningModule:
         plan_fn: PlanFn = _no_op_plan,
         crop_fn: CropFn = _no_op_crop,
         frame_source: FrameSource = _no_op_frame_source,
+        resolve_fn: ResolveFn = _no_op_resolve,
+        astar_fn: AstarFn = _no_op_astar,
         max_workers: int = 2,
     ):
         self._detect_fn = detect_fn
         self._plan_fn = plan_fn
         self._crop_fn = crop_fn
         self._frame_source = frame_source
+        self._resolve_fn = resolve_fn
+        self._astar_fn = astar_fn
         self._pool = ThreadPoolExecutor(max_workers=max_workers)
         self._scan: Optional[PersonScan] = None
         self._scan_seq = 0
@@ -187,6 +302,25 @@ class ReasoningModule:
             return {"waypoints": future.result(timeout=timeout)}
         except FutureTimeoutError:
             return {"waypoints": None, "reason": "planning timed out"}
+
+    def pathplanning(self, start: dict, goal: dict, timeout: float = 10.0) -> dict:
+        """A*로 start->goal 경로를 계산한다. 실패하면 reason이 담긴 dict."""
+        future = self._pool.submit(self._astar_fn, start, goal)
+        try:
+            waypoints = future.result(timeout=timeout)
+        except FutureTimeoutError:
+            return {"waypoints": None, "reason": "path planning timed out"}
+        if not waypoints:
+            return {"waypoints": None, "reason": "no path found"}
+        return {"waypoints": waypoints}
+
+    def resolve_location(self, name: str) -> dict:
+        """이름(장소·디바이스)을 좌표로 해소한다. KG에 없으면 resolved=False로 이유를 담아 돌려준다."""
+        try:
+            pose = self._resolve_fn(name)
+        except LookupError as exc:
+            return {"resolved": False, "name": name, "reason": str(exc)}
+        return {"resolved": True, "name": name, **pose}
 
     # --- 상태 확인용 근거 이미지 (판정은 LLM이 한다) ---
 

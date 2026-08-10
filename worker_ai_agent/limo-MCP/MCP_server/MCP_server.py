@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import threading
+from typing import Optional
 
 import numpy as np
 import rclpy
@@ -21,10 +22,18 @@ from rclpy.node import Node
 from mcp.server.mcpserver import Image, MCPServer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "Worker_functions"))
+# Phase 0 임시: 정식으로는 KG 접근이 IF-1(Manager AI Core 경유)이어야 하지만,
+# Manager AI Core가 아직 코드 0줄이라 Worker Reasoning이 직접 import한다.
+# 근거: docs/decisions/2026-08-10-worker-side-kg-lookup-phase0.md
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "manager_ai_agent", "knowledge_graph")
+)
 
 from Actions import ActionModule
 from Perceptions import PerceptionModule
-from Reasonings import ReasoningModule, yolo_detect
+from Reasonings import ReasoningModule, astar_plan, yolo_detect
+from Visualization import PoseVisualizer
+from kg import KnowledgeGraph
 
 CROP_MAX_PX = 512  # LLM에 올리는 이미지 크기 상한
 
@@ -71,16 +80,23 @@ def _crop_fn(frame, bbox) -> bytes:
     return _encode_jpeg(crop)
 
 
+_kg = KnowledgeGraph()
+
+
 class LimoGatewayNode(Node):
     def __init__(self):
         super().__init__("limo_mcp_gateway")
-        self.action = ActionModule(self)
+        # tools/limo-patrol-viz/patrol.rviz와 같은 토픽으로 moving_path 진행을 RViz2에 스트리밍한다.
+        self.viz = PoseVisualizer(self)
+        self.action = ActionModule(self, viz=self.viz)
         self.perception = PerceptionModule(self)
         self.reasoning = ReasoningModule(
             plan_fn=_plan_fn,
             detect_fn=yolo_detect,
             crop_fn=_crop_fn,
             frame_source=self.perception.get_latest_frame,
+            resolve_fn=_kg.resolve_location,
+            astar_fn=astar_plan,
         )
 
 
@@ -171,6 +187,47 @@ def cancel() -> dict:
     if _node.action.is_running_sequence():
         return _node.action.cancel_goal_sequence()
     return _node.action.cancel_goal()
+
+
+@mcp.tool()
+def resolve_location(name: str) -> dict:
+    """장소·디바이스 이름을 좌표로 해소한다 (KG Phase 0 JSON 룩업). 모르면 resolved: false."""
+    return _node.reasoning.resolve_location(name)
+
+
+@mcp.tool()
+def pathplanning(x: float, y: float, frame: str = "map") -> dict:
+    """A*로 마지막 위치에서 목표 좌표까지 경로를 계산한다. Nav2·Gazebo 불필요 (map.pgm 기준)."""
+    if frame != "map":
+        return {"waypoints": None, "reason": f"unsupported frame: {frame!r} (map만 지원)"}
+    start = _node.action.last_sim_pose
+    return _node.reasoning.pathplanning({"x": start["x"], "y": start["y"]}, {"x": x, "y": y})
+
+
+@mcp.tool()
+def moving_path(waypoints: list) -> dict:
+    """A*가 계산한 웨이포인트를 따라 이동한다 — 운동학만 적분하는 소프트웨어 시뮬레이션(Nav2·Gazebo 불필요). 비동기, get_path_status로 폴링한다."""
+    return _node.action.move_along_path(waypoints)
+
+
+@mcp.tool()
+def get_path_status() -> dict:
+    """moving_path 진행 상태(status/pose/progress/result)를 반환한다."""
+    return _node.action.get_path_status()
+
+
+@mcp.tool()
+def cancel_path() -> dict:
+    """진행 중인 moving_path를 취소한다."""
+    return _node.action.cancel_path()
+
+
+@mcp.tool()
+def send_ir_signal(
+    device: str, command: str, value: Optional[float] = None, unit: Optional[str] = None
+) -> dict:
+    """(스텁) 리모컨으로 `device`에 IR 신호를 보낸다. 실제 송신 하드웨어는 미구현 — 로그만 남긴다."""
+    return _node.action.send_signal(device, command, value, unit)
 
 
 if __name__ == "__main__":

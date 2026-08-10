@@ -20,11 +20,15 @@
 
 **구현을 고치기 전에 이 문서의 갭·주의사항을 먼저 읽을 것.**
 
-## 현재 노출된 tool 6종 (전부 L4)
+## 현재 노출된 tool 12종 (전부 L4)
 
 | tool | 계층 | Phase 0 처리 |
 |---|---|---|
-| `plan_and_navigate`·`navigate_waypoints`·`cancel` | L4 Action | 유지. `execute_policy` 내부에서 호출 |
+| `plan_and_navigate`·`navigate_waypoints`·`cancel` | L4 Action | Nav2 경유 — Nav2 미기동 환경에서는 `pathplanning`+`moving_path`가 대안 |
+| `resolve_location` | L4 Reasoning | KG(`manager_ai_agent/knowledge_graph/`)를 **IF-1 없이 직접 import** — 임시 배선, 근거는 `docs/decisions/2026-08-10-worker-side-kg-lookup-phase0.md` |
+| `pathplanning` | L4 Reasoning | **Nav2·Gazebo 불필요** — `tools/limo-patrol-viz/maps/map.pgm` 위에서 A*로 직접 계산 (`patrol_sim.py`와 같은 알고리즘). 근거: `docs/decisions/2026-08-10-astar-kinematic-sim.md` |
+| `moving_path`·`get_path_status`·`cancel_path` | L4 Action | **Nav2·Gazebo·실물 오도메트리 불필요** — 운동학만 소프트웨어로 적분하는 시뮬레이션(`patrol_sim.py`의 `advance_to`와 동일 모델). `LimoGatewayNode.viz`가 매 틱 RViz2로 스트리밍(`tools/limo-patrol-viz/patrol.rviz`로 확인) |
+| `send_ir_signal` | L4 Action | **(스텁)** 로그만 남긴다 — 실제 IR 하드웨어 미구현 |
 | `get_camera_snapshot`·`detect_objects` | L4 Perception/Reasoning | 유지 |
 | `get_status` | L4 상태 | `get_task_report`로 승격 (task_id 상관 추가) |
 | — | **L2** | **`execute_policy` 신설** ← 0-5 |

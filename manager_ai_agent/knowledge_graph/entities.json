@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "dining_area": {
+      "type": "space",
+      "label_ko": "식탁 구역",
+      "pose": {"x": 8.10, "y": 1.71, "yaw": 0.0, "frame": "map"},
+      "source": "tools/limo-patrol-viz/"
+    },
+    "upper_left_room": {
+      "type": "space",
+      "label_ko": "좌상단 방",
+      "pose": {"x": -7.77, "y": 0.56, "yaw": 0.0, "frame": "map"},
+      "source": "tools/limo-patrol-viz/"
+    },
+    "air_conditioner": {
+      "type": "device",
+      "device_class": "air_conditioner",
+      "label_ko": "에어컨 (하단·TV현관 구역, AirconditionerB)",
+      "pose": {"x": -0.80, "y": -3.05, "yaw": 0.0, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — 하단(TV·현관) 구역 접근점",
+      "note": "AirconditionerB 가구 좌표(-2.00,-5.23) 자체가 아니라 그 구역의 접근점이다 — 벽 여유 1.68m로 검증됨. 가구 바로 앞 관측점은 미계산."
+    }
+  },
+  "phrase_bindings": {}
+}
