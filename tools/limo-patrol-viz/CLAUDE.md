@@ -41,7 +41,9 @@ Jazzy 파싱은 통과한다. **Gazebo 플러그인 3블록만 Harmonic 문법�
 ## 구성
 
 - `WORLD.md` — **세계 명세서.** 시나리오를 쓰는 LLM 이 읽는다. 가구 89개 실좌표·구역 접근점·
-  랜드마크 관측점·카메라 특성·시나리오 1 재현 절차. **맵의 침실 67.5% 미탐색** 등 한계 포함
+  랜드마크 관측점·카메라 특성·시나리오 재현 절차·도구 16개·홈 복귀 규약. 한계도 같이 적는다.
+  ⚠️ **여기 코드는 커버리지 계산기이지 시나리오 실행기가 아니다.** 실제 시나리오는
+  `worker_ai_agent/limo-MCP/Scenarios/run_scenario.py` 가 MCP 를 통해 돌린다 (WORLD.md §5)
 - `patrol_sim.py` — ROS2·GUI 없이 A*·레이캐스팅으로 커버리지 계산 (`run_coverage.sh`가 호출)
 - `patrol_viz.py` — RViz2 순찰 애니메이션 (`run_patrol.sh`가 호출)
 

@@ -89,8 +89,50 @@
         "value": "$input.set_to",
         "unit": "$input.unit"
       },
+      "next": "go_home_resolve"
+    },
+
+    {
+      "id": "go_home_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {"name": "home"},
+      "next": "go_home_plan"
+    },
+    {
+      "id": "go_home_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$go_home_resolve.x",
+        "y": "$go_home_resolve.y",
+        "frame": "$go_home_resolve.frame"
+      },
+      "next": "go_home_move"
+    },
+    {
+      "id": "go_home_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {"waypoints": "$go_home_plan.waypoints"},
+      "next": "go_home_arrive"
+    },
+    {
+      "id": "go_home_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {"field": "status", "equals": "succeeded"},
+      "stop_when": {"tool": "get_path_status", "field": "status", "equals": "failed"},
+      "poll_interval": 0.5,
+      "timeout": 240.0,
       "next": "success"
     }
   ],
+  "note": "팀 합의에 따라 시작점과 도착점은 같다 — 조작을 마치면 home(3.5,1.0)으로 돌아온다.",
   "fail": {"error": "location_unresolved_or_path_failed"}
 }

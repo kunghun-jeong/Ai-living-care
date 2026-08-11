@@ -20,7 +20,8 @@
 | 원점 | `(-10.0, -10.0)` — 격자 좌하단이 map 좌표 (−10, −10) |
 | 해상도 | 0.05 m/px (608 × 384 px = 30.4 × 19.2 m) |
 | 집 실범위 | x **−9.55 ~ 9.25**, y **−5.60 ~ 5.60** (약 18.8 × 11.2 m) |
-| 자유공간 | 155 m² |
+| 자유공간 | 155.2 m² |
+| 로봇 중심이 갈 수 있는 곳 | 121.6 m² (벽 여유 ≥ 0.22 m), 그중 **120.7 m² 가 스폰에서 도달 가능** |
 | 최대 개방부 | 1.82 m (거실) |
 | 권장 스폰 | **(3.5, 1.0, yaw 0)** — 벽까지 여유 1.40 m. AWS README 권장 지점 |
 
@@ -39,12 +40,12 @@
 
 | 구역 | 범위 (x, y) | 로봇 접근점 | 여유 | 그 안에 실제로 있는 것 (전수) |
 |---|---|---|---|---|
-| **침실** | x −9.6~−3.5, y 0.8~5.6 | **(−4.10, 0.85)** | 1.34 m | `Bed(−6.17,2.03)` `NightStand(−7.73,2.86)` `NightStand(−4.41,2.86)` `ReadingDesk(−8.99,2.06)` `ChairA(−8.27,1.92)` `AirconditionerA(−9.20,2.41)` `DeskPortraitC(−7.75,2.73)` |
+| **침실** | x −9.6~−3.4, y 0.6~3.4 | **(−4.40, 1.70)** | 0.87 m | `Bed(−6.17,2.03)` `NightStand(−7.73,2.86)` `NightStand(−4.41,2.86)` `ReadingDesk(−8.99,2.06)` `ChairA(−8.27,1.92)` `AirconditionerA(−9.20,2.41)` `DeskPortraitC(−7.75,2.73)` |
 | **거실 (소파)** | x −3.5~1.5, y −3.0~3.0 | **(−0.60, 2.45)** | 1.67 m | **`SofaC(0.78,−0.41)`** `Carpet(0.79,−1.11)` `Chandelier(1.22,−1.59)` `Wardrobe(−3.15,2.48)` `FoldingDoor(−2.46,1.84)` `DeskPortraitC(0.96,−1.59)` |
 | **커피테이블** | x 1.5~5.5, y −3.0~1.5 | **(4.30, −0.55)** | **1.82 m** | `CoffeeTable(1.51,−1.73)` `Tablet(1.57,−1.78)` `Trash(2.36,−0.80)` `DeskPortraitA(2.05,−1.89)` `DeskPortraitD(1.83,−1.46)` |
 | **식탁** | x 5.5~9.3, y −1.0~3.0 | **(5.50, −0.95)** | 1.10 m | `KitchenTable(6.55,0.95)` `ChairA ×4 (7.12,0.21) (6.26,0.22) (6.07,1.68) (7.00,1.67)` `Tableware(7.15,0.98)` |
 | **주방** | x 5.5~9.3, y −5.6~−1.0 | **(6.90, −3.05)** | 1.72 m | `Refrigerator(8.70,−1.03)` `CookingBench(9.04,−3.35)` `Rangehood(9.02,−3.37)` `KitchenCabinet(8.00,−3.84)` `KitchenUtensils(9.29,−5.02)` `Door(6.00,−5.55)` `Chandelier(7.82,−1.59)` |
-| **좌측 공간** | x −9.6~−3.5, y −5.6~0.8 | **(−4.90, −3.50)** | 1.81 m | `TV(−6.20,−1.39)` `PortraitE(−6.19,−1.59)` `ChairD(−8.27,−4.50)` `Chandelier(−6.45,−0.69)` `Curtain(−9.17,0.20)` `PortraitC(−9.29,−4.53)` `Ball ×2` `RoomWindow ×2` |
+| **좌측 공간** | x −9.6~−3.4, y −5.6~0.6 | **(−4.90, −3.50)** | 1.81 m | `TV(−6.20,−1.39)` `PortraitE(−6.19,−1.59)` `ChairD(−8.27,−4.50)` `Chandelier(−6.45,−0.69)` `Curtain(−9.17,0.20)` `PortraitC(−9.29,−4.53)` `Ball ×2` `RoomWindow ×2` |
 | **운동 코너** | x −0.5~4.0, y 3.0~5.6 | **(1.10, 3.05)** | 1.25 m | `FitnessEquipment(3.48,3.17)` `Dumbbell(2.51,2.72)` `Carpet(2.85,3.45)` `ChairD(0.33,4.10)` `Chandelier(1.22,4.16)` `Ball(3.30,4.23)` `BalconyTable(−0.56,4.11)` |
 | **하단 (TV·현관)** | x −3.5~5.5, y −5.6~−3.0 | **(−0.80, −3.05)** | 1.68 m | `TV(0.82,−5.38)` `TVCabinet(0.62,−5.11)` `ShoeRack(4.30,−5.17)` `AirconditionerB(−2.00,−5.23)` `Board(2.78,−5.39)` `SecurityCamera(0.84,−5.00)` `Vase(3.06,−5.41)` + 액자 다수 (총 21개) |
 
@@ -52,44 +53,65 @@
 
 사람 말로 나온 장소를 좌표로 옮길 때 쓴다. **전부 `small_house.world` 에서 확인한 값이다.**
 
-**관측점** = 그 가구가 실제로 카메라에 보이는 지점 (자유공간 · 벽 여유 ≥0.45 m ·
-거리 1.0~3.5 m · 시야 확보). 계산으로 구한 값이다.
-
-| 말 | 오브젝트 | 가구 좌표 | **관측점** | 거리 | yaw |
-|---|---|---|---|---|---|
-| 소파 | `SofaC` | (0.78, −0.41) | **(4.25, −0.20)** | 3.5 m | −3.08 |
-| 식탁 | `KitchenTable` | (6.55, 0.95) | **(4.30, −0.55)** | 2.7 m | 0.59 |
-| 가스레인지 · 주방 | `CookingBench` | (9.04, −3.35) | **(6.90, −3.05)** | 1.8 m | −0.14 |
-| TV (하단) | `TV` | (0.82, −5.38) | **(−0.80, −3.05)** | 2.4 m | −0.96 |
-| TV (좌측) | `TV` | (−6.20, −1.39) | **(−4.05, 0.25)** | 2.7 m | −2.49 |
-| 운동기구 | `FitnessEquipment` | (3.48, 3.17) | **(4.00, 0.40)** | 2.8 m | 1.76 |
-| 신발장 · 현관 | `ShoeRack` | (4.30, −5.17) | **(2.40, −3.50)** | 2.5 m | −0.72 |
-| 책상 | `ReadingDesk` | (−8.99, 2.06) | **(−7.85, −0.20)** | 2.5 m | 2.04 |
-| **침대 · 침실** | `Bed` | (−6.17, 2.03) | 🔴 **없음** | — | — |
-| **냉장고** | `Refrigerator` | (8.70, −1.03) | 🔴 **없음** | — | — |
-| **옷장** | `Wardrobe` | (−3.15, 2.48) | 🔴 **없음** | — | — |
-| **커피테이블** | `CoffeeTable` | (1.51, −1.73) | 🔴 **없음** | — | — |
-
-### 🔴 맵이 침실을 담고 있지 않다
+**관측점** = 그 가구가 실제로 카메라에 보이는 지점. 네 조건을 모두 만족하는 셀 중
+목표 거리 1.8 m 에 가장 가깝고 넓은 곳을 계산으로 골랐다:
 
 ```
-침실 구역(x −9.6~−3.5, y 0.8~5.6)   free 28.2%  ·  미탐색 67.5%  ·  벽 4.3%
-침대   셀 = 미탐색,  주변 2 m 안 49.4% 미탐색
-냉장고 셀 = 미탐색,  주변 42.1% 미탐색
-옷장   셀 = 미탐색,  주변 32.3% 미탐색
+① 스폰(3.5,1.0)에서 A* 로 도달 가능        ③ 가구까지 거리 0.8~3.5 m
+② 벽 여유 ≥ 0.45 m                        ④ 가구 표면까지 시야 확보
 ```
 
-`map.pgm` 을 만든 SLAM 주행이 **침실 안으로 들어가지 않았다.** 그 결과:
+> ④ 는 **표면**까지다. 가구 **중심**까지 뚫리는지 보면 안 된다 — 침대·냉장고처럼 큰
+> 가구는 자기 몸이 중심을 가려서 무조건 실패한다. 이 문서의 이전 판이 침대·냉장고·
+> 옷장·커피테이블을 "관측점 없음"으로 적었던 게 그 오류였다. 지금 표는 정정된 값이다.
 
-- 위 4개 가구는 **기하 시뮬로 확인 자체가 불가능하다** (미탐색은 시야 차단으로 처리됨)
-- 침실을 목표로 하는 시나리오는 **2D 검증을 건너뛰고 3D(Gazebo)로 가야 한다**
-- 시나리오 1의 "침실 쪽" 경로점 `(−7.77, 0.56)` 도 **침실 입구이지 안쪽이 아니다**
+| 말 | 오브젝트 | 가구 좌표 | **관측점** | 거리 | yaw | 여유 |
+|---|---|---|---|---|---|---|
+| 소파 | `SofaC` | (0.78, −0.41) | **(2.60, 0.05)** | 1.9 m | −2.89 | 0.48 m |
+| 식탁 | `KitchenTable` | (6.55, 0.95) | **(4.75, 0.85)** | 1.8 m | +0.06 | 1.05 m |
+| 가스레인지 · 주방 | `CookingBench` | (9.04, −3.35) | **(7.30, −2.90)** | 1.8 m | −0.25 | 1.35 m |
+| TV (하단) | `TV` | (0.82, −5.38) | **(1.05, −3.60)** | 1.8 m | −1.70 | 1.22 m |
+| TV (좌측) | `TV` | (−6.20, −1.39) | **(−5.30, −2.95)** | 1.8 m | +2.09 | 1.55 m |
+| 운동기구 | `FitnessEquipment` | (3.48, 3.17) | **(3.55, 1.35)** | 1.8 m | +1.61 | 1.16 m |
+| 신발장 · 현관 | `ShoeRack` | (4.30, −5.17) | **(3.00, −3.90)** | 1.8 m | −0.77 | 1.29 m |
+| 커피테이블 | `CoffeeTable` | (1.51, −1.73) | **(2.05, −3.45)** | 1.8 m | +1.88 | 1.40 m |
+| 냉장고 | `Refrigerator` | (8.70, −1.03) | **(6.95, −1.45)** | 1.8 m | +0.24 | 1.40 m |
+| 옷장 | `Wardrobe` | (−3.15, 2.48) | **(−4.10, 0.95)** | 1.8 m | +1.02 | 1.25 m |
+| **침대 · 침실** | `Bed` | (−6.17, 2.03) | **(−4.40, 1.70)** | 1.8 m | +2.96 | 0.87 m |
+| 책상 | `ReadingDesk` | (−8.99, 2.06) | **(−8.00, 0.55)** | 1.8 m | +2.15 | 0.80 m |
+| 나이트스탠드 | `NightStand` | (−7.73, 2.86) | **(−7.90, 1.05)** | 1.8 m | +1.48 | 0.65 m |
+| 에어컨 (침실) | `AirconditionerA` | (−9.20, 2.41) | **(−8.05, 1.00)** | 1.8 m | +2.25 | 0.64 m |
+| 에어컨 (거실) | `AirconditionerB` | (−2.00, −5.23) | **(−1.25, −3.60)** | 1.8 m | −2.00 | 1.21 m |
 
-**침실 시나리오가 필요하면 맵을 다시 떠야 한다** (`slam_toolbox` 로 침실까지 주행).
-그 전까지 이 맵 위의 침실 관련 결과는 신뢰할 수 없다.
+> **에어컨은 두 대다.** `AirconditionerA` 는 침실, `AirconditionerB` 는 하단(TV·현관)에
+> 있다. "에어컨 켜줘"를 좌표로 옮길 때 어느 쪽인지 정해야 한다.
 
 > 구역 표의 **접근점**은 "그 구역에서 가장 트인 지점"이지 가구 앞이 아니다.
 > 특정 가구를 봐야 하면 위 **관측점**을 쓸 것.
+
+### 🟡 침실은 들어갈 수 있지만 좁다
+
+침실은 맵에 정상적으로 담겨 있고 2D 기하 시뮬에서 **주행·관측 모두 된다.** 다만 이 집에서
+가장 빡빡한 구역이라 좌표를 아무 데나 찍으면 안 된다.
+
+```
+침실 자유공간  9.5 m²   그중 로봇이 갈 수 있는 곳  4.8 m²  (최대 여유 1.43 m)
+```
+
+| 지점 | 벽 여유 | 갈 수 있나 |
+|---|---|---|
+| 침대 동쪽 (−4.90, 2.00) | 0.53 m | ✅ |
+| 책상 앞 (−8.60, 1.20) | 0.28 m | ✅ 겨우 (로봇 반경 0.22 m) |
+| 침대 남쪽 (−6.20, 0.95) | 0.10 m | ❌ |
+| 나이트스탠드 사이 (−6.10, 3.00) | 0.00 m | ❌ |
+| 침실 서쪽 끝 (−9.20, 1.00) | 0.10 m | ❌ |
+
+- **침대를 넘어 북쪽(y > 2.2)으로는 못 간다.** 침대·나이트스탠드가 벽까지 막고 있다.
+  침대는 남/동쪽에서만 볼 수 있다
+- 책상 쪽 통로는 여유 **0.28 m**, 로봇 반경 0.22 m — **6 cm 여유**다. 기하 시뮬은
+  통과시키지만 실기에서는 못 지날 가능성이 높다. 이 통로에 의존하는 시나리오는 위험하다
+- `Bed` 셀 자체는 점유격자에서 미탐색(205)이다. **미탐색이라 못 본 게 아니라 침대가
+  거기 서 있어서 레이저 그림자가 진 것**이다. 장애물로 처리하는 게 맞다
 
 ### 🔴 인물 사진 오브젝트가 20개 있다
 
@@ -166,27 +188,119 @@ look_around 각 지점 도착 후 360° 회전
 person      (-7.5, 0.30)    ← patrol_viz.py 에만 있음
 ```
 
-### 실행
+### 두 가지 실행 경로가 있다 — 헷갈리지 말 것
+
+| | `tools/limo-patrol-viz/` | `limo-MCP/Scenarios/` |
+|---|---|---|
+| 무엇 | **커버리지 계산기 · 애니메이션** | **실제 시나리오 실행** |
+| MCP 도구 | 안 씀 | 전부 이걸로 |
+| 경로점 | `patrol_sim.py` 안에 하드코딩 | 시나리오 JSON |
+| 사람 찾으면 | 무시하고 끝까지 돎 | **멈추고 사진** |
+| 쓰는 때 | "이 순찰이 집을 몇 % 보나" | "이 시나리오가 도나" |
 
 ```bash
-cd tools/limo-patrol-viz
+# A. 커버리지·사각지대 (수십 초, GUI 불필요)
+cd tools/limo-patrol-viz && ./run_coverage.sh
+./run_patrol.sh                       # RViz2 애니메이션 (MCP 안 씀)
 
-./run_coverage.sh      # 커버리지만. GUI 불필요, 수십 초
-./run_patrol.sh        # RViz2 애니메이션 + 카메라 스트리밍
+# B. 시나리오 실행 (MCP 경유, RViz2 로 실시간)
+cd worker_ai_agent/limo-MCP
+export SIM_PERSON="-5.60,0.20"        # Gazebo 없이 인지를 돌린다 (§4)
+python3 Scenarios/run_scenario.py Scenarios/check_grandma.json
+```
+
+`B` 를 RViz2 로 보려면 먼저 아래를 띄운다 (`tools/limo-patrol-viz/patrol.rviz` 를 그대로 쓴다):
+
+```bash
+export LIBGL_ALWAYS_SOFTWARE=1
+ros2 run robot_state_publisher robot_state_publisher \
+    --ros-args -p robot_description:="$(cat tools/limo-patrol-viz/limo/limo.urdf)" &
+rviz2 -d tools/limo-patrol-viz/patrol.rviz &
 ```
 
 ### 기대 출력
 
 ```
-경로점 7개 · 375초(6.3분) · 스캔 376회 · 주행 50 m
-커버리지 93.6%   ·  2 m² 이상 사각지대 0개
+경로점 7개 · 378초(6.3분) · 스캔 378회 · 주행 50 m
+커버리지 93.9%   ·  2 m² 이상 사각지대 0개  (미커버 9.4 m²)
 patrol_sim.png 생성
 ```
 
 `run_patrol.sh` 쪽은 사람 `(-7.5, 0.30)` 을 **t≈198초, 거리 3.99 m** 에서 발견한다.
 
 > 경로점 5개였을 때는 83.8% 였다. 사각지대 두 곳
-> `(-7.77, 0.56)` 11.1 m² 와 `(8.10, 1.71)` 6.5 m² 를 경로점으로 추가해 93.6% 가 됐다.
+> `(-7.77, 0.56)` 11.1 m² 와 `(8.10, 1.71)` 6.5 m² 를 경로점으로 추가해 지금 값이 됐다.
+
+### 시나리오 실행판 (`Scenarios/check_grandma.json`, 48스텝) — 실측
+
+`SIM_PERSON="-5.60,0.20"` 으로 돌린 결과다.
+
+```
+z1 식탁    (8.10, 1.71)  도착 → 360° → 없음
+z2 거실   (-0.60, 2.45)  도착 → 360° → 없음
+z3 침실   (-4.40, 1.70)  도착 → 360° 도는 중 발견
+              interrupt_look_around → 회전 즉시 중단
+              check_object_state → bbox [241,10,319,230] conf 0.73
+go_home                  (3.5, 1.0) 복귀
+RESULT: success          경과 256초 (실시간 속도 0.22 m/s)
+```
+
+같은 방식으로 잰 베이스라인: `turn_on_air_conditioner.json` **115초**
+(에어컨 앞 `(-1.25,-3.60)` → IR 2건 → 홈 복귀).
+
+**파생 버전은 구역 순서만 다르다.** 사람이 어디 있느냐에 따라 몇 번째에 찾는지가 달라진다 —
+에이전트가 시나리오를 고르는 근거가 이 차이다.
+
+| 시나리오 | 구역 순서 | 사람 `(-5.60, 0.20)` 일 때 |
+|---|---|---|
+| `check_grandma.json` | 식탁 → 거실 → **침실** → 좌상단 → 현관 → 주방 | 3번째에서 발견 |
+| `check_grandma_bedroom_first.json` | **침실** → 좌상단 → 거실 → 식탁 → 주방 → 현관 | 1번째에서 발견 |
+
+### 🔑 시작점 = 도착점 (팀 합의)
+
+**모든 시나리오는 `home` 에서 출발해 `home` 으로 돌아온다.** 찾았든 못 찾았든, 조작에
+성공했든 아니든 마지막은 복귀다.
+
+```
+home = (3.5, 1.0, yaw 0)
+  · KG 엔티티 "home"        (manager_ai_agent/knowledge_graph/entities.json)
+  · Actions.py _SIM_SPAWN   ← 이 둘은 반드시 같아야 한다
+```
+
+한쪽만 바꾸면 로봇이 A 에서 출발했다고 믿으면서 B 로 돌아가려 한다. 복귀 블록은 어느
+시나리오에서나 같은 4스텝이다:
+
+```
+go_home_resolve  resolve_location("home")
+go_home_plan     pathplanning
+go_home_move     moving_path
+go_home_arrive   poll get_path_status == "succeeded"
+```
+
+할머니 시나리오는 복귀 뒤 `outcome` 브랜치가 `state_check.bbox` 유무로 성패를 가른다 —
+**실패해도 집에 돌아온 뒤에 실패한다.**
+
+### 구역별 커버리지 — 이 순찰이 어디를 보고 어디를 덜 보나
+
+새 시나리오가 어느 구역을 노릴지 정할 때 쓴다. **침실이 제일 낮다.**
+
+| 구역 | 자유공간 | 도달 가능 | 커버 | 커버율 |
+|---|---|---|---|---|
+| **침실** | 9.5 m² | 4.8 m² | 7.8 m² | **81.8%** |
+| 하단 (TV·현관) | 18.9 m² | 14.9 m² | 17.5 m² | 92.5% |
+| 좌측 공간 | 34.5 m² | 28.9 m² | 32.5 m² | 94.2% |
+| 거실 (소파) | 24.7 m² | 20.7 m² | 23.5 m² | 95.3% |
+| 커피테이블 | 17.3 m² | 14.9 m² | 16.6 m² | 96.3% |
+| 운동 코너 | 10.8 m² | 8.1 m² | 10.4 m² | 96.3% |
+| 식탁 | 14.1 m² | 8.8 m² | 14.0 m² | 99.2% |
+| 주방 | 13.1 m² | 11.2 m² | 13.0 m² | 99.2% |
+
+**침실을 더 봐야 하는 시나리오라면** 경로점에 `(−4.40, 1.70)` (침대 관측점) 을 추가하면
+된다. 지금 순찰은 `(−7.77, 0.56)` 한 곳에서 침실을 비스듬히 훑고 지나간다.
+
+> **"도달 가능"** = 스폰 `(3.5, 1.0)` 에서 A* 로 갈 수 있는 면적이다. 통행가능 전체
+> 121.6 m² 중 120.7 m² 가 도달 가능 — **집은 사실상 하나로 이어져 있다.**
+> 자유공간(155.2 m²)과의 차이는 벽에서 0.22 m 이내라 로봇 중심이 못 들어가는 가장자리다.
 
 ### 환경 주의
 
@@ -198,71 +312,134 @@ patrol_sim.png 생성
 
 ## 6. 새 시나리오를 이 세계에 올리는 절차
 
-1. **의도를 좌표로 옮긴다** — §2 표에서 구역을 고르고 그 **접근점**을 쓴다.
-   "할머니가 침실에 계실 수도" → `(-4.10, 0.85)`
-2. **순찰 순서를 정한다** — 이게 LLM 이 하는 판단 ①이다. 시간대·생활 패턴 등을 근거로.
-3. **경로점 사이 거리를 확인한다** — 4~6 m 가 적당하다. 16 m 짜리 구간이 있으면 이동만 90초다.
-4. **기하 검증을 먼저 돌린다** (`./run_coverage.sh`) — 커버리지와 사각지대를 본다.
-5. **사각지대를 확인한다** — 거기에 사람이 있을 수 있으면 경로점을 추가한다.
-6. 필요하면 실행 시나리오 JSON 을 `worker_ai_agent/limo-MCP/Scenarios/` 에 쓴다 (§7).
+1. **의도를 좌표로 옮긴다** — §2 표에서 고른다. 특정 가구를 봐야 하면 **관측점**,
+   구역만 훑으면 되면 **접근점**. "할머니가 침실에 계실 수도" → 침대 관측점 `(−4.40, 1.70)`
+2. **KG 에 그 이름을 넣는다** — `manager_ai_agent/knowledge_graph/entities.json`.
+   시나리오는 좌표가 아니라 **이름**으로 부른다 (`resolve_location("bedroom")`).
+3. **구역 순서를 정한다** — 시간대·생활 패턴 등을 근거로. **사람이 정해 JSON 에 박는다.**
+4. **경로점 사이 거리를 확인한다** — 4~6 m 가 적당하다. 16 m 짜리 구간이 있으면 이동만 90초다.
+5. **기하 검증을 돌린다** (`./run_coverage.sh`) — 커버리지와 사각지대를 본다.
+   **모든 구역이 2D 검증 대상이다** — 침실도 포함이다 (§5 구역별 커버리지).
+6. **JSON 을 쓴다** — `Scenarios/` 에. 에어컨 시나리오를 본뜬다 (§7).
+   **마지막에 `home` 복귀 4스텝을 반드시 붙인다** (§5).
+7. **돌려 본다** — `python3 Scenarios/run_scenario.py Scenarios/<이름>.json`
 
-**LLM 이 하는 판단은 두 가지뿐이다** — ① 어디부터 갈지, ② 찾은 사진을 보고 상태 판정.
-순찰 루프·1Hz 스캔·경로 추종은 코드가 한다.
+> **좌표를 지어내지 말 것.** §2 에 없는 장소가 필요하면 `small_house.world` 에서 찾아
+> 좌표를 확인하고, 그 지점이 도달 가능한지(벽 여유 ≥0.22 m) 먼저 검증한 뒤 표에 추가한다.
+> KG(`manager_ai_agent/knowledge_graph/entities.json`) 에도 같이 넣어야
+> `resolve_location` 이 그 이름을 안다.
+
+### 🔑 LLM 이 하는 판단은 두 가지뿐이다
+
+| | 판단 | 아닌 것 |
+|---|---|---|
+| ① | **어느 시나리오(파생본)를 고를지** | 🔴 순찰 순서를 짜는 게 **아니다** |
+| ② | 올라온 사진을 보고 상태 판정 | |
+
+**경로는 시나리오에 하드코딩한다.** 나중에 Worker agent 에게 "이 상황엔 이 시나리오"를
+학습시킬 때 시나리오가 매번 달라지면 학습 신호가 망가지기 때문이다. 그래서 같은 일을
+하는 여러 **파생 버전**을 만들어 두고 그중에서 고르게 한다.
+
+구역 순서·발견 시 중단·다음 구역 이동은 전부 **JSON 의 `branch`** 가 한다. 코드가 아니다.
+그래서 새 파생본은 코드를 한 줄도 안 고치고 순서만 바꿔 만든다.
 
 ---
 
 ## 7. 실행 시나리오 JSON
 
-기존 스키마를 그대로 쓴다. 기준 예제: `Scenarios/check_obj_state.json`
+`Scenarios/run_scenario.py` 가 해석한다. 기준 예제는 **`Scenarios/turn_on_air_conditioner.json`**
+— 이게 실제로 완주하는 최소 시나리오다.
+
+모든 시나리오는 **"어디로 가기"** 4스텝 묶음을 반복해 만든다:
 
 ```json
-{
-  "scenario_id": "check_obj_human",
-  "input": {"intent": "check_obj", "object": "person"},
-  "steps": [
-    {"id": "look_around", "type": "call", "layer": "action",
-     "tool": "look_around", "args": {"steps": 8, "step_deg": 45, "step_duration": 1.0}},
-    {"id": "scan_and_detect", "type": "poll_until_match", "layer": "reasoning",
-     "tool": "detect_objects",
-     "match": {"field": "detections", "class_field": "class", "target": "$input.object"},
-     "stop_when": {"tool": "is_looking_around", "field": "looking_around", "equals": false},
-     "poll_interval": 0.5, "timeout": 15.0,
-     "interrupt": {"tool": "interrupt_look_around"}},
-    {"id": "check_found", "type": "branch", "condition": "scan_and_detect.matched",
-     "on_true": "state_check", "on_false": "fail"},
-    {"id": "state_check", "type": "call", "layer": "reasoning",
-     "tool": "check_object_state",
-     "args": {"object_class": "$input.object",
-              "detections": "$scan_and_detect.matched_detections"},
-     "next": "success"}
-  ],
-  "fail": {"error": "object_not_found"}
-}
+{"id": "z1_resolve", "type": "call",  "layer": "reasoning",
+ "tool": "resolve_location", "args": {"name": "bedroom"}, "next": "z1_plan"},
+
+{"id": "z1_plan",    "type": "call",  "layer": "reasoning",
+ "tool": "pathplanning",
+ "args": {"x": "$z1_resolve.x", "y": "$z1_resolve.y", "frame": "$z1_resolve.frame"},
+ "next": "z1_move"},
+
+{"id": "z1_move",    "type": "call",  "layer": "action",
+ "tool": "moving_path", "args": {"waypoints": "$z1_plan.waypoints"}, "next": "z1_arrive"},
+
+{"id": "z1_arrive",  "type": "poll_until_match", "layer": "action",
+ "tool": "get_path_status", "args": {},
+ "match":     {"field": "status", "equals": "succeeded"},
+ "stop_when": {"tool": "get_path_status", "field": "status", "equals": "failed"},
+ "poll_interval": 0.5, "timeout": 180.0, "next": "z1_look"}
 ```
+
+도착한 뒤 **찾는** 블록은 이렇게 붙인다:
+
+```json
+{"id": "z1_look", "type": "call", "layer": "action",
+ "tool": "look_around", "args": {"steps": 8, "step_deg": 45, "step_duration": 1.0},
+ "next": "z1_scan"},
+
+{"id": "z1_scan", "type": "poll_until_match", "layer": "reasoning",
+ "tool": "detect_objects", "args": {"min_conf": 0.4},
+ "match":     {"field": "detections", "class_field": "class", "target": "$input.object"},
+ "stop_when": {"tool": "is_looking_around", "field": "looking_around", "equals": false},
+ "interrupt": {"tool": "interrupt_look_around"},
+ "poll_interval": 0.5, "timeout": 30.0, "next": "z1_found"},
+
+{"id": "z1_found", "type": "branch", "condition": "z1_scan.matched",
+ "on_true": "state_check", "on_false": "z2_resolve"}
+```
+
+`stop_when` 은 **한 바퀴 다 돌았으면 그만**, `interrupt` 는 **찾았으면 회전을 세운다**.
+`on_false` 가 다음 구역을 가리키는 것이 순찰 루프의 전부다.
 
 | 요소 | 의미 |
 |---|---|
 | `type` | `call` / `poll_until_match` / `branch` |
-| `layer` | `action` / `reasoning` / `perception` — Worker_functions 의 어느 모듈인지 |
+| `layer` | `action` / `reasoning` / `perception` — 문서용 표시. 디스패치는 도구 이름으로 한다 |
 | `$input.x` | `input` 블록 참조 |
-| `$스텝id.필드` | 앞 스텝 결과 참조 |
+| `$스텝id.필드` | 앞 스텝 결과 참조 (`branch` 의 `condition` 은 `$` 없이 쓴다) |
+| `next` / `on_true` / `on_false` | 다음 스텝 id. `"success"` · `"fail"` 은 종료 표식 |
 
-### 도구 표면
+### 도구 표면 — MCP 서버가 노출하는 16개
 
-**MCP 서버가 노출하는 것** (`MCP_server/MCP_server.py`, 확인함):
+**A. Gazebo·Nav2 없이 도는 것** ← 지금 시나리오가 쓰는 것
 
 | 도구 | 인자 | 반환 |
 |---|---|---|
-| `plan_and_navigate` | `x, y, frame="map", yaw_deg=None` | `{started, reason}` |
-| `navigate_waypoints` | `waypoints: list` | 순차 이동 결과 |
-| `get_status` | — | `{status, last_goal, sequence_progress, sequence_result}` |
+| `resolve_location` | `name` | `{resolved, x, y, frame, yaw_deg}` — KG 룩업 |
+| `pathplanning` | `x, y, frame="map"` | `{waypoints}` — `map.pgm` 위 A*. 목표가 통행 불가면 `{waypoints: null, reason}` |
+| `moving_path` | `waypoints` | `{started}` — 운동학 적분, 비동기 |
+| `get_path_status` | — | `{status, pose, progress, result}` |
+| `cancel_path` | — | 취소 |
+| `look_around` | `steps=8, step_deg=45, step_duration=1.0` | `{started}` — 제자리 회전, 비동기 |
+| `is_looking_around` | — | `{looking_around, progress, pose}` |
+| `interrupt_look_around` | — | `{interrupted, stopped}` |
+| `detect_objects` | `min_conf=0.4` | `{frame_id, detections, source}` |
+| `check_object_state` | `object_class="person", min_conf=0.4` | JSON 메타 + **크롭 JPEG** |
 | `get_camera_snapshot` | — | JSON 메타 + JPEG |
-| `detect_objects` | `min_conf=0.4` | `{frame_id, detections}` |
-| `cancel` | — | 취소 확인 |
+| `send_ir_signal` | `device, command, value=None, unit=None` | ⚠️ **스텁** — 로그만 남기고 `{"sent": true}` |
 
-**`Reasonings.py` 가 제공하는 것** (확인함): `detect_objects`, `plan_path`,
-`check_object_state`, `start_person_scan`, `wait_for_person`, `get_scan_status`,
-`stop_person_scan`, `yolo_detect`
+**B. Nav2·Gazebo 가 있어야 도는 것** — 실기용. 지금 시나리오는 안 쓴다
+
+| 도구 | 인자 |
+|---|---|
+| `plan_and_navigate` | `x, y, frame="map", yaw_deg=None` |
+| `navigate_waypoints` | `waypoints: list` |
+| `get_status` | — |
+| `cancel` | — |
+
+> **A 와 B 를 섞지 말 것.** 이름이 비슷하지만 다른 세계다. `plan_and_navigate` 로 보내고
+> `get_path_status` 로 폴링하면 영원히 `idle` 이다. 같은 JSON 이 두 경로를 자동으로
+> 갈아타지 않는다 — **A 용 시나리오와 B 용 시나리오를 따로 써야 한다.** TODO(정리 필요).
+
+**`detect_objects` · `check_object_state` 의 `source` 필드**
+
+| 값 | 뜻 |
+|---|---|
+| `"camera"` | 실제 카메라 프레임 + YOLO |
+| `"geometric_sim"` | **기하 시뮬** — `SIM_PERSON` 이 켜져 있다 (§4) |
+
+결과를 인용할 때 이 값을 같이 적어야 실측과 섞이지 않는다.
 
 > ⚠️ **불일치** — `check_obj_state.json` 이 부르는 `look_around`,
 > `is_looking_around`, `interrupt_look_around` 는 위 MCP 6개에 없다.
@@ -277,14 +454,30 @@ patrol_sim.png 생성
 | 사실 | 출처 |
 |---|---|
 | 벽으로 완전히 닫힌 방이 없다 — 오픈 플랜 | 점유격자 침식 11×11 까지 단일 연결성분 |
-| **맵의 침실 구역이 67.5% 미탐색** | 점유격자 실측 |
-| 순찰 7지점으로 커버리지 93.6% | `run_coverage.sh` |
+| **맵은 침실을 포함해 집 전체를 담고 있다** | 점유격자 실측 (아래 정정 참고) |
+| 통행가능 121.6 m² 중 120.7 m² 가 스폰에서 도달 가능 | 점유격자 BFS |
+| 순찰 7지점으로 커버리지 93.9%, 침실은 81.8% | `run_coverage.sh` + 구역별 집계 |
+| 15개 랜드마크 전부 관측점이 존재한다 | 표면 LOS 로 재계산 |
 | Gazebo RTF 0.04~0.06 | headless 실측 (로봇·렌더링 없이) |
 | 월드 로드는 정상 (Harmonic) | `<static>` 56건 + ShoeRack `izz` 수정 반영됨 |
 | 인물 사진 오브젝트 20개 | `small_house.world` `<model>` 추출 |
 
-> 커버리지 93.6% 는 **맵에 있는 자유공간 기준**이다. 미탐색 영역(침실 등)은 분모에
-> 들어가 있지 않다. 즉 **집 전체의 93.6% 를 봤다는 뜻이 아니다.**
+> 커버리지 93.9% 의 분모는 **맵의 자유공간 155.2 m²** 다. 벽 너머 미탐색 영역은
+> 분모에 없다. 구역별로 나눈 값은 §5 에 있다.
+
+### ⚠️ 이 문서의 이전 판이 틀렸던 것
+
+이전 판은 **"맵의 침실 구역이 67.5% 미탐색이라 2D 검증이 불가능하다"** 고 적었다.
+**틀렸다.** 두 가지를 잘못 읽었다:
+
+1. **구역 상자를 집 밖까지 잡았다.** 침실을 `y 0.8~5.6` 으로 잡았는데 왼팔 방은
+   `y≈3.2` 에서 끝난다. 그 위의 회색은 미탐색이 아니라 **집 바깥**이다
+2. **가구 그림자를 미탐색으로 읽었다.** 침대·냉장고·옷장 셀이 205 인 것은 그 자리에
+   가구가 서 있어 레이저 그림자가 졌기 때문이다. **정상적인 장애물 표현**이다
+
+그 결과 "재매핑이 필요하다"는 결론도 취소한다. **맵은 고칠 필요가 없다.**
+침대·냉장고·옷장·커피테이블에 "관측점 없음"이 나왔던 것은 LOS 를 가구 **중심**까지
+쏜 판정 버그였다 (§2).
 
 ---
 
@@ -297,4 +490,7 @@ patrol_sim.png 생성
   **쓰러진 상황이 가장 위험한데 바로 그 부분이 미검증이다**
 - **물리 없음** — 바퀴 미끄러짐·충돌·Nav2 재계획. 실제 소요는 20~30% 더 걸린다
 - **인물 액자 오탐** — 20개가 있는데 기하 시뮬은 이를 모델링하지 않는다
+- **침실 책상 쪽 통로 0.28 m** — 로봇 반경 0.22 m 대비 6 cm 여유다. 기하 시뮬은
+  통과시키지만 **실기·Gazebo 에서는 못 지날 가능성이 높다.** 이 통로를 전제로 한
+  시나리오는 2D 가 통과해도 믿으면 안 된다
 - **실기 미수행** — 위 숫자는 전부 시뮬레이션 값이다

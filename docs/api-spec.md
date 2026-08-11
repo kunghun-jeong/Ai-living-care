@@ -185,7 +185,7 @@ A*로 마지막 위치(`ActionModule.last_sim_pose`, 첫 호출 시 스폰 `(3.5
 | `wait_for_person(timeout)` | 발견까지 블로킹 대기 |
 | `get_scan_status()` | 스캔 상태 조회 |
 | `stop_person_scan()` | 스캔 정지 |
-| `check_object_state(object_class, frame_id)` | 대상 영역 크롭 JPEG 반환 (**증거 이미지**) |
+| `check_object_state(object_class: str = "person", min_conf: float = 0.4)` | 대상 영역 크롭 JPEG 반환 (**증거 이미지**). 프레임은 서버가 `_observe()` 로 고른다 — 실카메라가 있으면 그것, `SIM_PERSON` 이 켜져 있으면 기하 시뮬. ※ `Reasonings.py` 의 모듈 메서드는 인자가 다르다: 두 번째가 `min_conf` 가 아니라 프레임 핸들이다 |
 
 **시나리오 1("할머니 괜찮은지 확인")의 탐색·판정 경로 전체가 여기 있다.**
 
@@ -193,10 +193,17 @@ A*로 마지막 위치(`ActionModule.last_sim_pose`, 첫 호출 시 스폰 `(3.5
 > 서버 루프가 멈춘다. 비동기화 또는 폴링 방식으로 바꿔야 한다.
 > `get_scan_status()`는 스캔 유무에 따라 **반환 스키마가 다르다**.
 
-## 미구현 — 문서·시나리오가 참조하지만 없는 것 (G-4)
+## ~~미구현~~ → 해소 (G-4, 2026-08-11)
 
-`Scenarios/check_obj_state.json`이 참조하나 코드에 없다:
-`look_around` · `is_looking_around` · `interrupt_look_around`
+`look_around` · `is_looking_around` · `interrupt_look_around` 를 `Actions.py` 에 구현하고
+MCP tool 로 노출했다. `check_object_state` 도 노출했다 (G-3 부분 해소).
+
+`Scenarios/check_obj_state.json` 은 **여전히 실행되지 않는다** — 도구가 아니라 그 파일 쪽 문제다.
+이동 스텝이 하나도 없어 "제자리 확인" 조각이고, 어느 시나리오도 이 파일을 부르지 않는다.
+실행 가능한 시나리오 1은 `Scenarios/check_grandma.json`(48스텝) 이다.
+근거: `docs/decisions/2026-08-11-scenario1-on-the-dsl-runner.md`
+
+### 예전 기록 (2026-08-10 시점)
 
 > **이 JSON DSL(`poll_until_match`/`branch`/`$input.x` 치환)을 해석하는 실행기는 이제 있다** —
 > `Scenarios/run_scenario.py` (2026-08-10). `call`/`branch`/`poll_until_match` 세 타입과

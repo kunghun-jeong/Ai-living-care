@@ -96,15 +96,18 @@ class ScenarioRunner:
         except json.JSONDecodeError:
             return {"_raw": text}
 
-    @staticmethod
-    def _check_match(result: dict, match: dict) -> bool:
+    def _check_match(self, result: dict, match: dict) -> bool:
         if not match:
             return True
         if "equals" in match:
             return result.get(match["field"]) == match["equals"]
         if "class_field" in match:
+            # target 을 실제로 대조한다. 이걸 빠뜨리면 의자를 검출해도 "사람 찾음"이 된다.
+            target = self._resolve(match.get("target"))
             items = result.get(match["field"]) or []
-            return any(item.get(match["class_field"]) for item in items)
+            if target is None:
+                return any(item.get(match["class_field"]) for item in items)
+            return any(item.get(match["class_field"]) == target for item in items)
         return False
 
     def _default_next(self, step_id: str) -> str:
@@ -137,6 +140,11 @@ class ScenarioRunner:
             while time.monotonic() < deadline:
                 last = await self._call_tool(step["tool"], step.get("args", {}))
                 if self._check_match(last, match):
+                    interrupt = step.get("interrupt")
+                    if interrupt:
+                        # 찾았으면 진행 중인 동작을 세운다 (check_obj_state.json 관례).
+                        stop = await self._call_tool(interrupt["tool"], interrupt.get("args", {}))
+                        self.log(f"      interrupt {interrupt['tool']}: {stop}")
                     self.results[step_id] = {**last, "matched": True}
                     self.log(f"      matched: {last}")
                     return step.get("next", default_next)

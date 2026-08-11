@@ -10,11 +10,12 @@ ActionModule에 주입하는 선택적 구성요소다 — 없어도(None) movin
 
 import math
 import os
+import time
 
 import numpy as np
 from geometry_msgs.msg import Point, TransformStamped
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import Image, JointState
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -31,7 +32,7 @@ _WHEELS = [
 class PoseVisualizer:
     """moving_path의 pose를 RViz2 토픽으로 스트리밍한다."""
 
-    def __init__(self, node):
+    def __init__(self, node, sim_cam=None, camera_hz: float = 5.0):
         self._node = node
         transient = QoSProfile(depth=5)
         transient.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
@@ -41,11 +42,39 @@ class PoseVisualizer:
         self._wp_pub = node.create_publisher(MarkerArray, "/patrol_points", transient)
         self._trail_pub = node.create_publisher(Marker, "/trail", 1)
         self._joint_pub = node.create_publisher(JointState, "/joint_states", 10)
+        self._cam_pub = node.create_publisher(Image, "/camera/image_raw", 2)
         self._tf = TransformBroadcaster(node)
+
+        # 기하 시뮬 카메라(Perceptions.SimCameraPerception)를 주면 1인칭 화면도 흘려보낸다.
+        # 실제 Gazebo 카메라가 있을 때는 None으로 두면 이 퍼블리셔는 조용히 놀고,
+        # /camera/image_raw 는 Gazebo 쪽이 그대로 쓴다.
+        self._sim_cam = sim_cam
+        self._cam_period = (1.0 / camera_hz) if camera_hz > 0 else None
+        self._cam_last = 0.0
 
         self._trail: list = []
         self._spin = 0.0
         self._publish_walls()
+
+    def _maybe_publish_camera(self, pose: dict) -> None:
+        """기하 시뮬 1인칭 화면을 /camera/image_raw 로 발행한다 (RViz2 Image 패널용)."""
+        if self._sim_cam is None or self._cam_period is None:
+            return
+        now = time.monotonic()
+        if now - self._cam_last < self._cam_period:
+            return
+        self._cam_last = now
+
+        frame, _ = self._sim_cam.render(pose)
+        msg = Image()
+        msg.header.stamp = self._node.get_clock().now().to_msg()
+        msg.header.frame_id = "depth_camera_link"
+        msg.height, msg.width = frame.shape[:2]
+        msg.encoding = "bgr8"
+        msg.is_bigendian = 0
+        msg.step = msg.width * 3
+        msg.data = frame.tobytes()
+        self._cam_pub.publish(msg)
 
     def _publish_walls(self) -> None:
         import cv2
@@ -120,6 +149,8 @@ class PoseVisualizer:
         t.transform.rotation.z = math.sin(pose["yaw"] / 2.0)
         t.transform.rotation.w = math.cos(pose["yaw"] / 2.0)
         self._tf.sendTransform(t)
+
+        self._maybe_publish_camera(pose)
 
         self._spin += 0.35
         js = JointState()

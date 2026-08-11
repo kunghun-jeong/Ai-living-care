@@ -1,0 +1,653 @@
+{
+  "scenario_id": "check_grandma_bedroom_first",
+  "label": "파생 — 침실부터 (취침 시간대용)",
+  "input": {
+    "intent": "check_obj",
+    "object": "person"
+  },
+  "note": "경로는 하드코딩이다 — LLM 은 순서를 짜지 않고 이 시나리오(또는 파생 버전)를 고르기만 한다. 구역 이름은 manager_ai_agent/knowledge_graph/entities.json 의 엔티티다. 좌표는 tools/limo-patrol-viz/WORLD.md §2 에서 계산한 값. 팀 합의에 따라 시작점과 도착점은 같다 — 마지막에 항상 home(3.5,1.0)으로 돌아온다.",
+  "steps": [
+    {
+      "id": "z1_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "bedroom"
+      },
+      "next": "z1_plan"
+    },
+    {
+      "id": "z1_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$z1_resolve.x",
+        "y": "$z1_resolve.y",
+        "frame": "$z1_resolve.frame"
+      },
+      "next": "z1_move"
+    },
+    {
+      "id": "z1_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$z1_plan.waypoints"
+      },
+      "next": "z1_arrive"
+    },
+    {
+      "id": "z1_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 180.0,
+      "next": "z1_look"
+    },
+    {
+      "id": "z1_look",
+      "type": "call",
+      "layer": "action",
+      "tool": "look_around",
+      "args": {
+        "steps": 8,
+        "step_deg": 45,
+        "step_duration": 1.0
+      },
+      "next": "z1_scan"
+    },
+    {
+      "id": "z1_scan",
+      "type": "poll_until_match",
+      "layer": "reasoning",
+      "tool": "detect_objects",
+      "args": {
+        "min_conf": 0.4
+      },
+      "match": {
+        "field": "detections",
+        "class_field": "class",
+        "target": "$input.object"
+      },
+      "stop_when": {
+        "tool": "is_looking_around",
+        "field": "looking_around",
+        "equals": false
+      },
+      "interrupt": {
+        "tool": "interrupt_look_around"
+      },
+      "poll_interval": 0.5,
+      "timeout": 30.0,
+      "next": "z1_found"
+    },
+    {
+      "id": "z1_found",
+      "type": "branch",
+      "condition": "z1_scan.matched",
+      "on_true": "state_check",
+      "on_false": "z2_resolve"
+    },
+    {
+      "id": "z2_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "upper_left_room"
+      },
+      "next": "z2_plan"
+    },
+    {
+      "id": "z2_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$z2_resolve.x",
+        "y": "$z2_resolve.y",
+        "frame": "$z2_resolve.frame"
+      },
+      "next": "z2_move"
+    },
+    {
+      "id": "z2_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$z2_plan.waypoints"
+      },
+      "next": "z2_arrive"
+    },
+    {
+      "id": "z2_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 180.0,
+      "next": "z2_look"
+    },
+    {
+      "id": "z2_look",
+      "type": "call",
+      "layer": "action",
+      "tool": "look_around",
+      "args": {
+        "steps": 8,
+        "step_deg": 45,
+        "step_duration": 1.0
+      },
+      "next": "z2_scan"
+    },
+    {
+      "id": "z2_scan",
+      "type": "poll_until_match",
+      "layer": "reasoning",
+      "tool": "detect_objects",
+      "args": {
+        "min_conf": 0.4
+      },
+      "match": {
+        "field": "detections",
+        "class_field": "class",
+        "target": "$input.object"
+      },
+      "stop_when": {
+        "tool": "is_looking_around",
+        "field": "looking_around",
+        "equals": false
+      },
+      "interrupt": {
+        "tool": "interrupt_look_around"
+      },
+      "poll_interval": 0.5,
+      "timeout": 30.0,
+      "next": "z2_found"
+    },
+    {
+      "id": "z2_found",
+      "type": "branch",
+      "condition": "z2_scan.matched",
+      "on_true": "state_check",
+      "on_false": "z3_resolve"
+    },
+    {
+      "id": "z3_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "living_room"
+      },
+      "next": "z3_plan"
+    },
+    {
+      "id": "z3_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$z3_resolve.x",
+        "y": "$z3_resolve.y",
+        "frame": "$z3_resolve.frame"
+      },
+      "next": "z3_move"
+    },
+    {
+      "id": "z3_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$z3_plan.waypoints"
+      },
+      "next": "z3_arrive"
+    },
+    {
+      "id": "z3_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 180.0,
+      "next": "z3_look"
+    },
+    {
+      "id": "z3_look",
+      "type": "call",
+      "layer": "action",
+      "tool": "look_around",
+      "args": {
+        "steps": 8,
+        "step_deg": 45,
+        "step_duration": 1.0
+      },
+      "next": "z3_scan"
+    },
+    {
+      "id": "z3_scan",
+      "type": "poll_until_match",
+      "layer": "reasoning",
+      "tool": "detect_objects",
+      "args": {
+        "min_conf": 0.4
+      },
+      "match": {
+        "field": "detections",
+        "class_field": "class",
+        "target": "$input.object"
+      },
+      "stop_when": {
+        "tool": "is_looking_around",
+        "field": "looking_around",
+        "equals": false
+      },
+      "interrupt": {
+        "tool": "interrupt_look_around"
+      },
+      "poll_interval": 0.5,
+      "timeout": 30.0,
+      "next": "z3_found"
+    },
+    {
+      "id": "z3_found",
+      "type": "branch",
+      "condition": "z3_scan.matched",
+      "on_true": "state_check",
+      "on_false": "z4_resolve"
+    },
+    {
+      "id": "z4_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "dining_area"
+      },
+      "next": "z4_plan"
+    },
+    {
+      "id": "z4_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$z4_resolve.x",
+        "y": "$z4_resolve.y",
+        "frame": "$z4_resolve.frame"
+      },
+      "next": "z4_move"
+    },
+    {
+      "id": "z4_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$z4_plan.waypoints"
+      },
+      "next": "z4_arrive"
+    },
+    {
+      "id": "z4_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 180.0,
+      "next": "z4_look"
+    },
+    {
+      "id": "z4_look",
+      "type": "call",
+      "layer": "action",
+      "tool": "look_around",
+      "args": {
+        "steps": 8,
+        "step_deg": 45,
+        "step_duration": 1.0
+      },
+      "next": "z4_scan"
+    },
+    {
+      "id": "z4_scan",
+      "type": "poll_until_match",
+      "layer": "reasoning",
+      "tool": "detect_objects",
+      "args": {
+        "min_conf": 0.4
+      },
+      "match": {
+        "field": "detections",
+        "class_field": "class",
+        "target": "$input.object"
+      },
+      "stop_when": {
+        "tool": "is_looking_around",
+        "field": "looking_around",
+        "equals": false
+      },
+      "interrupt": {
+        "tool": "interrupt_look_around"
+      },
+      "poll_interval": 0.5,
+      "timeout": 30.0,
+      "next": "z4_found"
+    },
+    {
+      "id": "z4_found",
+      "type": "branch",
+      "condition": "z4_scan.matched",
+      "on_true": "state_check",
+      "on_false": "z5_resolve"
+    },
+    {
+      "id": "z5_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "kitchen"
+      },
+      "next": "z5_plan"
+    },
+    {
+      "id": "z5_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$z5_resolve.x",
+        "y": "$z5_resolve.y",
+        "frame": "$z5_resolve.frame"
+      },
+      "next": "z5_move"
+    },
+    {
+      "id": "z5_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$z5_plan.waypoints"
+      },
+      "next": "z5_arrive"
+    },
+    {
+      "id": "z5_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 180.0,
+      "next": "z5_look"
+    },
+    {
+      "id": "z5_look",
+      "type": "call",
+      "layer": "action",
+      "tool": "look_around",
+      "args": {
+        "steps": 8,
+        "step_deg": 45,
+        "step_duration": 1.0
+      },
+      "next": "z5_scan"
+    },
+    {
+      "id": "z5_scan",
+      "type": "poll_until_match",
+      "layer": "reasoning",
+      "tool": "detect_objects",
+      "args": {
+        "min_conf": 0.4
+      },
+      "match": {
+        "field": "detections",
+        "class_field": "class",
+        "target": "$input.object"
+      },
+      "stop_when": {
+        "tool": "is_looking_around",
+        "field": "looking_around",
+        "equals": false
+      },
+      "interrupt": {
+        "tool": "interrupt_look_around"
+      },
+      "poll_interval": 0.5,
+      "timeout": 30.0,
+      "next": "z5_found"
+    },
+    {
+      "id": "z5_found",
+      "type": "branch",
+      "condition": "z5_scan.matched",
+      "on_true": "state_check",
+      "on_false": "z6_resolve"
+    },
+    {
+      "id": "z6_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "entrance"
+      },
+      "next": "z6_plan"
+    },
+    {
+      "id": "z6_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$z6_resolve.x",
+        "y": "$z6_resolve.y",
+        "frame": "$z6_resolve.frame"
+      },
+      "next": "z6_move"
+    },
+    {
+      "id": "z6_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$z6_plan.waypoints"
+      },
+      "next": "z6_arrive"
+    },
+    {
+      "id": "z6_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 180.0,
+      "next": "z6_look"
+    },
+    {
+      "id": "z6_look",
+      "type": "call",
+      "layer": "action",
+      "tool": "look_around",
+      "args": {
+        "steps": 8,
+        "step_deg": 45,
+        "step_duration": 1.0
+      },
+      "next": "z6_scan"
+    },
+    {
+      "id": "z6_scan",
+      "type": "poll_until_match",
+      "layer": "reasoning",
+      "tool": "detect_objects",
+      "args": {
+        "min_conf": 0.4
+      },
+      "match": {
+        "field": "detections",
+        "class_field": "class",
+        "target": "$input.object"
+      },
+      "stop_when": {
+        "tool": "is_looking_around",
+        "field": "looking_around",
+        "equals": false
+      },
+      "interrupt": {
+        "tool": "interrupt_look_around"
+      },
+      "poll_interval": 0.5,
+      "timeout": 30.0,
+      "next": "z6_found"
+    },
+    {
+      "id": "z6_found",
+      "type": "branch",
+      "condition": "z6_scan.matched",
+      "on_true": "state_check",
+      "on_false": "go_home_resolve"
+    },
+    {
+      "id": "state_check",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "check_object_state",
+      "args": {
+        "object_class": "$input.object",
+        "min_conf": 0.4
+      },
+      "next": "go_home_resolve"
+    },
+    {
+      "id": "go_home_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "home"
+      },
+      "next": "go_home_plan"
+    },
+    {
+      "id": "go_home_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$go_home_resolve.x",
+        "y": "$go_home_resolve.y",
+        "frame": "$go_home_resolve.frame"
+      },
+      "next": "go_home_move"
+    },
+    {
+      "id": "go_home_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$go_home_plan.waypoints"
+      },
+      "next": "go_home_arrive"
+    },
+    {
+      "id": "go_home_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 240.0,
+      "next": "outcome"
+    },
+    {
+      "id": "outcome",
+      "type": "branch",
+      "condition": "state_check.bbox",
+      "on_true": "success",
+      "on_false": "fail"
+    }
+  ],
+  "fail": {
+    "error": "person_not_found_in_any_zone"
+  }
+}
