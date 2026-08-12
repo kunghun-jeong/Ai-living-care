@@ -12,6 +12,28 @@
       "pose": {"x": -7.77, "y": 0.56, "yaw": 0.0, "frame": "map"},
       "source": "tools/limo-patrol-viz/"
     },
+    "kitchen": {
+  "type": "space",
+  "label_ko": "주방",
+  "pose": {
+    "x": 6.9,
+    "y": -3.05,
+    "yaw": -8.02,
+    "frame": "map"
+  },
+  "source": "tools/limo-patrol-viz/WORLD.md"
+},
+"request_origin": {
+  "type": "space",
+  "label_ko": "물 요청 위치",
+  "pose": {
+    "x": 3.5,
+    "y": 1.0,
+    "yaw": 0.0,
+    "frame": "map"
+  },
+  "source": "scenario2 demo"
+},
     "air_conditioner": {
       "type": "device",
       "device_class": "air_conditioner",

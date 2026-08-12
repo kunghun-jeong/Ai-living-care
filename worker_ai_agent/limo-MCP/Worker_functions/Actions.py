@@ -62,7 +62,19 @@ class ActionModule:
         self._path_progress = None
         self._path_result = None
         self._viz = viz  # Visualization.PoseVisualizer 또는 None — RViz2로 pose를 실시간 스트리밍
+        
+        # --- 운반 물체 시뮬레이션 ---
+        # 현재 로봇이 들고 있는 물체. 아무것도 없으면 None
+        self._carried_object: Optional[str] = None
 
+        # 시뮬레이션에 존재하는 물체들의 현재 위치
+        self._object_poses = {
+            "water": {
+                "x": 6.90,
+                "y": -3.05,
+                "frame": "map",
+            }
+        }
     # ------------------------------------------------------------------ #
     # waypoint 리스트 -> 순차적인 ROS2 NavigateToPose 액션으로 번역해 전송
     # ------------------------------------------------------------------ #
@@ -181,6 +193,117 @@ class ActionModule:
             f"[IR-SIGNAL] device={device} command={command} value={value} unit={unit}"
         )
         return {"sent": True, "device": device, "command": command, "value": value, "unit": unit}
+    
+        # ------------------------------------------------------------------ #
+    # 물체 집기 시뮬레이션
+    # ------------------------------------------------------------------ #
+    def pick_object(self, object_name: str) -> dict:
+        """로봇이 물체 가까이에 있으면 해당 물체를 집은 상태로 변경한다."""
+
+        # 1. 해당 물체가 등록되어 있는지 확인
+        if object_name not in self._object_poses:
+            return {
+                "picked": False,
+                "object": object_name,
+                "reason": "unknown object",
+            }
+
+        # 2. 로봇이 이미 다른 물체를 들고 있는지 확인
+        if self._carried_object is not None:
+            return {
+                "picked": False,
+                "object": object_name,
+                "reason": f"already carrying {self._carried_object}",
+            }
+
+        # 물체 위치가 None이면 누군가 이미 집은 상태
+        object_pose = self._object_poses[object_name]
+        if object_pose is None:
+            return {
+                "picked": False,
+                "object": object_name,
+                "reason": "object is not available",
+            }
+
+        # 3. 현재 로봇 위치 확인
+        robot_pose = self.last_sim_pose
+
+        # 로봇과 물체 사이의 직선거리 계산
+        distance = math.hypot(
+            robot_pose["x"] - object_pose["x"],
+            robot_pose["y"] - object_pose["y"],
+        )
+
+        # 0.5m보다 멀리 있으면 집기 실패
+        if distance > 0.5:
+            return {
+                "picked": False,
+                "object": object_name,
+                "distance": distance,
+                "reason": "robot is too far from object",
+            }
+
+        # 4. 집기 성공
+        self._carried_object = object_name
+
+        # 물체가 원래 위치에 계속 남아 있지 않도록 제거
+        self._object_poses[object_name] = None
+
+        self._node.get_logger().info(
+            f"[PICK-OBJECT] object={object_name} distance={distance:.2f}"
+        )
+
+        return {
+            "picked": True,
+            "object": object_name,
+            "carrying": self._carried_object,
+            "distance": distance,
+        }
+    def place_object(self, object_name: str) -> dict:
+        """현재 들고 있는 물체를 현재 로봇 위치에 내려놓는다."""
+
+        if self._carried_object is None:
+            return {
+                "placed": False,
+                "object": object_name,
+                "reason": "robot is not carrying any object",
+            }
+
+        if self._carried_object != object_name:
+            return {
+                "placed": False,
+                "object": object_name,
+                "carrying": self._carried_object,
+                "reason": "robot is carrying a different object",
+            }
+
+        robot_pose = self.last_sim_pose
+
+        self._object_poses[object_name] = {
+            "x": robot_pose["x"],
+            "y": robot_pose["y"],
+            "frame": "map",
+        }
+
+        self._node.get_logger().info(
+            f"[PLACE-OBJECT] object={object_name} "
+            f"position=({robot_pose['x']:.2f}, {robot_pose['y']:.2f})"
+        )
+
+        self._carried_object = None
+
+        return {
+            "placed": True,
+            "object": object_name,
+            "carrying": self._carried_object,
+            "pose": self._object_poses[object_name],
+        }
+
+    def get_carrying_state(self) -> dict:
+        """현재 로봇이 들고 있는 물체를 반환한다."""
+        return {
+            "carrying": self._carried_object,
+        }
 
     # ------------------------------------------------------------------ #
     # A* 웨이포인트 추종 — Nav2·Gazebo·실물 오도메트리 없이 운동학만 적분한다
@@ -210,8 +333,8 @@ class ActionModule:
 
         self._ensure_sim_pose()
         if self._viz is not None:
-            self._viz.publish_waypoints(waypoints)
-            self._viz.reset_trail()
+            self._viz.publish_planned_path(waypoints)
+           # self._viz.reset_trail()
 
         self._path_interrupt.clear()
         self._path_result = None
