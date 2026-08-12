@@ -58,6 +58,7 @@ worker_ai_agent/
 | `MCP_server/MCP_server.py` | A2A Server + Agent Executor → `../mcp_server/` |
 | `Simulation/` | 시뮬레이션 (비컴포넌트) |
 | `Scenarios/` | 검증 클라이언트 (비컴포넌트) |
+| `rviz/` | 시나리오별 RViz2 설정 (`bring_water.rviz`) |
 | `requirements.txt` | 의존성 |
 | `SESSION_HANDOFF.md` | 개발 기록 |
 

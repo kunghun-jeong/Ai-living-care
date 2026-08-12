@@ -17,7 +17,7 @@
 > `requirements.txt`에 하한이 없어 1.x가 잡히면 서버가 import 단계에서 죽는다.
 > 하한 고정 필요: `mcp[cli]>=2.0,<3`.
 
-## tool 12종 (현재 노출된 전부)
+## tool 19종 (현재 노출된 전부)
 
 ### `plan_and_navigate(x: float, y: float, frame: str = "map", yaw_deg: float = None) -> dict`
 
@@ -175,6 +175,20 @@ A*로 마지막 위치(`ActionModule.last_sim_pose`, 첫 호출 시 스폰 `(3.5
 - `Scenarios/turn_on_air_conditioner.json`이 이 tool을 참조한다(전원 ON → 온도 설정 2회 호출).
 - ⚠️ 항상 성공만 반환한다 — 실패 경로가 없다. 실제 IR 하드웨어가 붙으면 `sent: false` 경로를 추가해야 한다.
 
+### `pick_object(object_name: str) -> dict`
+
+로봇이 지정한 물체를 들고 있는 상태로 전환한다. 이미 다른 물체를 운반 중이거나 물체가
+등록되지 않은 경우 실패를 반환한다. Phase 0에서는 실제 그리퍼가 아닌 상태 기반 시뮬레이션이다.
+
+### `place_object(object_name: str) -> dict`
+
+현재 운반 중인 물체를 로봇의 시뮬레이션 위치에 내려놓는다. 요청한 물체를 들고 있지 않으면
+실패를 반환한다. Phase 0에서는 실제 그리퍼가 아닌 상태 기반 시뮬레이션이다.
+
+### `get_carrying_state() -> dict`
+
+현재 운반 중인 물체와 등록된 물체들의 시뮬레이션 위치를 반환한다.
+
 ## 미노출 — 구현은 있으나 tool이 아닌 것 (G-3)
 
 `ReasoningModule`에 있으나 `@mcp.tool()`이 붙지 않아 외부에서 호출 불가:
@@ -216,7 +230,7 @@ MCP tool 로 노출했다. `check_object_state` 도 노출했다 (G-3 부분 해
 
 ## Phase 0에 추가되어야 할 A2A 최소 집합
 
-현재 tool 6종은 **전부 L4(함수 호출) 수준**이다. IF-4 종단점이 되려면 L2 정책을 받는 층이 필요하다.
+현재 tool 19종은 **전부 L4(함수 호출) 수준**이다. IF-4 종단점이 되려면 L2 정책을 받는 층이 필요하다.
 
 ```
 server/discover                  → 프로토콜 버전·능력·정체성 (= Agent Card 코어)
@@ -226,4 +240,4 @@ tools/call get_task_report       → 상태 + 최종 Report
 tools/call cancel_task           → 취소
 ```
 
-기존 6종은 디버깅·회귀 테스트용으로 남긴다. 상세는 `interfaces/if04_secure_a2a_channel/CLAUDE.md`.
+기존 L4 도구는 디버깅·회귀 테스트용으로 남긴다. 상세는 `interfaces/if04_secure_a2a_channel/CLAUDE.md`.

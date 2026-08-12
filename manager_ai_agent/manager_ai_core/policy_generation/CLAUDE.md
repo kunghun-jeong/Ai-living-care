@@ -7,6 +7,9 @@
 
 L1 + Schema Prompt를 LLM에 넣어 **L2 High-level Policy (ECA XML)** 를 생성한다.
 
+Phase 0 데모 구현 `bring_water_policy.py`는 "물 갖다줘" 요청을 실제 물체 조작으로
+과장하지 않고 `navigation-rehearsal` L2 내부 JSON 정책으로 생성한다.
+
 스키마: `contracts/high_level_policy/`
 
 ```xml

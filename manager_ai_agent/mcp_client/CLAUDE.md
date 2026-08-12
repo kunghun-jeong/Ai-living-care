@@ -8,6 +8,13 @@
 MAC이 만든 L2 정책을 Worker에 전달하고 Task 상태·Artifact를 수신한다.
 `worker_ai_agent/mcp_server/`의 대응 짝이며, 바인딩 정의는 `interfaces/if04_secure_a2a_channel/`에 있다.
 
+## 시나리오 2 데모
+
+- `run_scenario2.py`: 물 요청의 L2→L3 변환과 dry-run/live MCP 실행
+- `scenario2_astar_viz.py`: 기존 A* 시각화 백엔드로 주방 왕복 경로 재생
+- `run_scenario2_rviz.sh`: ROS2·RViz2 실행 진입점
+- `test_scenario2.py`: ROS2 비의존 정책 변환·실행 회귀 테스트
+
 ## 흐름
 
 ```

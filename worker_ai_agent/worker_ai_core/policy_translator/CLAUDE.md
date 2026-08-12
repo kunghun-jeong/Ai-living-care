@@ -7,6 +7,9 @@
 
 L2 `<living-care-policy>` → L3 `<limo-agent-policy>` 번역. 스키마는 `contracts/`.
 
+Phase 0 데모 구현 `policy_translator.py`는 `visit-source-and-return` 정책을 장소 resolver로
+해소해 LIMO의 2-waypoint 정책으로 번역하며, 물체 집기·놓기는 비활성 deferred operation으로 남긴다.
+
 | L2 | → L3 | 해소 주체 |
 |---|---|---|
 | `<place>living_room` | `<waypoint><x/><y/>` | KG 조회 (G-6) |

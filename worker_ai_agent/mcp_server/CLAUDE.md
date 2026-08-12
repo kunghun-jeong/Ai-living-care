@@ -1,7 +1,7 @@
 # A2A Server + Agent Executor (IF-4 Worker 측 종단점)
 
 > **역할** IF-4 Worker 측 종단점 + Agent Executor
-> **상태** Phase 0 · 동작 — **L4 tool 16종만 노출**, L2 를 받는 층이 없다 · 갭 `G-3`(잔여)
+> **상태** Phase 0 · 동작 — **L4 tool 19종만 노출**, L2 를 받는 층이 없다 · 갭 `G-3`(잔여)
 > **읽을 절** spec **§6.4** · **§6.5** — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · tool 시그니처는 **코드** · spec §6
 
@@ -20,7 +20,7 @@
 
 **구현을 고치기 전에 이 문서의 갭·주의사항을 먼저 읽을 것.**
 
-## 현재 노출된 tool 16종 (전부 L4)
+## 현재 노출된 tool 19종 (전부 L4)
 
 | tool | 계층 | Phase 0 처리 |
 |---|---|---|
@@ -29,6 +29,7 @@
 | `pathplanning` | L4 Reasoning | **Nav2·Gazebo 불필요** — `tools/limo-patrol-viz/maps/map.pgm` 위에서 A*로 직접 계산 (`patrol_sim.py`와 같은 알고리즘). 근거: `docs/decisions/2026-08-10-astar-kinematic-sim.md` |
 | `moving_path`·`get_path_status`·`cancel_path` | L4 Action | **Nav2·Gazebo·실물 오도메트리 불필요** — 운동학만 소프트웨어로 적분하는 시뮬레이션(`patrol_sim.py`의 `advance_to`와 동일 모델). `LimoGatewayNode.viz`가 매 틱 RViz2로 스트리밍(`tools/limo-patrol-viz/patrol.rviz`로 확인) |
 | `send_ir_signal` | L4 Action | **(스텁)** 로그만 남긴다 — 실제 IR 하드웨어 미구현 |
+| `pick_object(object_name: str)`·`place_object(object_name: str)`·`get_carrying_state()` | L4 Action | **(상태 기반 시뮬레이션)** 물체 운반 상태와 위치만 갱신한다 — 실제 그리퍼 하드웨어 미구현 |
 | `get_camera_snapshot`·`detect_objects` | L4 Perception/Reasoning | 반환에 `source` 필드가 붙는다 — `"camera"`(실카메라+YOLO) 또는 `"geometric_sim"`(`SIM_PERSON` 환경변수로 켜지는 기하 시뮬). 근거: `docs/decisions/2026-08-11-scenario1-on-the-dsl-runner.md` |
 | `check_object_state` | L4 Reasoning | 대상만 크롭한 JPEG 를 올린다 — **상태 판정은 LLM 이 한다**. `Reasonings.check_object_state` 와 달리 MCP 층은 `(object_class, min_conf)` 를 받고 `_observe()` 로 프레임을 얻는다 (G-3 부분 해소) |
 | `look_around`·`is_looking_around`·`interrupt_look_around` | L4 Action | **제자리 회전만** 한다 (기본 45°×8). `moving_path` 와 같은 `sim_pose` 를 돌리고 RViz2 로 스트리밍한다. 순찰 루프 자체는 코드가 아니라 시나리오 JSON 의 `branch` 다 (G-4 해소) |
