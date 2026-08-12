@@ -12,6 +12,16 @@
 > `Scenarios/turn_on_air_conditioner.json` 도 고치고 `Scenarios/check_grandma*.json` 을 추가했다.
 > 구조·파일명·경로는 그대로다. 근거: `docs/decisions/2026-08-10-astar-kinematic-sim.md`
 > · `docs/decisions/2026-08-10-worker-side-kg-lookup-phase0.md`.
+> (2026-08-12) `Scenarios/scenario_dsl.py`·`variate_scenario.py`·`validate_variant.py` 추가 —
+> `check_grandma.json` 류 시나리오의 변형기/검증기, 원본에 없던 파일. 근거:
+> `docs/decisions/2026-08-12-scenario-variator-rules.md`.
+> (2026-08-12) `Scenarios/object_bindings.json` 추가 + `check_grandma.json`·
+> `check_grandma_bedroom_first.json`·`check_obj_state.json`의 `input.object`를
+> 의미적 라벨로, `input.target_class`를 실제 탐지 class 대조용으로 분리. 근거:
+> `docs/decisions/2026-08-12-object-target-class-split.md`.
+> (2026-08-12) PR 전 정리 — 데모 산출물 `check_obj_state_v1~v5.json` 삭제
+> (`variate_scenario.py`로 재생성 가능). 근거:
+> `docs/decisions/2026-08-12-pre-pr-cleanup-variator.md`.
 > 옛 트리는 `tree/27b0f30/limo-MCP` 에서 볼 수 있다.
 
 ## 왜 여기 있는가
