@@ -12,6 +12,16 @@
 > `Scenarios/turn_on_air_conditioner.json` 도 고치고 `Scenarios/check_grandma*.json` 을 추가했다.
 > 구조·파일명·경로는 그대로다. 근거: `docs/decisions/2026-08-10-astar-kinematic-sim.md`
 > · `docs/decisions/2026-08-10-worker-side-kg-lookup-phase0.md`.
+> (2026-08-12) 방청소 시나리오 추가 — `Scenarios/generate_coverage_scenario.py`(생성기,
+> 원본에 없던 파일) + 그 출력물 `Scenarios/clean_room.json`(6구역 라운모어형 커버리지,
+> 286 step)과 `Scenarios/clean_room_bedroom_smoketest.json`(침실만, 36 step, 빠른 확인용).
+> `clean_room.json`은 손으로 고치지 않는다 — 생성기를 다시 돌린다. 구역 진입/이탈마다
+> `send_ir_signal(device="vacuum", ...)` 가상 신호를 쓴다(실존 장치 아님, 로봇에 진공
+> 부착물이 있다고 가정). 좌표는 map.pgm 점유격자 스캔 + `astar_plan` 체인 검증으로
+> 뽑았다(지어내지 않음). 근거: `docs/decisions/2026-08-12-room-cleaning-scenario.md` ·
+> `docs/decisions/2026-08-12-virtual-vacuum-actuator.md` ·
+> `docs/decisions/2026-08-12-boustrophedon-coverage.md` ·
+> `docs/decisions/2026-08-12-pre-pr-cleanup-room-cleaning.md`.
 > (2026-08-12) `Scenarios/scenario_dsl.py`·`variate_scenario.py`·`validate_variant.py` 추가 —
 > `check_grandma.json` 류 시나리오의 변형기/검증기, 원본에 없던 파일. 근거:
 > `docs/decisions/2026-08-12-scenario-variator-rules.md`.

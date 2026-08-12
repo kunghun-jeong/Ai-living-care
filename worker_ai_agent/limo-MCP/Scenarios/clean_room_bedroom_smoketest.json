@@ -1,0 +1,496 @@
+{
+  "scenario_id": "clean_room_bedroom",
+  "label": "보스트로페돈 커버리지 청소 — bedroom",
+  "input": {
+    "intent": "clean_room"
+  },
+  "note": "라운모어형(보스트로페돈) 전체 커버리지. 1구역 × 레인 간격 0.4m로 총 5줄. 각 줄은 map.pgm 점유격자에서 벽 여유 0.22m 이상(=pathplanning의 drivable 기준과 동일) 연속 구간 중 가장 긴 것만 쓴다. 좌표는 지어내지 않았다 — generate_coverage_scenario.py가 생성 시점에 뽑고 home부터 전체 체인 실제 A* 도달 가능함을 확인했다. 구역 진입/이탈마다 send_ir_signal(device=\"vacuum\", ...) 가상 신호를 쓴다 (docs/decisions/2026-08-12-virtual-vacuum-actuator.md — 실존 장치 아님). 이 파일은 손으로 고치지 않는다 — generate_coverage_scenario.py를 다시 돌린다. 상세는 docs/decisions/2026-08-12-boustrophedon-coverage.md.",
+  "steps": [
+    {
+      "id": "r1_clean_start",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_start"
+      },
+      "next": "leg1_plan"
+    },
+    {
+      "id": "leg1_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -6.15,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg1_move"
+    },
+    {
+      "id": "leg1_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg1_plan.waypoints"
+      },
+      "next": "leg1_arrive"
+    },
+    {
+      "id": "leg1_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg2_plan"
+    },
+    {
+      "id": "leg2_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.45,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg2_move"
+    },
+    {
+      "id": "leg2_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg2_plan.waypoints"
+      },
+      "next": "leg2_arrive"
+    },
+    {
+      "id": "leg2_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg3_plan"
+    },
+    {
+      "id": "leg3_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.45,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg3_move"
+    },
+    {
+      "id": "leg3_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg3_plan.waypoints"
+      },
+      "next": "leg3_arrive"
+    },
+    {
+      "id": "leg3_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg4_plan"
+    },
+    {
+      "id": "leg4_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.15,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg4_move"
+    },
+    {
+      "id": "leg4_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg4_plan.waypoints"
+      },
+      "next": "leg4_arrive"
+    },
+    {
+      "id": "leg4_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg5_plan"
+    },
+    {
+      "id": "leg5_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.15,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg5_move"
+    },
+    {
+      "id": "leg5_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg5_plan.waypoints"
+      },
+      "next": "leg5_arrive"
+    },
+    {
+      "id": "leg5_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg6_plan"
+    },
+    {
+      "id": "leg6_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.45,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg6_move"
+    },
+    {
+      "id": "leg6_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg6_plan.waypoints"
+      },
+      "next": "leg6_arrive"
+    },
+    {
+      "id": "leg6_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg7_plan"
+    },
+    {
+      "id": "leg7_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.85,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg7_move"
+    },
+    {
+      "id": "leg7_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg7_plan.waypoints"
+      },
+      "next": "leg7_arrive"
+    },
+    {
+      "id": "leg7_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg8_plan"
+    },
+    {
+      "id": "leg8_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.2,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg8_move"
+    },
+    {
+      "id": "leg8_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg8_plan.waypoints"
+      },
+      "next": "leg8_arrive"
+    },
+    {
+      "id": "leg8_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg9_plan"
+    },
+    {
+      "id": "leg9_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.2,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg9_move"
+    },
+    {
+      "id": "leg9_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg9_plan.waypoints"
+      },
+      "next": "leg9_arrive"
+    },
+    {
+      "id": "leg9_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg10_plan"
+    },
+    {
+      "id": "leg10_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.9,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg10_move"
+    },
+    {
+      "id": "leg10_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg10_plan.waypoints"
+      },
+      "next": "leg10_arrive"
+    },
+    {
+      "id": "leg10_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "r1_clean_stop"
+    },
+    {
+      "id": "r1_clean_stop",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_stop"
+      },
+      "next": "go_home_resolve"
+    },
+    {
+      "id": "go_home_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "home"
+      },
+      "next": "go_home_plan"
+    },
+    {
+      "id": "go_home_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$go_home_resolve.x",
+        "y": "$go_home_resolve.y",
+        "frame": "$go_home_resolve.frame"
+      },
+      "next": "go_home_move"
+    },
+    {
+      "id": "go_home_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$go_home_plan.waypoints"
+      },
+      "next": "go_home_arrive"
+    },
+    {
+      "id": "go_home_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 240.0,
+      "next": "success"
+    }
+  ],
+  "fail": {
+    "error": "cleaning_path_blocked"
+  }
+}
