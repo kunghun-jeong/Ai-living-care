@@ -55,8 +55,13 @@ _MAP_DIR = os.path.join(
 )
 _MAP_RESOLUTION, _MAP_ORIGIN_X, _MAP_ORIGIN_Y = 0.05, -10.0, -10.0  # maps/map.yaml과 동일
 _ROBOT_RADIUS_M = 0.22  # 충돌 여유 (patrol_sim.py의 ROBOT_R과 동일)
+_SNAP_TOLERANCE_M = 0.25  # 목표를 이보다 더 옮겨야 하면 실패로 본다
 
 _grid_cache: Optional[dict] = None
+
+
+class GoalNotReachable(ValueError):
+    """목표 좌표가 점유격자에서 통행 불가 영역(가구 위·벽 너머·미탐색)에 있다."""
 
 
 def _load_grid() -> dict:
@@ -90,7 +95,8 @@ def astar_plan(start: dict, goal: dict) -> list:
     """map.pgm 점유격자 위에서 A*로 `start`(x,y)에서 `goal`(x,y)까지 경로를 찾는다.
 
     patrol_sim.py와 동일한 비용함수(벽 근접 페널티)·솎기(0.2m 간격)를 쓴다.
-    성공하면 [{"x","y"}, ...], 갈 수 없으면 빈 리스트.
+    성공하면 [{"x","y"}, ...], 경로가 없으면 빈 리스트.
+    목표가 통행 불가 영역이면 GoalNotReachable — 조용히 다른 곳으로 바꾸지 않는다.
     """
     import heapq
 
@@ -99,14 +105,23 @@ def astar_plan(start: dict, goal: dict) -> list:
     drivable, dist_m = grid["drivable"], grid["dist_m"]
 
     def snap(p):
+        """통행 가능한 가장 가까운 셀과, 그리로 옮긴 거리(m)를 돌려준다."""
         if drivable[p[1], p[0]]:
-            return p
+            return p, 0.0
         ys, xs = np.nonzero(drivable)
-        k = np.argmin((xs - p[0]) ** 2 + (ys - p[1]) ** 2)
-        return int(xs[k]), int(ys[k])
+        k = int(np.argmin((xs - p[0]) ** 2 + (ys - p[1]) ** 2))
+        q = (int(xs[k]), int(ys[k]))
+        return q, math.hypot(q[0] - p[0], q[1] - p[1]) * _MAP_RESOLUTION
 
-    s = snap(_to_px(start["x"], start["y"], height))
-    g = snap(_to_px(goal["x"], goal["y"], height))
+    s, _ = snap(_to_px(start["x"], start["y"], height))
+    g, moved = snap(_to_px(goal["x"], goal["y"], height))
+    if moved > _SNAP_TOLERANCE_M:
+        # 목표가 가구 위나 벽 너머일 때 말없이 딴 곳으로 옮겨 놓고 성공을 돌려주면
+        # 호출자는 거기 다녀온 줄 안다. 침실처럼 가구가 빽빽한 구역에서 실제로 일어난다.
+        raise GoalNotReachable(
+            f"goal ({goal['x']:.2f}, {goal['y']:.2f}) is not drivable — "
+            f"nearest reachable cell is {moved:.2f} m away"
+        )
 
     neighbors = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
     open_heap = [(0.0, s)]
@@ -137,9 +152,11 @@ def astar_plan(start: dict, goal: dict) -> list:
         cur = came_from[cur]
     path_px.append(s)
     path_px.reverse()
-    path_px = path_px[::4] or [path_px[-1]]
+    thinned = path_px[::4]
+    if thinned[-1] != path_px[-1]:
+        thinned.append(path_px[-1])      # 솎다가 목표점을 버리지 않는다
 
-    return [{"x": wx, "y": wy} for wx, wy in (_to_m(px, py, height) for px, py in path_px)]
+    return [{"x": wx, "y": wy} for wx, wy in (_to_m(px, py, height) for px, py in thinned)]
 
 
 _yolo_model = None
@@ -310,6 +327,8 @@ class ReasoningModule:
             waypoints = future.result(timeout=timeout)
         except FutureTimeoutError:
             return {"waypoints": None, "reason": "path planning timed out"}
+        except GoalNotReachable as exc:
+            return {"waypoints": None, "reason": str(exc)}
         if not waypoints:
             return {"waypoints": None, "reason": "no path found"}
         return {"waypoints": waypoints}

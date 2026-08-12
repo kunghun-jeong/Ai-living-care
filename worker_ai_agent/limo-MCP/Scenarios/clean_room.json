@@ -1,0 +1,3886 @@
+{
+  "scenario_id": "clean_room",
+  "label": "보스트로페돈 커버리지 청소 — dining_area→living_room→bedroom→upper_left_room→entrance→kitchen",
+  "input": {
+    "intent": "clean_room"
+  },
+  "note": "라운모어형(보스트로페돈) 전체 커버리지. 6구역 × 레인 간격 0.4m로 총 45줄. 각 줄은 map.pgm 점유격자에서 벽 여유 0.22m 이상(=pathplanning의 drivable 기준과 동일) 연속 구간 중 가장 긴 것만 쓴다. 좌표는 지어내지 않았다 — generate_coverage_scenario.py가 생성 시점에 뽑고 home부터 전체 체인 실제 A* 도달 가능함을 확인했다. 구역 진입/이탈마다 send_ir_signal(device=\"vacuum\", ...) 가상 신호를 쓴다 (docs/decisions/2026-08-12-virtual-vacuum-actuator.md — 실존 장치 아님). 이 파일은 손으로 고치지 않는다 — generate_coverage_scenario.py를 다시 돌린다. 상세는 docs/decisions/2026-08-12-boustrophedon-coverage.md.",
+  "steps": [
+    {
+      "id": "r1_clean_start",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_start"
+      },
+      "next": "leg1_plan"
+    },
+    {
+      "id": "leg1_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -0.8,
+        "frame": "map"
+      },
+      "next": "leg1_move"
+    },
+    {
+      "id": "leg1_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg1_plan.waypoints"
+      },
+      "next": "leg1_arrive"
+    },
+    {
+      "id": "leg1_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg2_plan"
+    },
+    {
+      "id": "leg2_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.05,
+        "y": -0.8,
+        "frame": "map"
+      },
+      "next": "leg2_move"
+    },
+    {
+      "id": "leg2_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg2_plan.waypoints"
+      },
+      "next": "leg2_arrive"
+    },
+    {
+      "id": "leg2_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg3_plan"
+    },
+    {
+      "id": "leg3_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.05,
+        "y": -0.4,
+        "frame": "map"
+      },
+      "next": "leg3_move"
+    },
+    {
+      "id": "leg3_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg3_plan.waypoints"
+      },
+      "next": "leg3_arrive"
+    },
+    {
+      "id": "leg3_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg4_plan"
+    },
+    {
+      "id": "leg4_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -0.4,
+        "frame": "map"
+      },
+      "next": "leg4_move"
+    },
+    {
+      "id": "leg4_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg4_plan.waypoints"
+      },
+      "next": "leg4_arrive"
+    },
+    {
+      "id": "leg4_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg5_plan"
+    },
+    {
+      "id": "leg5_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 7.55,
+        "y": 0.0,
+        "frame": "map"
+      },
+      "next": "leg5_move"
+    },
+    {
+      "id": "leg5_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg5_plan.waypoints"
+      },
+      "next": "leg5_arrive"
+    },
+    {
+      "id": "leg5_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg6_plan"
+    },
+    {
+      "id": "leg6_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 9.0,
+        "y": 0.0,
+        "frame": "map"
+      },
+      "next": "leg6_move"
+    },
+    {
+      "id": "leg6_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg6_plan.waypoints"
+      },
+      "next": "leg6_arrive"
+    },
+    {
+      "id": "leg6_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg7_plan"
+    },
+    {
+      "id": "leg7_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 9.0,
+        "y": 0.4,
+        "frame": "map"
+      },
+      "next": "leg7_move"
+    },
+    {
+      "id": "leg7_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg7_plan.waypoints"
+      },
+      "next": "leg7_arrive"
+    },
+    {
+      "id": "leg7_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg8_plan"
+    },
+    {
+      "id": "leg8_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 7.55,
+        "y": 0.4,
+        "frame": "map"
+      },
+      "next": "leg8_move"
+    },
+    {
+      "id": "leg8_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg8_plan.waypoints"
+      },
+      "next": "leg8_arrive"
+    },
+    {
+      "id": "leg8_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg9_plan"
+    },
+    {
+      "id": "leg9_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 7.5,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg9_move"
+    },
+    {
+      "id": "leg9_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg9_plan.waypoints"
+      },
+      "next": "leg9_arrive"
+    },
+    {
+      "id": "leg9_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg10_plan"
+    },
+    {
+      "id": "leg10_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.95,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg10_move"
+    },
+    {
+      "id": "leg10_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg10_plan.waypoints"
+      },
+      "next": "leg10_arrive"
+    },
+    {
+      "id": "leg10_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg11_plan"
+    },
+    {
+      "id": "leg11_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.95,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg11_move"
+    },
+    {
+      "id": "leg11_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg11_plan.waypoints"
+      },
+      "next": "leg11_arrive"
+    },
+    {
+      "id": "leg11_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg12_plan"
+    },
+    {
+      "id": "leg12_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 7.45,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg12_move"
+    },
+    {
+      "id": "leg12_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg12_plan.waypoints"
+      },
+      "next": "leg12_arrive"
+    },
+    {
+      "id": "leg12_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg13_plan"
+    },
+    {
+      "id": "leg13_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 7.4,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg13_move"
+    },
+    {
+      "id": "leg13_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg13_plan.waypoints"
+      },
+      "next": "leg13_arrive"
+    },
+    {
+      "id": "leg13_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg14_plan"
+    },
+    {
+      "id": "leg14_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.95,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg14_move"
+    },
+    {
+      "id": "leg14_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg14_plan.waypoints"
+      },
+      "next": "leg14_arrive"
+    },
+    {
+      "id": "leg14_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg15_plan"
+    },
+    {
+      "id": "leg15_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.95,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg15_move"
+    },
+    {
+      "id": "leg15_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg15_plan.waypoints"
+      },
+      "next": "leg15_arrive"
+    },
+    {
+      "id": "leg15_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg16_plan"
+    },
+    {
+      "id": "leg16_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 7.4,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg16_move"
+    },
+    {
+      "id": "leg16_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg16_plan.waypoints"
+      },
+      "next": "leg16_arrive"
+    },
+    {
+      "id": "leg16_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg17_plan"
+    },
+    {
+      "id": "leg17_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg17_move"
+    },
+    {
+      "id": "leg17_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg17_plan.waypoints"
+      },
+      "next": "leg17_arrive"
+    },
+    {
+      "id": "leg17_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg18_plan"
+    },
+    {
+      "id": "leg18_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.95,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg18_move"
+    },
+    {
+      "id": "leg18_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg18_plan.waypoints"
+      },
+      "next": "leg18_arrive"
+    },
+    {
+      "id": "leg18_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg19_plan"
+    },
+    {
+      "id": "leg19_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.9,
+        "y": 2.8,
+        "frame": "map"
+      },
+      "next": "leg19_move"
+    },
+    {
+      "id": "leg19_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg19_plan.waypoints"
+      },
+      "next": "leg19_arrive"
+    },
+    {
+      "id": "leg19_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg20_plan"
+    },
+    {
+      "id": "leg20_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": 2.8,
+        "frame": "map"
+      },
+      "next": "leg20_move"
+    },
+    {
+      "id": "leg20_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg20_plan.waypoints"
+      },
+      "next": "leg20_arrive"
+    },
+    {
+      "id": "leg20_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "r1_clean_stop"
+    },
+    {
+      "id": "r1_clean_stop",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_stop"
+      },
+      "next": "r2_clean_start"
+    },
+    {
+      "id": "r2_clean_start",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_start"
+      },
+      "next": "leg21_plan"
+    },
+    {
+      "id": "leg21_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.25,
+        "y": -2.8,
+        "frame": "map"
+      },
+      "next": "leg21_move"
+    },
+    {
+      "id": "leg21_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg21_plan.waypoints"
+      },
+      "next": "leg21_arrive"
+    },
+    {
+      "id": "leg21_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg22_plan"
+    },
+    {
+      "id": "leg22_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.5,
+        "y": -2.8,
+        "frame": "map"
+      },
+      "next": "leg22_move"
+    },
+    {
+      "id": "leg22_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg22_plan.waypoints"
+      },
+      "next": "leg22_arrive"
+    },
+    {
+      "id": "leg22_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg23_plan"
+    },
+    {
+      "id": "leg23_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.5,
+        "y": -2.4,
+        "frame": "map"
+      },
+      "next": "leg23_move"
+    },
+    {
+      "id": "leg23_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg23_plan.waypoints"
+      },
+      "next": "leg23_arrive"
+    },
+    {
+      "id": "leg23_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg24_plan"
+    },
+    {
+      "id": "leg24_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.25,
+        "y": -2.4,
+        "frame": "map"
+      },
+      "next": "leg24_move"
+    },
+    {
+      "id": "leg24_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg24_plan.waypoints"
+      },
+      "next": "leg24_arrive"
+    },
+    {
+      "id": "leg24_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg25_plan"
+    },
+    {
+      "id": "leg25_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.0,
+        "y": -2.0,
+        "frame": "map"
+      },
+      "next": "leg25_move"
+    },
+    {
+      "id": "leg25_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg25_plan.waypoints"
+      },
+      "next": "leg25_arrive"
+    },
+    {
+      "id": "leg25_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg26_plan"
+    },
+    {
+      "id": "leg26_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 0.55,
+        "y": -2.0,
+        "frame": "map"
+      },
+      "next": "leg26_move"
+    },
+    {
+      "id": "leg26_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg26_plan.waypoints"
+      },
+      "next": "leg26_arrive"
+    },
+    {
+      "id": "leg26_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg27_plan"
+    },
+    {
+      "id": "leg27_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -0.6,
+        "y": -1.6,
+        "frame": "map"
+      },
+      "next": "leg27_move"
+    },
+    {
+      "id": "leg27_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg27_plan.waypoints"
+      },
+      "next": "leg27_arrive"
+    },
+    {
+      "id": "leg27_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg28_plan"
+    },
+    {
+      "id": "leg28_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.5,
+        "y": -1.6,
+        "frame": "map"
+      },
+      "next": "leg28_move"
+    },
+    {
+      "id": "leg28_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg28_plan.waypoints"
+      },
+      "next": "leg28_arrive"
+    },
+    {
+      "id": "leg28_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg29_plan"
+    },
+    {
+      "id": "leg29_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.5,
+        "y": -1.2,
+        "frame": "map"
+      },
+      "next": "leg29_move"
+    },
+    {
+      "id": "leg29_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg29_plan.waypoints"
+      },
+      "next": "leg29_arrive"
+    },
+    {
+      "id": "leg29_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg30_plan"
+    },
+    {
+      "id": "leg30_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -0.65,
+        "y": -1.2,
+        "frame": "map"
+      },
+      "next": "leg30_move"
+    },
+    {
+      "id": "leg30_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg30_plan.waypoints"
+      },
+      "next": "leg30_arrive"
+    },
+    {
+      "id": "leg30_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg31_plan"
+    },
+    {
+      "id": "leg31_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -0.65,
+        "y": -0.8,
+        "frame": "map"
+      },
+      "next": "leg31_move"
+    },
+    {
+      "id": "leg31_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg31_plan.waypoints"
+      },
+      "next": "leg31_arrive"
+    },
+    {
+      "id": "leg31_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg32_plan"
+    },
+    {
+      "id": "leg32_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.5,
+        "y": -0.8,
+        "frame": "map"
+      },
+      "next": "leg32_move"
+    },
+    {
+      "id": "leg32_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg32_plan.waypoints"
+      },
+      "next": "leg32_arrive"
+    },
+    {
+      "id": "leg32_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg33_plan"
+    },
+    {
+      "id": "leg33_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.5,
+        "y": -0.4,
+        "frame": "map"
+      },
+      "next": "leg33_move"
+    },
+    {
+      "id": "leg33_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg33_plan.waypoints"
+      },
+      "next": "leg33_arrive"
+    },
+    {
+      "id": "leg33_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg34_plan"
+    },
+    {
+      "id": "leg34_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -0.7,
+        "y": -0.4,
+        "frame": "map"
+      },
+      "next": "leg34_move"
+    },
+    {
+      "id": "leg34_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg34_plan.waypoints"
+      },
+      "next": "leg34_arrive"
+    },
+    {
+      "id": "leg34_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg35_plan"
+    },
+    {
+      "id": "leg35_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -0.7,
+        "y": -0.0,
+        "frame": "map"
+      },
+      "next": "leg35_move"
+    },
+    {
+      "id": "leg35_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg35_plan.waypoints"
+      },
+      "next": "leg35_arrive"
+    },
+    {
+      "id": "leg35_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg36_plan"
+    },
+    {
+      "id": "leg36_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.5,
+        "y": -0.0,
+        "frame": "map"
+      },
+      "next": "leg36_move"
+    },
+    {
+      "id": "leg36_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg36_plan.waypoints"
+      },
+      "next": "leg36_arrive"
+    },
+    {
+      "id": "leg36_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg37_plan"
+    },
+    {
+      "id": "leg37_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.5,
+        "y": 0.4,
+        "frame": "map"
+      },
+      "next": "leg37_move"
+    },
+    {
+      "id": "leg37_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg37_plan.waypoints"
+      },
+      "next": "leg37_arrive"
+    },
+    {
+      "id": "leg37_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg38_plan"
+    },
+    {
+      "id": "leg38_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -0.65,
+        "y": 0.4,
+        "frame": "map"
+      },
+      "next": "leg38_move"
+    },
+    {
+      "id": "leg38_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg38_plan.waypoints"
+      },
+      "next": "leg38_arrive"
+    },
+    {
+      "id": "leg38_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg39_plan"
+    },
+    {
+      "id": "leg39_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -0.75,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg39_move"
+    },
+    {
+      "id": "leg39_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg39_plan.waypoints"
+      },
+      "next": "leg39_arrive"
+    },
+    {
+      "id": "leg39_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg40_plan"
+    },
+    {
+      "id": "leg40_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.2,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg40_move"
+    },
+    {
+      "id": "leg40_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg40_plan.waypoints"
+      },
+      "next": "leg40_arrive"
+    },
+    {
+      "id": "leg40_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg41_plan"
+    },
+    {
+      "id": "leg41_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.2,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg41_move"
+    },
+    {
+      "id": "leg41_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg41_plan.waypoints"
+      },
+      "next": "leg41_arrive"
+    },
+    {
+      "id": "leg41_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg42_plan"
+    },
+    {
+      "id": "leg42_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.5,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg42_move"
+    },
+    {
+      "id": "leg42_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg42_plan.waypoints"
+      },
+      "next": "leg42_arrive"
+    },
+    {
+      "id": "leg42_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg43_plan"
+    },
+    {
+      "id": "leg43_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.5,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg43_move"
+    },
+    {
+      "id": "leg43_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg43_plan.waypoints"
+      },
+      "next": "leg43_arrive"
+    },
+    {
+      "id": "leg43_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg44_plan"
+    },
+    {
+      "id": "leg44_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.2,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg44_move"
+    },
+    {
+      "id": "leg44_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg44_plan.waypoints"
+      },
+      "next": "leg44_arrive"
+    },
+    {
+      "id": "leg44_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg45_plan"
+    },
+    {
+      "id": "leg45_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.2,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg45_move"
+    },
+    {
+      "id": "leg45_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg45_plan.waypoints"
+      },
+      "next": "leg45_arrive"
+    },
+    {
+      "id": "leg45_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg46_plan"
+    },
+    {
+      "id": "leg46_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.5,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg46_move"
+    },
+    {
+      "id": "leg46_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg46_plan.waypoints"
+      },
+      "next": "leg46_arrive"
+    },
+    {
+      "id": "leg46_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg47_plan"
+    },
+    {
+      "id": "leg47_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.5,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg47_move"
+    },
+    {
+      "id": "leg47_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg47_plan.waypoints"
+      },
+      "next": "leg47_arrive"
+    },
+    {
+      "id": "leg47_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg48_plan"
+    },
+    {
+      "id": "leg48_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.15,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg48_move"
+    },
+    {
+      "id": "leg48_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg48_plan.waypoints"
+      },
+      "next": "leg48_arrive"
+    },
+    {
+      "id": "leg48_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg49_plan"
+    },
+    {
+      "id": "leg49_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -2.15,
+        "y": 2.8,
+        "frame": "map"
+      },
+      "next": "leg49_move"
+    },
+    {
+      "id": "leg49_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg49_plan.waypoints"
+      },
+      "next": "leg49_arrive"
+    },
+    {
+      "id": "leg49_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg50_plan"
+    },
+    {
+      "id": "leg50_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.5,
+        "y": 2.8,
+        "frame": "map"
+      },
+      "next": "leg50_move"
+    },
+    {
+      "id": "leg50_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg50_plan.waypoints"
+      },
+      "next": "leg50_arrive"
+    },
+    {
+      "id": "leg50_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "r2_clean_stop"
+    },
+    {
+      "id": "r2_clean_stop",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_stop"
+      },
+      "next": "r3_clean_start"
+    },
+    {
+      "id": "r3_clean_start",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_start"
+      },
+      "next": "leg51_plan"
+    },
+    {
+      "id": "leg51_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -6.15,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg51_move"
+    },
+    {
+      "id": "leg51_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg51_plan.waypoints"
+      },
+      "next": "leg51_arrive"
+    },
+    {
+      "id": "leg51_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg52_plan"
+    },
+    {
+      "id": "leg52_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.45,
+        "y": 0.8,
+        "frame": "map"
+      },
+      "next": "leg52_move"
+    },
+    {
+      "id": "leg52_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg52_plan.waypoints"
+      },
+      "next": "leg52_arrive"
+    },
+    {
+      "id": "leg52_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg53_plan"
+    },
+    {
+      "id": "leg53_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.45,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg53_move"
+    },
+    {
+      "id": "leg53_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg53_plan.waypoints"
+      },
+      "next": "leg53_arrive"
+    },
+    {
+      "id": "leg53_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg54_plan"
+    },
+    {
+      "id": "leg54_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.15,
+        "y": 1.2,
+        "frame": "map"
+      },
+      "next": "leg54_move"
+    },
+    {
+      "id": "leg54_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg54_plan.waypoints"
+      },
+      "next": "leg54_arrive"
+    },
+    {
+      "id": "leg54_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg55_plan"
+    },
+    {
+      "id": "leg55_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.15,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg55_move"
+    },
+    {
+      "id": "leg55_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg55_plan.waypoints"
+      },
+      "next": "leg55_arrive"
+    },
+    {
+      "id": "leg55_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg56_plan"
+    },
+    {
+      "id": "leg56_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.45,
+        "y": 1.6,
+        "frame": "map"
+      },
+      "next": "leg56_move"
+    },
+    {
+      "id": "leg56_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg56_plan.waypoints"
+      },
+      "next": "leg56_arrive"
+    },
+    {
+      "id": "leg56_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg57_plan"
+    },
+    {
+      "id": "leg57_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.85,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg57_move"
+    },
+    {
+      "id": "leg57_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg57_plan.waypoints"
+      },
+      "next": "leg57_arrive"
+    },
+    {
+      "id": "leg57_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg58_plan"
+    },
+    {
+      "id": "leg58_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.2,
+        "y": 2.0,
+        "frame": "map"
+      },
+      "next": "leg58_move"
+    },
+    {
+      "id": "leg58_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg58_plan.waypoints"
+      },
+      "next": "leg58_arrive"
+    },
+    {
+      "id": "leg58_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg59_plan"
+    },
+    {
+      "id": "leg59_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -5.2,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg59_move"
+    },
+    {
+      "id": "leg59_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg59_plan.waypoints"
+      },
+      "next": "leg59_arrive"
+    },
+    {
+      "id": "leg59_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg60_plan"
+    },
+    {
+      "id": "leg60_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -3.9,
+        "y": 2.4,
+        "frame": "map"
+      },
+      "next": "leg60_move"
+    },
+    {
+      "id": "leg60_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg60_plan.waypoints"
+      },
+      "next": "leg60_arrive"
+    },
+    {
+      "id": "leg60_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "r3_clean_stop"
+    },
+    {
+      "id": "r3_clean_stop",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_stop"
+      },
+      "next": "r4_clean_start"
+    },
+    {
+      "id": "r4_clean_start",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_start"
+      },
+      "next": "leg61_plan"
+    },
+    {
+      "id": "leg61_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -8.5,
+        "y": 0.0,
+        "frame": "map"
+      },
+      "next": "leg61_move"
+    },
+    {
+      "id": "leg61_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg61_plan.waypoints"
+      },
+      "next": "leg61_arrive"
+    },
+    {
+      "id": "leg61_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg62_plan"
+    },
+    {
+      "id": "leg62_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -7.05,
+        "y": 0.0,
+        "frame": "map"
+      },
+      "next": "leg62_move"
+    },
+    {
+      "id": "leg62_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg62_plan.waypoints"
+      },
+      "next": "leg62_arrive"
+    },
+    {
+      "id": "leg62_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg63_plan"
+    },
+    {
+      "id": "leg63_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -7.05,
+        "y": 0.4,
+        "frame": "map"
+      },
+      "next": "leg63_move"
+    },
+    {
+      "id": "leg63_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg63_plan.waypoints"
+      },
+      "next": "leg63_arrive"
+    },
+    {
+      "id": "leg63_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg64_plan"
+    },
+    {
+      "id": "leg64_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": -8.5,
+        "y": 0.4,
+        "frame": "map"
+      },
+      "next": "leg64_move"
+    },
+    {
+      "id": "leg64_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg64_plan.waypoints"
+      },
+      "next": "leg64_arrive"
+    },
+    {
+      "id": "leg64_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "r4_clean_stop"
+    },
+    {
+      "id": "r4_clean_stop",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_stop"
+      },
+      "next": "r5_clean_start"
+    },
+    {
+      "id": "r5_clean_start",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_start"
+      },
+      "next": "leg65_plan"
+    },
+    {
+      "id": "leg65_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.0,
+        "y": -4.2,
+        "frame": "map"
+      },
+      "next": "leg65_move"
+    },
+    {
+      "id": "leg65_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg65_plan.waypoints"
+      },
+      "next": "leg65_arrive"
+    },
+    {
+      "id": "leg65_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg66_plan"
+    },
+    {
+      "id": "leg66_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 4.75,
+        "y": -4.2,
+        "frame": "map"
+      },
+      "next": "leg66_move"
+    },
+    {
+      "id": "leg66_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg66_plan.waypoints"
+      },
+      "next": "leg66_arrive"
+    },
+    {
+      "id": "leg66_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg67_plan"
+    },
+    {
+      "id": "leg67_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.0,
+        "y": -3.8,
+        "frame": "map"
+      },
+      "next": "leg67_move"
+    },
+    {
+      "id": "leg67_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg67_plan.waypoints"
+      },
+      "next": "leg67_arrive"
+    },
+    {
+      "id": "leg67_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg68_plan"
+    },
+    {
+      "id": "leg68_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.0,
+        "y": -3.8,
+        "frame": "map"
+      },
+      "next": "leg68_move"
+    },
+    {
+      "id": "leg68_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg68_plan.waypoints"
+      },
+      "next": "leg68_arrive"
+    },
+    {
+      "id": "leg68_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg69_plan"
+    },
+    {
+      "id": "leg69_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 1.0,
+        "y": -3.4,
+        "frame": "map"
+      },
+      "next": "leg69_move"
+    },
+    {
+      "id": "leg69_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg69_plan.waypoints"
+      },
+      "next": "leg69_arrive"
+    },
+    {
+      "id": "leg69_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg70_plan"
+    },
+    {
+      "id": "leg70_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.0,
+        "y": -3.4,
+        "frame": "map"
+      },
+      "next": "leg70_move"
+    },
+    {
+      "id": "leg70_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg70_plan.waypoints"
+      },
+      "next": "leg70_arrive"
+    },
+    {
+      "id": "leg70_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "r5_clean_stop"
+    },
+    {
+      "id": "r5_clean_stop",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_stop"
+      },
+      "next": "r6_clean_start"
+    },
+    {
+      "id": "r6_clean_start",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_start"
+      },
+      "next": "leg71_plan"
+    },
+    {
+      "id": "leg71_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -5.0,
+        "frame": "map"
+      },
+      "next": "leg71_move"
+    },
+    {
+      "id": "leg71_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg71_plan.waypoints"
+      },
+      "next": "leg71_arrive"
+    },
+    {
+      "id": "leg71_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg72_plan"
+    },
+    {
+      "id": "leg72_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 6.5,
+        "y": -5.0,
+        "frame": "map"
+      },
+      "next": "leg72_move"
+    },
+    {
+      "id": "leg72_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg72_plan.waypoints"
+      },
+      "next": "leg72_arrive"
+    },
+    {
+      "id": "leg72_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg73_plan"
+    },
+    {
+      "id": "leg73_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 6.6,
+        "y": -4.6,
+        "frame": "map"
+      },
+      "next": "leg73_move"
+    },
+    {
+      "id": "leg73_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg73_plan.waypoints"
+      },
+      "next": "leg73_arrive"
+    },
+    {
+      "id": "leg73_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg74_plan"
+    },
+    {
+      "id": "leg74_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -4.6,
+        "frame": "map"
+      },
+      "next": "leg74_move"
+    },
+    {
+      "id": "leg74_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg74_plan.waypoints"
+      },
+      "next": "leg74_arrive"
+    },
+    {
+      "id": "leg74_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg75_plan"
+    },
+    {
+      "id": "leg75_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -4.2,
+        "frame": "map"
+      },
+      "next": "leg75_move"
+    },
+    {
+      "id": "leg75_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg75_plan.waypoints"
+      },
+      "next": "leg75_arrive"
+    },
+    {
+      "id": "leg75_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg76_plan"
+    },
+    {
+      "id": "leg76_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.45,
+        "y": -4.2,
+        "frame": "map"
+      },
+      "next": "leg76_move"
+    },
+    {
+      "id": "leg76_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg76_plan.waypoints"
+      },
+      "next": "leg76_arrive"
+    },
+    {
+      "id": "leg76_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg77_plan"
+    },
+    {
+      "id": "leg77_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.45,
+        "y": -3.8,
+        "frame": "map"
+      },
+      "next": "leg77_move"
+    },
+    {
+      "id": "leg77_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg77_plan.waypoints"
+      },
+      "next": "leg77_arrive"
+    },
+    {
+      "id": "leg77_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg78_plan"
+    },
+    {
+      "id": "leg78_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -3.8,
+        "frame": "map"
+      },
+      "next": "leg78_move"
+    },
+    {
+      "id": "leg78_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg78_plan.waypoints"
+      },
+      "next": "leg78_arrive"
+    },
+    {
+      "id": "leg78_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg79_plan"
+    },
+    {
+      "id": "leg79_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -3.4,
+        "frame": "map"
+      },
+      "next": "leg79_move"
+    },
+    {
+      "id": "leg79_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg79_plan.waypoints"
+      },
+      "next": "leg79_arrive"
+    },
+    {
+      "id": "leg79_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg80_plan"
+    },
+    {
+      "id": "leg80_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.45,
+        "y": -3.4,
+        "frame": "map"
+      },
+      "next": "leg80_move"
+    },
+    {
+      "id": "leg80_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg80_plan.waypoints"
+      },
+      "next": "leg80_arrive"
+    },
+    {
+      "id": "leg80_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg81_plan"
+    },
+    {
+      "id": "leg81_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.4,
+        "y": -3.0,
+        "frame": "map"
+      },
+      "next": "leg81_move"
+    },
+    {
+      "id": "leg81_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg81_plan.waypoints"
+      },
+      "next": "leg81_arrive"
+    },
+    {
+      "id": "leg81_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg82_plan"
+    },
+    {
+      "id": "leg82_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -3.0,
+        "frame": "map"
+      },
+      "next": "leg82_move"
+    },
+    {
+      "id": "leg82_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg82_plan.waypoints"
+      },
+      "next": "leg82_arrive"
+    },
+    {
+      "id": "leg82_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg83_plan"
+    },
+    {
+      "id": "leg83_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -2.6,
+        "frame": "map"
+      },
+      "next": "leg83_move"
+    },
+    {
+      "id": "leg83_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg83_plan.waypoints"
+      },
+      "next": "leg83_arrive"
+    },
+    {
+      "id": "leg83_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg84_plan"
+    },
+    {
+      "id": "leg84_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.4,
+        "y": -2.6,
+        "frame": "map"
+      },
+      "next": "leg84_move"
+    },
+    {
+      "id": "leg84_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg84_plan.waypoints"
+      },
+      "next": "leg84_arrive"
+    },
+    {
+      "id": "leg84_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg85_plan"
+    },
+    {
+      "id": "leg85_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.4,
+        "y": -2.2,
+        "frame": "map"
+      },
+      "next": "leg85_move"
+    },
+    {
+      "id": "leg85_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg85_plan.waypoints"
+      },
+      "next": "leg85_arrive"
+    },
+    {
+      "id": "leg85_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg86_plan"
+    },
+    {
+      "id": "leg86_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.6,
+        "y": -2.2,
+        "frame": "map"
+      },
+      "next": "leg86_move"
+    },
+    {
+      "id": "leg86_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg86_plan.waypoints"
+      },
+      "next": "leg86_arrive"
+    },
+    {
+      "id": "leg86_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg87_plan"
+    },
+    {
+      "id": "leg87_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -1.8,
+        "frame": "map"
+      },
+      "next": "leg87_move"
+    },
+    {
+      "id": "leg87_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg87_plan.waypoints"
+      },
+      "next": "leg87_arrive"
+    },
+    {
+      "id": "leg87_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg88_plan"
+    },
+    {
+      "id": "leg88_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 9.0,
+        "y": -1.8,
+        "frame": "map"
+      },
+      "next": "leg88_move"
+    },
+    {
+      "id": "leg88_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg88_plan.waypoints"
+      },
+      "next": "leg88_arrive"
+    },
+    {
+      "id": "leg88_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg89_plan"
+    },
+    {
+      "id": "leg89_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 8.1,
+        "y": -1.4,
+        "frame": "map"
+      },
+      "next": "leg89_move"
+    },
+    {
+      "id": "leg89_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg89_plan.waypoints"
+      },
+      "next": "leg89_arrive"
+    },
+    {
+      "id": "leg89_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "leg90_plan"
+    },
+    {
+      "id": "leg90_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": 5.5,
+        "y": -1.4,
+        "frame": "map"
+      },
+      "next": "leg90_move"
+    },
+    {
+      "id": "leg90_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$leg90_plan.waypoints"
+      },
+      "next": "leg90_arrive"
+    },
+    {
+      "id": "leg90_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 90.0,
+      "next": "r6_clean_stop"
+    },
+    {
+      "id": "r6_clean_stop",
+      "type": "call",
+      "layer": "action",
+      "tool": "send_ir_signal",
+      "args": {
+        "device": "vacuum",
+        "command": "clean_stop"
+      },
+      "next": "go_home_resolve"
+    },
+    {
+      "id": "go_home_resolve",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "home"
+      },
+      "next": "go_home_plan"
+    },
+    {
+      "id": "go_home_plan",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$go_home_resolve.x",
+        "y": "$go_home_resolve.y",
+        "frame": "$go_home_resolve.frame"
+      },
+      "next": "go_home_move"
+    },
+    {
+      "id": "go_home_move",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$go_home_plan.waypoints"
+      },
+      "next": "go_home_arrive"
+    },
+    {
+      "id": "go_home_arrive",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 240.0,
+      "next": "success"
+    }
+  ],
+  "fail": {
+    "error": "cleaning_path_blocked"
+  }
+}

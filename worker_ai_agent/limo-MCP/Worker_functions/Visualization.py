@@ -2,6 +2,7 @@
 
 import math
 import os
+import time
 
 import cv2
 import numpy as np
@@ -45,7 +46,7 @@ _WHEELS = [
 class PoseVisualizer:
     """moving_path의 위치를 patrol.rviz용 토픽으로 발행한다."""
 
-    def __init__(self, node):
+    def __init__(self, node, sim_cam=None, camera_hz: float = 5.0):
         self._node = node
 
         transient = QoSProfile(depth=5)
@@ -104,7 +105,14 @@ class PoseVisualizer:
 
         self._tf = TransformBroadcaster(node)
 
-        self._trail = []
+        # 기하 시뮬 카메라(Perceptions.SimCameraPerception)를 주면 1인칭 화면도 흘려보낸다.
+        # 실제 Gazebo 카메라가 있을 때는 None으로 두면 이 퍼블리셔는 조용히 놀고,
+        # /camera/image_raw 는 Gazebo 쪽이 그대로 쓴다.
+        self._sim_cam = sim_cam
+        self._cam_period = (1.0 / camera_hz) if camera_hz > 0 else None
+        self._cam_last = 0.0
+
+        self._trail: list = []
         self._spin = 0.0
         self._map_image = None
         self._map_height = 0
@@ -132,6 +140,26 @@ class PoseVisualizer:
 </robot>
 """
         self._robot_description_pub.publish(description)
+
+    def _maybe_publish_camera(self, pose: dict) -> None:
+        """기하 시뮬 1인칭 화면을 /camera/image_raw 로 발행한다 (RViz2 Image 패널용)."""
+        if self._sim_cam is None or self._cam_period is None:
+            return
+        now = time.monotonic()
+        if now - self._cam_last < self._cam_period:
+            return
+        self._cam_last = now
+
+        frame, _ = self._sim_cam.render(pose)
+        msg = Image()
+        msg.header.stamp = self._node.get_clock().now().to_msg()
+        msg.header.frame_id = "depth_camera_link"
+        msg.height, msg.width = frame.shape[:2]
+        msg.encoding = "bgr8"
+        msg.is_bigendian = 0
+        msg.step = msg.width * 3
+        msg.data = frame.tobytes()
+        self._camera_pub.publish(msg)
 
     def _publish_walls(self) -> None:
         map_path = os.path.join(_MAP_DIR, "map.pgm")
@@ -524,6 +552,8 @@ class PoseVisualizer:
         transform.transform.rotation.w = math.cos(yaw / 2.0)
 
         self._tf.sendTransform(transform)
+
+        self._maybe_publish_camera(pose)
 
         # wheel joint 갱신
         self._spin += 0.35

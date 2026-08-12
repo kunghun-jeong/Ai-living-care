@@ -1,5 +1,12 @@
 {
   "entities": {
+    "home": {
+      "type": "space",
+      "label_ko": "홈 (시작·복귀 지점)",
+      "pose": {"x": 3.5, "y": 1.0, "yaw": 0.0, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §1 권장 스폰 · Actions.py _SIM_SPAWN",
+      "note": "팀 합의: 모든 시나리오는 여기서 시작해 여기로 돌아온다. Actions.py 의 _SIM_SPAWN 과 반드시 같은 값이어야 한다 (한쪽만 바꾸면 첫 경로계획의 출발점이 어긋난다). 벽까지 여유 1.40 m."
+    },
     "dining_area": {
       "type": "space",
       "label_ko": "식탁 구역",
@@ -12,35 +19,84 @@
       "pose": {"x": -7.77, "y": 0.56, "yaw": 0.0, "frame": "map"},
       "source": "tools/limo-patrol-viz/"
     },
+    "bedroom": {
+      "type": "space",
+      "label_ko": "침실",
+      "pose": {"x": -4.40, "y": 1.70, "yaw": 2.96, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — 침대 관측점",
+      "note": "침실 안쪽에서 침대가 보이는 지점(여유 0.87m). 침실은 자유공간 9.5m2 중 로봇이 갈 수 있는 곳이 4.8m2뿐이라 좌표를 임의로 잡으면 안 된다. 침대 북쪽(y>2.2)은 도달 불가."
+    },
+    "living_room": {
+      "type": "space",
+      "label_ko": "거실 (소파 구역)",
+      "pose": {"x": -0.60, "y": 2.45, "yaw": 0.0, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — 거실 접근점"
+    },
     "kitchen": {
-  "type": "space",
-  "label_ko": "주방",
-  "pose": {
-    "x": 6.9,
-    "y": -3.05,
-    "yaw": -8.02,
-    "frame": "map"
-  },
-  "source": "tools/limo-patrol-viz/WORLD.md"
-},
-"request_origin": {
-  "type": "space",
-  "label_ko": "물 요청 위치",
-  "pose": {
-    "x": 3.5,
-    "y": 1.0,
-    "yaw": 0.0,
-    "frame": "map"
-  },
-  "source": "scenario2 demo"
-},
+      "type": "space",
+      "label_ko": "주방",
+      "pose": {"x": 6.90, "y": -3.05, "yaw": 0.0, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — 주방 접근점"
+    },
+    "request_origin": {
+      "type": "space",
+      "label_ko": "물 요청 위치",
+      "pose": {"x": 3.5, "y": 1.0, "yaw": 0.0, "frame": "map"},
+      "source": "scenario2 demo"
+    },
+    "entrance": {
+      "type": "space",
+      "label_ko": "현관 (신발장 앞)",
+      "pose": {"x": 3.00, "y": -3.90, "yaw": -0.77, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — 신발장 관측점"
+    },
+    "bed": {
+      "type": "furniture",
+      "label_ko": "침대",
+      "pose": {"x": -4.40, "y": 1.70, "yaw": 2.96, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — Bed(-6.17,2.03) 관측점",
+      "note": "pose 는 가구 좌표가 아니라 관측점이다. 침대는 남/동쪽에서만 볼 수 있다."
+    },
+    "sofa": {
+      "type": "furniture",
+      "label_ko": "소파",
+      "pose": {"x": 2.60, "y": 0.05, "yaw": -2.89, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — SofaC(0.78,-0.41) 관측점"
+    },
+    "refrigerator": {
+      "type": "furniture",
+      "label_ko": "냉장고",
+      "pose": {"x": 6.95, "y": -1.45, "yaw": 0.24, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — Refrigerator(8.70,-1.03) 관측점"
+    },
+    "wardrobe": {
+      "type": "furniture",
+      "label_ko": "옷장",
+      "pose": {"x": -4.10, "y": 0.95, "yaw": 1.02, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — Wardrobe(-3.15,2.48) 관측점"
+    },
+    "reading_desk": {
+      "type": "furniture",
+      "label_ko": "책상 (침실)",
+      "pose": {"x": -8.00, "y": 0.55, "yaw": 2.15, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — ReadingDesk(-8.99,2.06) 관측점",
+      "note": "이 지점으로 가는 통로가 여유 0.28m 다 (로봇 반경 0.22m). 2D 는 통과하지만 실기·Gazebo 에서는 못 지날 수 있다."
+    },
     "air_conditioner": {
       "type": "device",
       "device_class": "air_conditioner",
-      "label_ko": "에어컨 (하단·TV현관 구역, AirconditionerB)",
-      "pose": {"x": -0.80, "y": -3.05, "yaw": 0.0, "frame": "map"},
-      "source": "tools/limo-patrol-viz/WORLD.md §2 — 하단(TV·현관) 구역 접근점",
-      "note": "AirconditionerB 가구 좌표(-2.00,-5.23) 자체가 아니라 그 구역의 접근점이다 — 벽 여유 1.68m로 검증됨. 가구 바로 앞 관측점은 미계산."
+      "label_ko": "에어컨 (거실·현관 쪽, AirconditionerB)",
+      "pose": {"x": -1.25, "y": -3.60, "yaw": -2.00, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — AirconditionerB(-2.00,-5.23) 관측점",
+      "note": "이 집에 에어컨은 두 대다. 이 항목은 하단(TV·현관) 구역의 B 다. 침실 것은 air_conditioner_bedroom. '에어컨 켜줘' 처럼 어느 쪽인지 모호하면 되묻는 게 맞다."
+    },
+    "air_conditioner_bedroom": {
+      "type": "device",
+      "device_class": "air_conditioner",
+      "label_ko": "에어컨 (침실, AirconditionerA)",
+      "pose": {"x": -8.05, "y": 1.00, "yaw": 2.25, "frame": "map"},
+      "source": "tools/limo-patrol-viz/WORLD.md §2 — AirconditionerA(-9.20,2.41) 관측점",
+      "note": "reading_desk 와 같은 좁은 통로(여유 0.28m)를 지나야 닿는다."
     }
   },
   "phrase_bindings": {}

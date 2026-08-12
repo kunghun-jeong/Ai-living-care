@@ -75,6 +75,11 @@ class ActionModule:
                 "frame": "map",
             }
         }
+
+        # --- 제자리 둘러보기 (G-4) — 같은 sim_pose를 회전시킨다 ---
+        self._look_thread: Optional[threading.Thread] = None
+        self._look_interrupt = threading.Event()
+        self._look_progress = None
     # ------------------------------------------------------------------ #
     # waypoint 리스트 -> 순차적인 ROS2 NavigateToPose 액션으로 번역해 전송
     # ------------------------------------------------------------------ #
@@ -383,14 +388,15 @@ class ActionModule:
                     break
                 f = elapsed / dur if dur > 0 else 1.0
                 if phase == "turn":
-                    pose["yaw"] = yaw0 + dyaw * f
+                    # 정규화하지 않으면 웨이포인트마다 누적돼 yaw가 -10 rad 같은 값이 된다.
+                    pose["yaw"] = _normalize_angle(yaw0 + dyaw * f)
                 else:
                     pose["x"], pose["y"] = x0 + (nx - x0) * f, y0 + (ny - y0) * f
                 if self._viz is not None:
                     self._viz.publish_pose(pose)
                 time.sleep(_SIM_DT)
             if phase == "turn":
-                pose["yaw"] = yaw0 + dyaw
+                pose["yaw"] = _normalize_angle(yaw0 + dyaw)
             else:
                 pose["x"], pose["y"] = nx, ny
             if self._viz is not None:
@@ -410,6 +416,86 @@ class ActionModule:
             return {"cancelled": False, "reason": "no path motion in progress"}
         self._path_interrupt.set()
         return {"cancelled": True}
+
+    # ------------------------------------------------------------------ #
+    # 제자리 둘러보기 (G-4) — moving_path와 같은 sim_pose·같은 RViz2 스트리밍을 쓴다.
+    # 도착한 자리에서 yaw만 돌리므로 x,y는 건드리지 않는다.
+    # ------------------------------------------------------------------ #
+    def is_looking_around(self) -> bool:
+        return self._look_thread is not None and self._look_thread.is_alive()
+
+    def look_around(self, steps: int = 8, step_deg: float = 45.0,
+                    step_duration: float = 1.0) -> dict:
+        """제자리에서 `steps`번 `step_deg`씩 돌며 각 단계에서 `step_duration`초 멈춘다.
+
+        기본값은 45°×8 = 360°. 비동기이며 is_looking_around()로 폴링한다.
+        멈추는 이유는 그 사이에 다른 층(perception)이 프레임을 볼 시간을 주기 위함이다.
+        """
+        if self.is_running_path() or self.is_looking_around():
+            return {"started": False, "reason": "a motion is already in progress"}
+        if steps <= 0:
+            return {"started": False, "reason": f"steps must be positive: {steps!r}"}
+
+        self._ensure_sim_pose()
+        self._look_interrupt.clear()
+        self._look_progress = {"index": 0, "total": steps}
+
+        def run() -> None:
+            pose = self._sim_pose
+            for i in range(steps):
+                if self._look_interrupt.is_set():
+                    break
+                self._look_progress = {"index": i, "total": steps}
+                target = _normalize_angle(pose["yaw"] + math.radians(step_deg))
+                if not self._turn_sim_to(target):
+                    break
+                # 멈춰 서 있는 구간 — 인터럽트를 확인하며 잘게 잔다
+                waited = 0.0
+                while waited < step_duration and not self._look_interrupt.is_set():
+                    time.sleep(min(_SIM_DT, step_duration - waited))
+                    waited += _SIM_DT
+            self._look_progress = {"index": steps, "total": steps}
+
+        self._look_thread = threading.Thread(target=run, daemon=True)
+        self._look_thread.start()
+        return {"started": True, "steps": steps, "step_deg": step_deg}
+
+    def _turn_sim_to(self, target_yaw: float) -> bool:
+        """제자리 회전. 중단되면 False."""
+        pose = self._sim_pose
+        yaw0 = pose["yaw"]
+        dyaw = _normalize_angle(target_yaw - yaw0)
+        dur = abs(dyaw) / _SIM_V_ANG
+        t0 = time.monotonic()
+        while True:
+            if self._look_interrupt.is_set():
+                return False
+            elapsed = time.monotonic() - t0
+            if elapsed >= dur:
+                break
+            pose["yaw"] = _normalize_angle(yaw0 + dyaw * (elapsed / dur if dur > 0 else 1.0))
+            if self._viz is not None:
+                self._viz.publish_pose(pose)
+            time.sleep(_SIM_DT)
+        pose["yaw"] = _normalize_angle(target_yaw)
+        if self._viz is not None:
+            self._viz.publish_pose(pose)
+        return True
+
+    def get_look_around_status(self) -> dict:
+        return {
+            "looking_around": self.is_looking_around(),
+            "progress": self._look_progress,
+            "pose": self._sim_pose,
+        }
+
+    def interrupt_look_around(self) -> dict:
+        if not self.is_looking_around():
+            return {"interrupted": False, "reason": "not looking around"}
+        self._look_interrupt.set()
+        # 다음 동작(moving_path)이 "이미 동작 중"으로 거절당하지 않도록 실제로 멎을 때까지 기다린다.
+        self._look_thread.join(timeout=2.0)
+        return {"interrupted": True, "stopped": not self.is_looking_around()}
 
     def _send_goal_and_wait(self, x: float, y: float, frame: str, yaw_deg: float, timeout: float = 120.0) -> dict:
         result = self.send_goal(x, y, frame, yaw_deg)

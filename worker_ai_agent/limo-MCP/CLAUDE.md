@@ -8,8 +8,30 @@
 > **⚠️ 이 디렉터리는 원본을 그대로 보존한다 (D-14).** 내부 구조·파일명·경로를 바꾸지 않는다 (내용 수정은 D-17 범위 — 결정 기록 조건부 허용).
 > 최초 커밋 `27b0f30` 시점과 **더 이상 byte-identical이 아니다** — `Actions.py`·`Reasonings.py`·
 > `MCP_server.py` 내용을 고치고 `Worker_functions/Visualization.py`를 새로 추가했다 (2026-08-10,
-> D-17 범위 내용 수정). 구조·파일명·경로는 그대로다. 근거: `docs/decisions/2026-08-10-astar-kinematic-sim.md`
+> D-17 범위 내용 수정). 2026-08-11 에 `Perceptions.py`·`Scenarios/run_scenario.py`·
+> `Scenarios/turn_on_air_conditioner.json` 도 고치고 `Scenarios/check_grandma*.json` 을 추가했다.
+> 구조·파일명·경로는 그대로다. 근거: `docs/decisions/2026-08-10-astar-kinematic-sim.md`
 > · `docs/decisions/2026-08-10-worker-side-kg-lookup-phase0.md`.
+> (2026-08-12) 방청소 시나리오 추가 — `Scenarios/generate_coverage_scenario.py`(생성기,
+> 원본에 없던 파일) + 그 출력물 `Scenarios/clean_room.json`(6구역 라운모어형 커버리지,
+> 286 step)과 `Scenarios/clean_room_bedroom_smoketest.json`(침실만, 36 step, 빠른 확인용).
+> `clean_room.json`은 손으로 고치지 않는다 — 생성기를 다시 돌린다. 구역 진입/이탈마다
+> `send_ir_signal(device="vacuum", ...)` 가상 신호를 쓴다(실존 장치 아님, 로봇에 진공
+> 부착물이 있다고 가정). 좌표는 map.pgm 점유격자 스캔 + `astar_plan` 체인 검증으로
+> 뽑았다(지어내지 않음). 근거: `docs/decisions/2026-08-12-room-cleaning-scenario.md` ·
+> `docs/decisions/2026-08-12-virtual-vacuum-actuator.md` ·
+> `docs/decisions/2026-08-12-boustrophedon-coverage.md` ·
+> `docs/decisions/2026-08-12-pre-pr-cleanup-room-cleaning.md`.
+> (2026-08-12) `Scenarios/scenario_dsl.py`·`variate_scenario.py`·`validate_variant.py` 추가 —
+> `check_grandma.json` 류 시나리오의 변형기/검증기, 원본에 없던 파일. 근거:
+> `docs/decisions/2026-08-12-scenario-variator-rules.md`.
+> (2026-08-12) `Scenarios/object_bindings.json` 추가 + `check_grandma.json`·
+> `check_grandma_bedroom_first.json`·`check_obj_state.json`의 `input.object`를
+> 의미적 라벨로, `input.target_class`를 실제 탐지 class 대조용으로 분리. 근거:
+> `docs/decisions/2026-08-12-object-target-class-split.md`.
+> (2026-08-12) PR 전 정리 — 데모 산출물 `check_obj_state_v1~v5.json` 삭제
+> (`variate_scenario.py`로 재생성 가능). 근거:
+> `docs/decisions/2026-08-12-pre-pr-cleanup-variator.md`.
 > 옛 트리는 `tree/27b0f30/limo-MCP` 에서 볼 수 있다.
 
 ## 왜 여기 있는가
@@ -32,6 +54,7 @@ worker_ai_agent/
 | `Worker_functions/Reasonings.py` | Reasoning Function (RF) → `../reasoning/` |
 | `Worker_functions/Actions.py` | Action Function (AF) → `../action/` |
 | `Worker_functions/Visualization.py` | (신규, 2026-08-10) RViz2 실시간 시각화 — `patrol_viz.py`와 같은 토픽 재사용, 원본 목록엔 없던 파일 |
+| `Worker_functions/Perceptions.py` | Perception Function (PF). (2026-08-11) `SimCameraPerception` 추가 — `SIM_PERSON` 환경변수가 있을 때만 동작하는 기하 카메라 시뮬 |
 | `MCP_server/MCP_server.py` | A2A Server + Agent Executor → `../mcp_server/` |
 | `Simulation/` | 시뮬레이션 (비컴포넌트) |
 | `Scenarios/` | 검증 클라이언트 (비컴포넌트) |
@@ -57,8 +80,8 @@ python3 Scenarios/capture_and_detect.py out.jpg
 |---|---|---|
 | **G-1** | 프레임 pinning 부재 — 최신 1장만 캐시, 과거 `frame_id` 조회 불가 | `Worker_functions/Perceptions.py` |
 | **G-2** | `pose`가 항상 `None` | 〃 |
-| **G-3** | person-scan API 5종이 MCP tool로 미노출 | `MCP_server/MCP_server.py` |
-| **G-4** | `look_around` / patrol 미구현 | `Worker_functions/Actions.py` |
+| ~~G-3~~ | ~~person-scan API 5종이 MCP tool로 미노출~~ → **부분 해소 (2026-08-11)**: `check_object_state` 노출. `start/wait/status/stop_person_scan` 4종은 여전히 미노출 (시나리오가 `detect_objects` 폴링으로 대체) | `MCP_server/MCP_server.py` |
+| ~~G-4~~ | ~~`look_around` / patrol 미구현~~ → **해소 (2026-08-11)**: `look_around` · `is_looking_around` · `interrupt_look_around` 구현·노출. patrol 은 코드가 아니라 시나리오 JSON 의 `branch` 로 표현한다 | `Worker_functions/Actions.py` |
 | **G-5** | stale 콜백 가드 없음 | 〃 |
 
 **G-1과 G-2는 시나리오 1의 핵심 경로를 끊는다.** 상세는 `../perception/CLAUDE.md`.

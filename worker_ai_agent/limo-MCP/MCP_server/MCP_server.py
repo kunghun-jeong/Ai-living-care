@@ -30,7 +30,7 @@ sys.path.append(
 )
 
 from Actions import ActionModule
-from Perceptions import PerceptionModule
+from Perceptions import PerceptionModule, sim_camera_from_env
 from Reasonings import ReasoningModule, astar_plan, yolo_detect
 from Visualization import PoseVisualizer
 from kg import KnowledgeGraph
@@ -86,8 +86,13 @@ _kg = KnowledgeGraph()
 class LimoGatewayNode(Node):
     def __init__(self):
         super().__init__("limo_mcp_gateway")
+        # SIM_PERSON="x,y" 가 있으면 Gazebo 없이도 인지 단계가 돈다 (기하 시뮬). 없으면 None.
+        self.sim_cam = sim_camera_from_env()
+        if self.sim_cam is not None:
+            self.get_logger().info(f"[SIM-CAM] geometric camera on, person at {self.sim_cam.person}")
         # tools/limo-patrol-viz/patrol.rviz와 같은 토픽으로 moving_path 진행을 RViz2에 스트리밍한다.
-        self.viz = PoseVisualizer(self)
+        # sim_cam 을 넘기면 1인칭 화면도 /camera/image_raw 로 나간다.
+        self.viz = PoseVisualizer(self, sim_cam=self.sim_cam)
         self.action = ActionModule(self, viz=self.viz)
         self.perception = PerceptionModule(self)
         self.reasoning = ReasoningModule(
@@ -151,34 +156,92 @@ def get_status() -> dict:
     }
 
 
+def _observe(min_conf: float = 0.4):
+    """프레임 하나와 그 안의 검출을 가져온다 — (item, detections, source).
+
+    SIM_PERSON 이 켜져 있으면 "Gazebo 없이 돌린다"는 선언이므로 기하 시뮬을 먼저 본다.
+    꺼져 있으면 실제 카메라 + YOLO. 둘 다 없으면 (None, [], None).
+    결과에는 항상 source 를 실어 실측과 섞이지 않게 한다.
+
+    시뮬을 먼저 보는 것이 중요하다: PoseVisualizer 가 시뮬 화면을 /camera/image_raw 로
+    내보내고 PerceptionModule 이 그 토픽을 구독하므로, 실제 카메라를 먼저 보면 자기가 쏜
+    프레임을 실측으로 착각하고 YOLO 로 넘긴다.
+    """
+    if _node.sim_cam is not None:
+        item = _node.sim_cam.get_frame(_node.action.last_sim_pose)
+        return item, [d for d in item["detections"] if d.get("conf", 0.0) >= min_conf], "geometric_sim"
+
+    item = _node.perception.get_latest_frame()
+    if item is not None:
+        out = _node.reasoning.detect_objects(item["frame"])
+        dets = out.get("detections")
+        if dets is None:
+            return item, [], "camera"
+        return item, [d for d in dets if d.get("conf", 0.0) >= min_conf], "camera"
+
+    return None, [], None
+
+
 @mcp.tool()
 def get_camera_snapshot():
     """카메라의 최신 프레임을 사진(JPEG)으로 가져온다."""
-    item = _node.perception.get_latest_frame()
+    item, _, source = _observe()
     if item is None:
         return {"image": None, "reason": "no frame available yet"}
     return [
-        json.dumps({"frame_id": item["frame_id"], "stamp": item["stamp"]}),
+        json.dumps({"frame_id": item["frame_id"], "stamp": item["stamp"], "source": source}),
         Image(data=_encode_jpeg(item["frame"]), format="jpeg"),
     ]
 
 
 @mcp.tool()
 def detect_objects(min_conf: float = 0.4) -> dict:
-    """카메라의 최신 프레임에서 YOLO로 물체를 검출해 클래스/신뢰도/bbox 목록을 반환한다."""
-    item = _node.perception.get_latest_frame()
+    """카메라의 최신 프레임에서 물체를 검출해 클래스/신뢰도/bbox 목록을 반환한다."""
+    item, detections, source = _observe(min_conf)
     if item is None:
         return {"detections": [], "reason": "no frame available yet"}
+    return {"frame_id": item["frame_id"], "detections": detections, "source": source}
 
-    out = _node.reasoning.detect_objects(item["frame"])
-    detections = out.get("detections")
-    if detections is None:
-        return {"detections": [], "reason": out.get("reason", "detection failed")}
 
-    return {
-        "frame_id": item["frame_id"],
-        "detections": [d for d in detections if d.get("conf", 0.0) >= min_conf],
-    }
+@mcp.tool()
+def check_object_state(object_class: str = "person", min_conf: float = 0.4):
+    """대상이 찍힌 영역만 크롭해 사진(JPEG)으로 올린다 — 상태 판정은 LLM 이 한다."""
+    item, detections, source = _observe(min_conf)
+    if item is None:
+        return {"image": None, "reason": "no frame available yet"}
+
+    targets = [d for d in detections if d.get("class") == object_class]
+    if not targets:
+        return {"image": None, "reason": f"{object_class} not in frame",
+                "frame_id": item["frame_id"], "source": source}
+
+    best = max(targets, key=lambda d: d.get("conf", 0.0))
+    return [
+        json.dumps({
+            "frame_id": item["frame_id"], "object_class": object_class,
+            "bbox": best.get("bbox"), "conf": best.get("conf"),
+            "pose": item.get("pose"), "source": source,
+        }),
+        Image(data=_crop_fn(item["frame"], best.get("bbox")), format="jpeg"),
+    ]
+
+
+@mcp.tool()
+def look_around(steps: int = 8, step_deg: float = 45.0, step_duration: float = 1.0) -> dict:
+    """제자리에서 둘러본다 (기본 45°×8 = 360°). 비동기 — is_looking_around 로 폴링한다."""
+    return _node.action.look_around(steps, step_deg, step_duration)
+
+
+@mcp.tool()
+def is_looking_around() -> dict:
+    """look_around 가 아직 도는 중인지와 진행 상황을 반환한다."""
+    return _node.action.get_look_around_status()
+
+
+@mcp.tool()
+def interrupt_look_around() -> dict:
+    """진행 중인 look_around 를 중단한다 (대상을 찾았을 때)."""
+    return _node.action.interrupt_look_around()
 
 
 @mcp.tool()
