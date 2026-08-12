@@ -38,6 +38,12 @@
       "pose": {"x": 6.90, "y": -3.05, "yaw": 0.0, "frame": "map"},
       "source": "tools/limo-patrol-viz/WORLD.md §2 — 주방 접근점"
     },
+    "request_origin": {
+      "type": "space",
+      "label_ko": "물 요청 위치",
+      "pose": {"x": 3.5, "y": 1.0, "yaw": 0.0, "frame": "map"},
+      "source": "scenario2 demo"
+    },
     "entrance": {
       "type": "space",
       "label_ko": "현관 (신발장 앞)",

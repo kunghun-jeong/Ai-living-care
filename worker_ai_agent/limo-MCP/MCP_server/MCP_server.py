@@ -292,6 +292,20 @@ def send_ir_signal(
     """(스텁) 리모컨으로 `device`에 IR 신호를 보낸다. 실제 송신 하드웨어는 미구현 — 로그만 남긴다."""
     return _node.action.send_signal(device, command, value, unit)
 
+@mcp.tool()
+def pick_object(object_name: str) -> dict:
+    return _node.action.pick_object(object_name)
+
+
+@mcp.tool()
+def place_object(object_name: str) -> dict:
+    return _node.action.place_object(object_name)
+
+
+@mcp.tool()
+def get_carrying_state() -> dict:
+    return _node.action.get_carrying_state()
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
+

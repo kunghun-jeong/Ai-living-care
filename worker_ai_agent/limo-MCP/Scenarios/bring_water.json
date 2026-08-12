@@ -1,0 +1,206 @@
+{
+  "scenario_id": "bring_water",
+  "input": {
+    "intent": "bring_object",
+    "object": "water",
+    "pickup_location": "kitchen",
+    "delivery_location": "request_origin"
+  },
+  "steps": [
+    {
+      "id": "resolve_pickup_position",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "$input.pickup_location"
+      },
+      "next": "check_pickup_resolved"
+    },
+    {
+      "id": "check_pickup_resolved",
+      "type": "branch",
+      "condition": "resolve_pickup_position.resolved",
+      "on_true": "plan_path_to_pickup",
+      "on_false": "fail"
+    },
+    {
+      "id": "plan_path_to_pickup",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$resolve_pickup_position.x",
+        "y": "$resolve_pickup_position.y",
+        "frame": "$resolve_pickup_position.frame"
+      },
+      "next": "check_pickup_path"
+    },
+    {
+      "id": "check_pickup_path",
+      "type": "branch",
+      "condition": "plan_path_to_pickup.waypoints",
+      "on_true": "move_to_pickup",
+      "on_false": "fail"
+    },
+    {
+      "id": "move_to_pickup",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$plan_path_to_pickup.waypoints"
+      },
+      "next": "check_pickup_move_started"
+    },
+    {
+      "id": "check_pickup_move_started",
+      "type": "branch",
+      "condition": "move_to_pickup.started",
+      "on_true": "wait_pickup_arrival",
+      "on_false": "fail"
+    },
+    {
+      "id": "wait_pickup_arrival",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 120.0,
+      "next": "check_pickup_arrival"
+    },
+    {
+      "id": "check_pickup_arrival",
+      "type": "branch",
+      "condition": "wait_pickup_arrival.matched",
+      "on_true": "pick_water",
+      "on_false": "fail"
+    },
+    {
+      "id": "pick_water",
+      "type": "call",
+      "layer": "action",
+      "tool": "pick_object",
+      "args": {
+        "object_name": "$input.object"
+      },
+      "next": "check_pickup_success"
+    },
+    {
+      "id": "check_pickup_success",
+      "type": "branch",
+      "condition": "pick_water.picked",
+      "on_true": "resolve_delivery_position",
+      "on_false": "fail"
+    },
+    {
+      "id": "resolve_delivery_position",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "resolve_location",
+      "args": {
+        "name": "$input.delivery_location"
+      },
+      "next": "check_delivery_resolved"
+    },
+    {
+      "id": "check_delivery_resolved",
+      "type": "branch",
+      "condition": "resolve_delivery_position.resolved",
+      "on_true": "plan_path_to_delivery",
+      "on_false": "fail"
+    },
+    {
+      "id": "plan_path_to_delivery",
+      "type": "call",
+      "layer": "reasoning",
+      "tool": "pathplanning",
+      "args": {
+        "x": "$resolve_delivery_position.x",
+        "y": "$resolve_delivery_position.y",
+        "frame": "$resolve_delivery_position.frame"
+      },
+      "next": "check_delivery_path"
+    },
+    {
+      "id": "check_delivery_path",
+      "type": "branch",
+      "condition": "plan_path_to_delivery.waypoints",
+      "on_true": "move_to_delivery",
+      "on_false": "fail"
+    },
+    {
+      "id": "move_to_delivery",
+      "type": "call",
+      "layer": "action",
+      "tool": "moving_path",
+      "args": {
+        "waypoints": "$plan_path_to_delivery.waypoints"
+      },
+      "next": "check_delivery_move_started"
+    },
+    {
+      "id": "check_delivery_move_started",
+      "type": "branch",
+      "condition": "move_to_delivery.started",
+      "on_true": "wait_delivery_arrival",
+      "on_false": "fail"
+    },
+    {
+      "id": "wait_delivery_arrival",
+      "type": "poll_until_match",
+      "layer": "action",
+      "tool": "get_path_status",
+      "args": {},
+      "match": {
+        "field": "status",
+        "equals": "succeeded"
+      },
+      "stop_when": {
+        "tool": "get_path_status",
+        "field": "status",
+        "equals": "failed"
+      },
+      "poll_interval": 0.5,
+      "timeout": 120.0,
+      "next": "check_delivery_arrival"
+    },
+    {
+      "id": "check_delivery_arrival",
+      "type": "branch",
+      "condition": "wait_delivery_arrival.matched",
+      "on_true": "place_water",
+      "on_false": "fail"
+    },
+    {
+      "id": "place_water",
+      "type": "call",
+      "layer": "action",
+      "tool": "place_object",
+      "args": {
+        "object_name": "$input.object"
+      },
+      "next": "check_delivery_success"
+    },
+    {
+      "id": "check_delivery_success",
+      "type": "branch",
+      "condition": "place_water.placed",
+      "on_true": "success",
+      "on_false": "fail"
+    }
+  ],
+  "fail": {
+    "error": "bring_water_failed"
+  }
+}
