@@ -1,0 +1,9 @@
+{
+  "_comment": "input.object(의미적 대상 — '누구/무엇을 확인하나') -> target_class(실제 YOLO/시뮬 탐지 class) 매핑. scenario_dsl.resolve_target_class() 가 읽는다. 새 클래스를 추가하려면 여기 한 줄 + docs/decisions/ 파일 하나 (V-4: 열거값 소비자 전수).",
+  "person": "person",
+  "grandma": "person",
+  "grandpa": "person",
+  "child": "person",
+  "dog": "dog",
+  "cat": "cat" 
+}

@@ -1,6 +1,6 @@
 {
   "scenario_id": "check_obj_human",
-  "input": {"intent": "check_obj", "object": "person"},
+  "input": {"intent": "check_obj", "object": "person", "target_class": "person"},
   "steps": [
     {
       "id": "look_around",
@@ -15,7 +15,7 @@
       "layer": "reasoning",
       "tool": "detect_objects",
       "args": {},
-      "match": {"field": "detections", "class_field": "class", "target": "$input.object"},
+      "match": {"field": "detections", "class_field": "class", "target": "$input.target_class"},
       "stop_when": {"tool": "is_looking_around", "field": "looking_around", "equals": false},
       "poll_interval": 0.5,
       "timeout": 15.0,
@@ -34,7 +34,7 @@
       "layer": "reasoning",
       "tool": "check_object_state",
       "args": {
-        "object_class": "$input.object",
+        "object_class": "$input.target_class",
         "detections": "$scan_and_detect.matched_detections"
       },
       "next": "success"
