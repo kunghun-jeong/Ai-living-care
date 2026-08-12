@@ -3,7 +3,8 @@
   "label": "기본 — 식탁부터 시계방향 (시나리오 1의 원래 순서)",
   "input": {
     "intent": "check_obj",
-    "object": "person"
+    "object": "grandma",
+    "target_class": "person"
   },
   "note": "경로는 하드코딩이다 — LLM 은 순서를 짜지 않고 이 시나리오(또는 파생 버전)를 고르기만 한다. 구역 이름은 manager_ai_agent/knowledge_graph/entities.json 의 엔티티다. 좌표는 tools/limo-patrol-viz/WORLD.md §2 에서 계산한 값. 팀 합의에 따라 시작점과 도착점은 같다 — 마지막에 항상 home(3.5,1.0)으로 돌아온다.",
   "steps": [
@@ -81,7 +82,7 @@
       "match": {
         "field": "detections",
         "class_field": "class",
-        "target": "$input.object"
+        "target": "$input.target_class"
       },
       "stop_when": {
         "tool": "is_looking_around",
@@ -176,7 +177,7 @@
       "match": {
         "field": "detections",
         "class_field": "class",
-        "target": "$input.object"
+        "target": "$input.target_class"
       },
       "stop_when": {
         "tool": "is_looking_around",
@@ -271,7 +272,7 @@
       "match": {
         "field": "detections",
         "class_field": "class",
-        "target": "$input.object"
+        "target": "$input.target_class"
       },
       "stop_when": {
         "tool": "is_looking_around",
@@ -366,7 +367,7 @@
       "match": {
         "field": "detections",
         "class_field": "class",
-        "target": "$input.object"
+        "target": "$input.target_class"
       },
       "stop_when": {
         "tool": "is_looking_around",
@@ -461,7 +462,7 @@
       "match": {
         "field": "detections",
         "class_field": "class",
-        "target": "$input.object"
+        "target": "$input.target_class"
       },
       "stop_when": {
         "tool": "is_looking_around",
@@ -556,7 +557,7 @@
       "match": {
         "field": "detections",
         "class_field": "class",
-        "target": "$input.object"
+        "target": "$input.target_class"
       },
       "stop_when": {
         "tool": "is_looking_around",
@@ -583,7 +584,7 @@
       "layer": "reasoning",
       "tool": "check_object_state",
       "args": {
-        "object_class": "$input.object",
+        "object_class": "$input.target_class",
         "min_conf": 0.4
       },
       "next": "go_home_resolve"
