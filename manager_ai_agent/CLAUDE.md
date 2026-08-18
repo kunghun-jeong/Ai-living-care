@@ -31,3 +31,6 @@ IF-1(→KG/IAD) · IF-2(↔MAA) · IF-3(↔MAMS) · **IF-4**(↔WAC) · IF-7(↔
 
 docx는 Manager를 "우리 스코프 아님"으로 두었으나 **2026-08-06 결정으로 구현 범위에 포함**됐다.
 KG는 그래프DB가 아니라 JSON 룩업으로 간소 구현한다 (D-6).
+
+- **`graph_inference/`** (실험·미승인): Neo4j 기반 추론 파이프라인(라우팅→조회→판단→intent 생성) 제안.
+  기존 JSON KG(D-6)·"DB 없음"과의 관계는 **TODO(확인 필요)** — 그 폴더 `CLAUDE.md` 참조. `SOT.md` 등재는 팀 승인 후.
