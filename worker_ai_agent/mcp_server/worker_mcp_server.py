@@ -27,18 +27,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "action"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "perception"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "reasoning"))
 
-from Actions import ActionModule
-from Perceptions import PerceptionModule
-from Reasonings import ReasoningModule, yolo_detect
-
-from nav2_move import nav2_cancel as _nav2_cancel
-from nav2_move import nav2_move as _nav2_move
-from nav2_move import nav2_move_waypoints as _nav2_move_waypoints
-from nav2_move import nav2_status as _nav2_status
-from camera_stream import camera_stream as _camera_stream
-from yolo_reasoning import yolo_reasoning as _yolo_reasoning
 
 CROP_MAX_PX = 512  # LLM에 올리는 이미지 크기 상한
+
+from worker_ai_agent.action.nav2_action_client import ActionModule
+from worker_ai_agent.perception.camera_source import PerceptionModule
 
 
 def _plan_fn(_start: dict, goal: dict) -> list:
@@ -78,18 +71,17 @@ def _crop_fn(frame, bbox) -> bytes:
 
 
 class WorkerFunctionsNode(Node):
-    """MCP_server.py의 LimoGatewayNode와 같은 구성이지만, limo-MCP 원본과 이름이 겹치지
-    않도록 별도 노드명을 쓴다 — 두 서버가 동시에 떠도 충돌하지 않는다."""
-
     def __init__(self):
         super().__init__("limo_worker_functions_gateway")
-        self.action = ActionModule(self)
-        self.perception = PerceptionModule(self)
-        self.reasoning = ReasoningModule(
-            plan_fn=_plan_fn,
-            detect_fn=yolo_detect,
-            crop_fn=_crop_fn,
-            frame_source=self.perception.get_latest_frame,
+
+        self.action = ActionModule(
+            self,
+            nav_action="/navigate_to_pose",
+        )
+
+        self.perception = PerceptionModule(
+            self,
+            topic="/camera/image_raw",
         )
 
 
@@ -110,50 +102,118 @@ mcp = MCPServer("limo-worker-fn")
 
 
 @mcp.tool()
-def nav2_move(x: float, y: float, frame: str = "map", yaw_deg: float | None = None) -> dict:
+def nav2_move(
+    x: float,
+    y: float,
+    frame: str = "map",
+    yaw_deg: float | None = None,
+) -> dict:
     """목표 좌표 하나로 이동을 시작한다."""
-    return _nav2_move(_node.action, x, y, frame, yaw_deg)
+
+    goal = {
+        "x": x,
+        "y": y,
+        "frame": frame,
+    }
+
+    if yaw_deg is not None:
+        goal["yaw_deg"] = yaw_deg
+
+    return _node.action.send_goal_sequence([goal])
 
 
 @mcp.tool()
 def nav2_move_waypoints(waypoints: list) -> dict:
-    """웨이포인트 리스트를 순서대로 이동한다."""
-    return _nav2_move_waypoints(_node.action, waypoints)
+    """여러 목표 좌표를 순서대로 이동한다."""
+
+    return _node.action.send_goal_sequence(waypoints)
 
 
 @mcp.tool()
 def nav2_cancel() -> dict:
-    """진행 중인 목표/시퀀스를 취소한다."""
-    return _nav2_cancel(_node.action)
+    """현재 이동을 취소한다."""
 
+    if _node.action.is_running_sequence():
+        return _node.action.cancel_goal_sequence()
+
+    return _node.action.cancel_goal()
 
 @mcp.tool()
 def nav2_status() -> dict:
     """현재 내비게이션 상태를 반환한다."""
-    return _nav2_status(_node.action)
 
+    action = _node.action
+
+    return {
+        "status": action.status,
+        "last_goal": action.last_goal,
+        "sequence_progress": action.sequence_progress,
+        "sequence_result": action.sequence_result,
+    }
 
 @mcp.tool()
 def camera_stream():
-    """카메라의 최신 프레임을 사진(JPEG)으로 가져온다."""
-    item = _camera_stream(_node.perception)
+    """카메라 최신 프레임을 JPEG으로 반환한다."""
+
+    item = _node.perception.get_latest_frame()
+
     if item is None:
-        return {"image": None, "reason": "no frame available yet"}
+        return {
+            "image": None,
+            "reason": "no frame available yet",
+        }
+
     return [
-        json.dumps({"frame_id": item["frame_id"], "stamp": item["stamp"]}),
-        Image(data=_encode_jpeg(item["frame"]), format="jpeg"),
+        json.dumps(
+            {
+                "frame_id": item["frame_id"],
+                "stamp": item["stamp"],
+            }
+        ),
+        Image(
+            data=_encode_jpeg(item["frame"]),
+            format="jpeg",
+        ),
     ]
 
 
 @mcp.tool()
-def yolo_reasoning(min_conf: float = 0.4) -> dict:
-    """카메라의 최신 프레임에서 YOLO로 물체를 검출한다."""
-    item = _camera_stream(_node.perception)
+def yolo_reasoning(
+    min_conf: float = 0.4,
+) -> dict:
+    """최신 카메라 프레임에서 객체를 검출한다."""
+
+    item = _node.perception.get_latest_frame()
+
     if item is None:
-        return {"detections": [], "reason": "no frame available yet"}
-    out = _yolo_reasoning(_node.reasoning, item["frame"], min_conf)
-    out["frame_id"] = item["frame_id"]
-    return out
+        return {
+            "detections": [],
+            "reason": "no frame available yet",
+        }
+
+    result = _node.reasoning.detect_objects(
+        item["frame"],
+    )
+
+    detections = result.get("detections")
+
+    if detections is None:
+        return {
+            "detections": [],
+            "reason": result.get(
+                "reason",
+                "detection failed",
+            ),
+        }
+
+    return {
+        "frame_id": item["frame_id"],
+        "detections": [
+            detection
+            for detection in detections
+            if detection.get("conf", 0.0) >= min_conf
+        ],
+    }
 
 
 if __name__ == "__main__":
