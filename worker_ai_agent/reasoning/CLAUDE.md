@@ -1,7 +1,7 @@
 # Reasoning Function (RF)
 
 > **역할** 관측으로부터 상태를 판단한다 — **이 저장소에서 가장 잘 분리된 설계**
-> **상태** Phase 0 · 구현됨(`limo-MCP`) · ⚠ **안전** `F-51` · 갭 `G-3` · 작업 `0-9`
+> **상태** Phase 0 · 구현됨(`limo-MCP`) · **wrapper 코드 있음(`yolo_reasoning.py`, 실험·미승인, D-21)** · ⚠ **안전** `F-51` · 갭 `G-3` · 작업 `0-9`
 > **읽을 절** spec **§2.2** · **§10.3** — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §2.2 · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
@@ -13,9 +13,19 @@
 ## 구현 위치 (D-14)
 
 원본 보존 원칙에 따라 실제 코드는 **`worker_ai_agent/limo-MCP/Worker_functions/Reasonings.py`** 에 있다.
-이 디렉터리는 **규범(설계·인터페이스·갭)** 을 보유하고, 코드는 두지 않는다.
+이 디렉터리는 규범을 보유한다 — `ReasoningModule`을 재구현하지 않는다.
 
 **구현을 고치기 전에 이 문서의 갭·주의사항을 먼저 읽을 것.**
+
+## 실험 코드 — `yolo_reasoning.py` (실험 · 미승인 · 상급자 승인 대기)
+
+`ReasoningModule` 인스턴스를 인자로 받는 순수 함수 wrapper 하나(`yolo_reasoning`) —
+`detect_objects`를 호출하고 `min_conf`로 필터링만 한다. **이 wrapper가 따르는 바로 그
+DI 패턴**(위 "왜 이 파일이 기준인가")을 그대로 계승한다.
+`docs/decisions/2026-08-19-worker-functions-and-a2a-store.md` 참조.
+
+**아래 G-3(person-scan 5종 미노출)은 이번 스코프 밖이다 — 손대지 않았다.** `yolo_reasoning.py`는
+`detect_objects` 하나만 감쌌다. person-scan 노출은 향후 과제로 남는다.
 
 ## 왜 이 파일이 기준인가
 

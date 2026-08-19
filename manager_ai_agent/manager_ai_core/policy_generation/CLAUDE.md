@@ -42,9 +42,17 @@ L2 ECA XML)를 아직 안 쓴다 — **자체 내부 dict 모양**으로 판단�
 - `rule_evaluator.py` — C2. `../kg_mapping/graph_retrieval.py`가 가져온 규칙(threshold 등)과
   관측값을 비교해 `should_escalate`를 결정한다. **100% 결정론적 코드**이며 LLM을 쓰지 않는다.
   이 결과가 정본 `<condition>`·`<assurance><escalation-on>`에 대응될 후보다.
-- `sequence_generator.py` — C3. C2의 판단을 로봇에게 줄 자연어 intent로 "조립"만 한다
-  (새 판단·임계값을 만들지 않음). 백엔드 우선순위: `LLM_BACKEND` 강제 지정 → 로컬 Ollama →
-  `ANTHROPIC_API_KEY` 있으면 Claude → 없으면 결정론적 mock. 이 산출물(자연어 한 문장)을
-  정본 L2 ECA XML `<action>`으로 어떻게 승격할지는 TODO(확인 필요).
+- `sequence_generator.py` — C3. 2026-08-19에 "자연어 한 문장 조립"에서 **구조화된 실행
+  계약(RobotTask) 생성**으로 바뀌었다. 출력:
+  `{device_id, functions, goal, params_hint, report_condition, grounded_on, escalate, source, intent}` —
+  `functions`(무엇을 할지)는 규칙이 이미 정하고(`_build_decision`, 100% 결정론), **LLM은 그
+  functions를 한국어 `goal` 한 문장으로 번역·연결만 한다**(few-shot 프롬프트). `_validate`가
+  LLM 출력의 `functions`가 입력과 다르면 통째로 버리고 결정론 템플릿(`_render_goal_template`)
+  으로 폴백한다 — LLM이 새 판단·기능을 지어낼 수 없게 하는 검증 게이트. 백엔드 우선순위는
+  그대로: `LLM_BACKEND` 강제 지정 → 로컬 Ollama → `ANTHROPIC_API_KEY` 있으면 Claude → 없으면
+  mock(이 경우 LLM 자체를 안 부르고 템플릿만 씀). `target`(대상, 기본값 "할머니") 인자가
+  추가됐다 — 아직 mock이고 의도추출·KG로 교체 예정(TODO 확인 필요). 이 RobotTask 산출물을
+  정본 L2 ECA XML `<action>`으로 어떻게 승격할지는 여전히 TODO(확인 필요) — 다만 이제
+  `functions`가 `<required-skill>` 후보에, `params_hint`가 `<condition>` 후보에 더 가깝다.
 
 실행법·의존성은 `../CLAUDE.md`의 「Neo4j 추론 파이프라인」참조.

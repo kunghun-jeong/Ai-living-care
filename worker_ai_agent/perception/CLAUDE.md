@@ -1,7 +1,7 @@
 # Perception Function (PF)
 
 > **역할** 카메라 프레임 획득 — RF 가 쓰는 `FrameSource` 를 제공한다
-> **상태** Phase 0 · 구현됨(`limo-MCP`) · ⚠ **안전** `F-1` `F-3` · 갭 `G-1` `G-2` · 작업 `0-7` `0-8`
+> **상태** Phase 0 · 구현됨(`limo-MCP`) · **wrapper 코드 있음(`camera_stream.py`, 실험·미승인, D-21)** · ⚠ **안전** `F-1` `F-3` · 갭 `G-1` `G-2` · 작업 `0-7` `0-8`
 > **읽을 절** spec **§2.2** · **§10.3**(코드 갭) — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §2.2 · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
@@ -16,9 +16,19 @@ IF-5(←WAC) · IF-6(→WAA).
 ## 구현 위치 (D-14)
 
 원본 보존 원칙에 따라 실제 코드는 **`worker_ai_agent/limo-MCP/Worker_functions/Perceptions.py`** 에 있다.
-이 디렉터리는 **규범(설계·인터페이스·갭)** 을 보유하고, 코드는 두지 않는다.
+이 디렉터리는 규범을 보유한다 — `PerceptionModule`을 재구현하지 않는다.
 
 **구현을 고치기 전에 이 문서의 갭·주의사항을 먼저 읽을 것.**
+
+## 실험 코드 — `camera_stream.py` (실험 · 미승인 · 상급자 승인 대기)
+
+`PerceptionModule` 인스턴스를 인자로 받는 순수 함수 wrapper 하나(`camera_stream`) —
+`get_latest_frame`을 그대로 위임만 한다. JPEG 인코딩(PIL 의존)은 여기 두지 않고
+`../mcp_server/worker_mcp_server.py`(서버 경계)에서 한다. **아래 G-1·G-2와 "인코딩 검사
+없음" 갭은 이 wrapper가 고치지 않는다** — `Perceptions.py`의 알려진 결함을 그대로 물려받는다.
+실물 LIMO로 전환하면서 인코딩 갭이 이론이 아니라 실제로 부딪힐 위험이 됐다 — 검증 전
+`ros2 topic echo`로 실제 encoding 필드를 먼저 확인할 것.
+`docs/decisions/2026-08-19-worker-functions-and-a2a-store.md` 참조.
 
 ## ⚠️ G-1 — 프레임 pinning 부재 (크리티컬)
 

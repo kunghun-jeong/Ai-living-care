@@ -17,10 +17,10 @@ Manager가 만든 **고수준 정책(L2)** 을 받아 디바이스별 **저수�
 | `worker_ai_core/` | Worker AI Core (WAC) | 미착수 |
 | `worker_ai_analyzer/` | Worker AI Analyzer (WAA) | 미착수 |
 | `worker_ai_management_system/` | Worker AI Management System (WAMS) | 미착수 |
-| `perception/` | Perception Function (PF) | 규범 — 구현은 ② |
-| `reasoning/` | Reasoning Function (RF) | 규범 — 구현은 ② |
-| `action/` | Action Function (AF) | 규범 — 구현은 ② |
-| `mcp_server/` | A2A Server + Agent Executor | 규범 — 구현은 ② |
+| `perception/` | Perception Function (PF) | 규범 + 실험 wrapper(①, `camera_stream.py`) — limo-MCP 구현은 ② |
+| `reasoning/` | Reasoning Function (RF) | 규범 + 실험 wrapper(①, `yolo_reasoning.py`) — limo-MCP 구현은 ② |
+| `action/` | Action Function (AF) | 규범 + 실험 wrapper(①, `nav2_move.py`) — limo-MCP 구현은 ② |
+| `mcp_server/` | A2A Server + Agent Executor | 규범 + 실험 코드(①, `worker_mcp_server.py`·`a2a_server.py`) — limo-MCP 구현은 ② |
 
 **② Worker 구현체** — 디바이스별 실현체. **원본 보존 (D-14).**
 

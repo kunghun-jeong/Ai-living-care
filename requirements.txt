@@ -9,7 +9,9 @@ sentence-transformers
 anthropic
 
 # frontend/ ↔ manager_ai_core/api_server.py 실험용 HTTP 게이트웨이 (실험·미승인, requests는 위 3개와 별개로
-# manager_ai_agent/a2a_client/a2a_client.py 가 Worker 전달(표준 A2A, HTTP+JSON-RPC 2.0)에도 씀)
+# manager_ai_agent/a2a_client/a2a_client.py 가 Worker 전달(표준 A2A, HTTP+JSON-RPC 2.0)에도 씀).
+# worker_ai_agent/mcp_server/a2a_server.py(실험·미승인, D-21)도 fastapi/uvicorn을 그대로 씀 —
+# rclpy/ultralytics 없이 Windows에서 단독으로 뜬다.
 fastapi
 uvicorn[standard]
 requests

@@ -106,11 +106,11 @@
 | Worker AI Core | WAC | `worker_ai_agent/worker_ai_core/` | **IF-4**·IF-5·IF-3 | 0 | 없음 |
 | Worker AI Analyzer | WAA | `worker_ai_agent/worker_ai_analyzer/` | IF-6·IF-2·IF-8 | 0 | 없음 |
 | Worker AI Management System | WAMS | `worker_ai_agent/worker_ai_management_system/` | IF-3·**IF-7** | 1 | 없음 |
-| Perception Function | PF | `worker_ai_agent/perception/` | IF-5·IF-6 | 0 | `Perceptions.py` |
-| Reasoning Function | RF | `worker_ai_agent/reasoning/` | IF-5·IF-6 | 0 | `Reasonings.py` |
-| Action Function | AF | `worker_ai_agent/action/` | IF-5·IF-6 | 0 | `Actions.py` |
+| Perception Function | PF | `worker_ai_agent/perception/` | IF-5·IF-6 | 1 | `Perceptions.py`(구현은 `limo-MCP/`) · `camera_stream.py`(wrapper, 실험·미승인, D-21) |
+| Reasoning Function | RF | `worker_ai_agent/reasoning/` | IF-5·IF-6 | 1 | `Reasonings.py`(구현은 `limo-MCP/`) · `yolo_reasoning.py`(wrapper, 실험·미승인, D-21) |
+| Action Function | AF | `worker_ai_agent/action/` | IF-5·IF-6 | 1 | `Actions.py`(구현은 `limo-MCP/`) · `nav2_move.py`(wrapper, 실험·미승인, D-21) |
 | A2A Client | — | `manager_ai_agent/a2a_client/` | **IF-4** | 0 | 정본(MCP) 없음 · `a2a_client.py`(실험·미승인, 표준 A2A, D-20) |
-| A2A Server + Agent Executor | — | `worker_ai_agent/mcp_server/` | **IF-4** | 0 | `MCP_server.py` (구현은 `limo-MCP/`) |
+| A2A Server + Agent Executor | — | `worker_ai_agent/mcp_server/` | **IF-4** | 3 | `MCP_server.py`(구현은 `limo-MCP/`) · `worker_mcp_server.py`+`a2a_server.py`+`task_store.py`(실험·미승인, D-21) |
 
 > **PF/RF/AF의 정식 명칭은 "…Function"이지만 디렉터리는 `perception/`·`reasoning/`·`action/`으로 한다** (D-11).
 > `_function` 접미사가 모든 경로에 반복되어 가독성을 해치고, 상위 `worker_ai_agent/`가 이미 문맥을 준다.
@@ -217,6 +217,7 @@ python3 anchor.py             # 앵커 누락만 확인 (수 초)
 | **D-16** | **`SOT.md` §2 트리 · `sot_audit.py` 검사 대상 · 실제 디렉터리는 항상 집합 일치한다** | 셋 중 하나만 고치면 정본이 파생물보다 낡는다 — 실제로 발생했다 (F-20). 구조를 바꾸면 트리도 같이 고친다 |
 | **D-19** | 옛 `manager_ai_agent/graph_inference/`(Neo4j 추론 실험 코드)를 폐기하고 이미 정본에 있는 `manager_ai_core/kg_mapping/`·`manager_ai_core/policy_generation/`로 역할별 분배한다. §2 트리는 바뀌지 않는다 — 새 디렉터리를 안 만들었다 | 새 컴포넌트를 만들지 않고도 실험 코드를 정본 구조와 정합시킴. 여전히 **실험·미승인**이며 IF-1 위반(HG-5)·Neo4j vs JSON KG(D-6) 정합성은 미해소 (`docs/decisions/2026-08-18-graph-inference-distribution.md`) |
 | **D-20** | `manager_ai_agent/mcp_client/`를 `manager_ai_agent/a2a_client/`로 개명한다(N-2 준수, `A2A_client` 아님) | 이 폴더의 실험 코드가 MCP를 전혀 안 쓰고 **표준 A2A(HTTP+JSON-RPC 2.0)**를 쓰게 되면서 `mcp_client`라는 이름이 내용과 어긋났다. `interfaces/if04_secure_a2a_channel/`이 정의하는 MCP 기반 정본 설계는 그대로 미착수 상태 — 이름만 바꿨을 뿐 정본 방향을 정한 게 아니다. 여전히 **실험·미승인**(`docs/decisions/2026-08-18-rename-mcp-client-to-a2a-client.md`) |
+| **D-21** | `worker_ai_agent/{action,perception,reasoning}/`에 `nav2_move`/`camera_stream`/`yolo_reasoning` wrapper를, `worker_ai_agent/mcp_server/`에 이를 쓰는 두 번째 stdio MCP 서버(`worker_mcp_server.py`)와 표준 A2A HTTP 서버(`a2a_server.py`, `dev_mock_worker_agent.py`의 실제 대체품, 수신+저장만)를 추가한다 | `limo-MCP/**`(D-17)는 미수정 — wrapper는 `ActionModule`/`PerceptionModule`/`ReasoningModule` 인스턴스를 재사용만 한다. `a2a_server.py`는 `a2a_client/CLAUDE.md`가 이미 공개한 Worker A2A 계약을 그대로 구현했다. 여전히 **실험·미승인**, 실행(`execute_policy`, L2→L3)은 별도(G-3/0-5/0-6) — 이번엔 수신+저장까지만 (`docs/decisions/2026-08-19-worker-functions-and-a2a-store.md`) |
 
 > **spec §0.2 반영 상태** (2026-08-07 실측): `D-9`~`D-14`·`D-17`·`D-18` 반영 완료.
 > **`D-15`·`D-16` 미반영** — 구조 규범 전용이라 spec 에 올릴지는 판단이 필요하다.
