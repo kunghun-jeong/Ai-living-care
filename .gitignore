@@ -40,6 +40,9 @@ Thumbs.db
 .env
 .env.*
 
+# Worker A2A 저장소 — 수신 task 파일 보관, 실험·미승인 (D-21)
+worker_ai_agent/mcp_server/data/*.json
+
 ####################
 # 대용량 발표 자료 (로컬 전용)
 ####################

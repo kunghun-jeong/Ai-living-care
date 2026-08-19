@@ -6,7 +6,7 @@ IITP RS-2024-00398199 · 산출물: 프로토타입 · 표준화 제안서 · �
 
 Python 3.10+ · ROS2 Jazzy (rclpy · Nav2 · slam_toolbox) · **MCP SDK ≥2.0** · YOLO(ultralytics) · Gazebo Harmonic
 DB 없음 · HTTP API 없음 (외부 인터페이스는 MCP tool 6종)
-구성: `manager_ai_agent/` · `worker_ai_agent/`(구현체 `limo-MCP/`) · `interfaces/`(IF-1~8) · `contracts/` · `tools/` · `docs/` · `frontend/`(실험·미승인, 위 "HTTP API 없음"과 충돌 — `frontend/CLAUDE.md`)
+구성: `manager_ai_agent/` · `worker_ai_agent/`(구현체 `limo-MCP/`) · `interfaces/`(IF-1~8) · `contracts/` · `tools/` · `docs/` · `frontend/`·`worker_ai_agent/mcp_server/`(`a2a_server.py`, 실험·미승인, 위 "HTTP API 없음"과 충돌 — `frontend/CLAUDE.md`·`worker_ai_agent/mcp_server/CLAUDE.md`)
 
 ## ⛔ 소유 경계 (D-17 · D-18)
 

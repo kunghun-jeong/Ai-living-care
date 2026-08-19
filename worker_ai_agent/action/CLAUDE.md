@@ -1,7 +1,7 @@
 # Action Function (AF)
 
 > **역할** Nav2 로 물리 이동을 수행한다
-> **상태** Phase 0 · 구현됨(`limo-MCP`) · ⚠ **안전** `F-2` `F-48` · 갭 `G-4` `G-5` · 작업 `0-11` `0-12`
+> **상태** Phase 0 · 구현됨(`limo-MCP`) · **wrapper 코드 있음(`nav2_move.py`, 실험·미승인, D-21)** · ⚠ **안전** `F-2` `F-48` · 갭 `G-4` `G-5` · 작업 `0-11` `0-12`
 > **읽을 절** spec **§2.2** · **§10.1**(자산 매핑) — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §2.2 · ⛔ **코드는 담당 연구원 소유 (D-17)**
 
@@ -13,9 +13,18 @@
 ## 구현 위치 (D-14)
 
 원본 보존 원칙에 따라 실제 코드는 **`worker_ai_agent/limo-MCP/Worker_functions/Actions.py`** 에 있다.
-이 디렉터리는 **규범(설계·인터페이스·갭)** 을 보유하고, 코드는 두지 않는다.
+이 디렉터리는 규범을 보유한다 — `ActionModule`을 재구현하지 않는다.
 
 **구현을 고치기 전에 이 문서의 갭·주의사항을 먼저 읽을 것.**
+
+## 실험 코드 — `nav2_move.py` (실험 · 미승인 · 상급자 승인 대기)
+
+`ActionModule` 인스턴스를 인자로 받는 순수 함수 wrapper — ROS2를 직접 import하지 않는다
+(`reasoning/`의 DI 패턴을 따름). `nav2_move`·`nav2_move_waypoints`·`nav2_cancel`·`nav2_status`
+4개 함수, `Actions.py`는 **수정하지 않고 재사용만** 한다(D-17). 노드 생성·`sys.path` 등록은
+`../mcp_server/worker_mcp_server.py`(합성 루트)에서 한다. 아래 G-4·G-5 갭은 이 wrapper가
+고치는 게 아니다 — `Actions.py`의 알려진 결함으로 그대로 남아 있다.
+`docs/decisions/2026-08-19-worker-functions-and-a2a-store.md` 참조.
 
 ## ROS2 의존 표면 (전부)
 

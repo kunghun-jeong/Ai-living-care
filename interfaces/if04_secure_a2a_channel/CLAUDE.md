@@ -15,6 +15,12 @@ Worker 측 `worker_ai_agent/mcp_server/`
 > **주의(2026-08-18)**: `manager_ai_agent/a2a_client/`의 현재 코드(실험·미승인)는 이 문서가
 > 정의하는 MCP 기반이 아니라 **표준 A2A(HTTP+JSON-RPC 2.0)**를 쓴다. 이 파일이 기술하는
 > A2A-over-MCP는 여전히 미착수 정본 설계다 — `docs/decisions/2026-08-18-a2a-standard-not-mcp.md` 참조.
+>
+> **주의(2026-08-19)**: Worker 쪽에도 이제 대칭되는 실험 코드가 있다 —
+> `worker_ai_agent/mcp_server/a2a_server.py`(실험·미승인)가 `a2a_client/`와 같은 표준
+> A2A(HTTP+JSON-RPC 2.0)로 `message/send`를 받아 저장한다(실행은 안 함). 이 문서가
+> 정의하는 A2A-over-MCP 정본 설계는 Worker 쪽도 여전히 미착수다 —
+> `docs/decisions/2026-08-19-worker-functions-and-a2a-store.md` 참조.
 
 ## 왜 이 바인딩인가 (★핵심 기여 — 표준화 항목 S-4)
 
