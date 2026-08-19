@@ -197,6 +197,12 @@ def generate_sequence(axis_label: str, evaluation: dict, device: dict | None,
 
 
 if __name__ == "__main__":
+    import sys
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
     demo_device = {
         "device_id": "cap:limo_robot_agent",
         "functions": [{"name": "NavigateFunction"}, {"name": "ObserveFunction"}],

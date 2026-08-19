@@ -121,6 +121,12 @@ def evaluate(rules: list[dict], observations: dict, hour: int,
 # 단독 실행 데모: 규칙 몇 개를 손으로 만들어 판정이 맞는지 확인
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
+    import sys
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
     demo_rules = [
         {"rule_id": "wb_r1_no_motion_day", "slot": "motion", "time_context": "day",
          "threshold_hours": 4, "severity": "concern", "rationale": "주간 4시간 무동작"},

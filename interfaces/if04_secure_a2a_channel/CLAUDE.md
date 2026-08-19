@@ -8,8 +8,13 @@
 **L2 고수준 정책, Task 상태, Artifact**를 전달하는 에이전트 간 채널.
 **A2A 의미론을 유지하면서 전송·직렬화는 MCP를 재사용한다.**
 
-종단점 구현: Manager 측 `manager_ai_agent/mcp_client/` · Worker 측 `worker_ai_agent/mcp_server/`
+종단점 구현: Manager 측 `manager_ai_agent/a2a_client/`(2026-08-18 `mcp_client/`에서 개명) ·
+Worker 측 `worker_ai_agent/mcp_server/`
 이 디렉터리에는 **바인딩 정의**(어느 쪽 소유도 아닌 공유 자산)를 둔다.
+
+> **주의(2026-08-18)**: `manager_ai_agent/a2a_client/`의 현재 코드(실험·미승인)는 이 문서가
+> 정의하는 MCP 기반이 아니라 **표준 A2A(HTTP+JSON-RPC 2.0)**를 쓴다. 이 파일이 기술하는
+> A2A-over-MCP는 여전히 미착수 정본 설계다 — `docs/decisions/2026-08-18-a2a-standard-not-mcp.md` 참조.
 
 ## 왜 이 바인딩인가 (★핵심 기여 — 표준화 항목 S-4)
 

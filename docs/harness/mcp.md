@@ -1,7 +1,8 @@
 # 하네스 — MCP / A2A (IF-4)
 
 > 대상: `worker_ai_agent/limo-MCP/MCP_server/MCP_server.py`, `Scenarios/*.py`,
-> `worker_ai_agent/mcp_server/`, `manager_ai_agent/mcp_client/`, `interfaces/if04_secure_a2a_channel/`
+> `worker_ai_agent/mcp_server/`, `manager_ai_agent/a2a_client/`(정본 MCP 구현 시 — 2026-08-18
+> 현재 실험 코드는 표준 A2A/HTTP+JSON-RPC 2.0이라 이 문서와 무관), `interfaces/if04_secure_a2a_channel/`
 >
 > 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
 > 작업 절차는 `docs/harness.md` — 앵커 갱신과 결정 로그 한 줄이 전부다. 이 문서는 MCP 고유 항목만 다룬다.

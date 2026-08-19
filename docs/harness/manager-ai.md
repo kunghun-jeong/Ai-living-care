@@ -1,6 +1,6 @@
 # 하네스 — Manager AI Agent
 
-> 대상: `manager_ai_agent/**` (MAC · MAA · MAMS · KG · IAD · mcp_client)
+> 대상: `manager_ai_agent/**` (MAC · MAA · MAMS · KG · IAD · a2a_client)
 >
 > 이 문서는 **관문이 아니라 참고 노트**다. 이 영역을 처음 건드릴 때 한 번 읽는다.
 > 작업 절차는 `docs/harness.md` — 앵커 갱신과 결정 로그 한 줄이 전부다.
@@ -22,7 +22,7 @@
    - MAA → §5 (Report 스키마, status 열거, 폐루프)
    - MAMS → §7 (정책 분해, Worker 선택, dispatch-mode)
    - KG/IAD → §3.1 (IF-1 계약), §2.3 (KG vs IAD 구분)
-   - mcp_client → §6 (A2A-over-MCP 바인딩)
+   - a2a_client → §6 (정본은 A2A-over-MCP 바인딩. 2026-08-18부터 실험 코드는 표준 A2A/HTTP+JSON-RPC 2.0 — `a2a_client/CLAUDE.md` 참조)
 4. `docs/conventions.md` §2 — **의존성 주입 패턴을 그대로 따른다**
 
 ## 3. 컴포넌트별 필수 검증
@@ -70,9 +70,11 @@
 | HG-17 | 좌표가 맵 범위 안인가. A* `snap()`은 범위 검사가 없어 **음수 인덱스면 numpy가 조용히 반대편 끝을 읽는다** |
 | HG-18 | `confidence`를 채우는가. 낮은 신뢰도 바인딩은 사용자 확인(MRTR)으로 승격될 수 있다 |
 
-### (e) mcp_client — IF-4 Manager 측
+### (e) a2a_client (구 `mcp_client`) — IF-4 Manager 측
 
-`docs/harness/mcp.md` 를 함께 읽는다. 추가로:
+정본(MCP 기반) 설계를 구현할 때는 `docs/harness/mcp.md` 를 함께 읽는다 — 2026-08-18부터
+있는 실험 코드(`a2a_client.py`)는 표준 A2A(HTTP+JSON-RPC 2.0)라 MCP 관련 함정과는 무관하다.
+추가로:
 
 | # | 검증 |
 |---|---|

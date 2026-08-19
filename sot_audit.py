@@ -43,7 +43,7 @@ CHILDREN = [
     f"{MANAGER}/manager_ai_analyzer/assurance_loop",
     f"{MANAGER}/manager_ai_management_system/agent_registry",
     f"{MANAGER}/manager_ai_management_system/worker_selector",
-    f"{MANAGER}/mcp_client",
+    f"{MANAGER}/a2a_client",
     f"{WORKER}/worker_ai_core/policy_translator",
     f"{WORKER}/worker_ai_core/session_key_handler",
     f"{WORKER}/worker_ai_management_system/agent_card",
@@ -110,7 +110,7 @@ MIGRATION = [
     ("worker/service_functions/action",      f"{WORKER}/action"),
     ("worker/CLAUDE.md",                    f"{WORKER}/CLAUDE.md"),
     ("a2a/server",                          f"{WORKER}/mcp_server"),
-    ("a2a/client",                          f"{MANAGER}/mcp_client"),
+    ("a2a/client",                          f"{MANAGER}/a2a_client"),
     ("a2a/binding",                         "interfaces/if04_secure_a2a_channel"),
 ]
 

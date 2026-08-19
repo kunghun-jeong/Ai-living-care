@@ -10,10 +10,14 @@ call_trace_demo.py  —  '어떤 함수가 어떤 순서로 호출되나'를 눈
 """
 
 import sys
+import os
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
     pass
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "kg_mapping"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "policy_generation"))
 
 import pipeline
 import sequence_generator

@@ -135,11 +135,14 @@ def named_in(txt):
     백틱 한 칸을 공백으로 쪼갠 뒤 각 낱말의 **경로 접두**를 넣는다:
     `python3 anchor.py` → `anchor.py` · `Worker_functions/Perceptions.py` → `Worker_functions`.
     `docs/spec/x.md` 는 `docs` · `docs/spec` 만 넣는다 — 맨 `spec` 은 넣지 않는다.
+
+    선행 `.`는 벗기지 않는다 — `.oxlintrc.json`·`.env`처럼 점으로 시작하는 파일명이
+    실제로 있다. 문장 부호로 붙은 마침표는 **후행**에서만 나타나므로 그쪽만 벗긴다.
     """
     out = set()
     for span in re.findall(r"`([^`\n]+)`", txt):
         for word in span.split():
-            word = word.strip(",.;:()[]").rstrip("/")
+            word = word.strip(",;:()[]").rstrip(".").rstrip("/")
             parts = word.split("/")
             for i in range(1, len(parts) + 1):
                 out.add("/".join(parts[:i]))
