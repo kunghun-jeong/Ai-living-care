@@ -27,6 +27,8 @@ Vite + React. `npm create vite -- --template react`로 만든 최소 골격 위�
 | `src/` | Vite 표준 구조(`main.jsx`·`App.css`·`index.css` + 정적 이미지 하위 폴더) — 그 외는 스캐폴드 기본값 |
 | `public/` | Vite 표준 정적 자산 폴더(favicon 등) — 스캐폴드 기본값, 손대지 않음 |
 | `.env` / `.env.example` | `VITE_API_BASE` (Manager API 게이트웨이 주소, 기본 `http://localhost:8000`) |
+| `package.json` / `package-lock.json` | npm 의존성 정의 — Vite 스캐폴드 기본값 |
+| `.oxlintrc.json` | oxlint 설정 — 스캐폴드 기본값 |
 
 ## 실행
 

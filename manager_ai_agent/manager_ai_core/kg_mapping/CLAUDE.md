@@ -40,8 +40,9 @@ slide 21의 KG mapping 표:
 
 ### 기존 KG와의 관계 — TODO(확인 필요)
 
-- 이 저장소의 정본 KG는 **JSON 룩업**이다 — `../../knowledge_graph/entities.json`,
-  결정 **D-6**("KG는 그래프DB가 아니라 JSON"). `graph_retrieval.py`는 **Neo4j**를 쓴다.
+- 이 저장소의 정본 KG는 **JSON 룩업**이다 — 스키마는 `../../knowledge_graph/CLAUDE.md`에
+  있다(실제 데이터 파일은 아직 없음 — G-6), 결정 **D-6**("KG는 그래프DB가 아니라 JSON").
+  `graph_retrieval.py`는 **Neo4j**를 쓴다.
 - 스키마도 다르다 — 여기는 `Axis/Device/Function/State/AxisKnowledge`,
   `knowledge_graph/`의 정본은 `person/space/device`(grandma·living_room·LIMO_1).
 - **Neo4j 채택 여부 · JSON KG와의 관계(대체/공존) · "DB 없음" 원칙과의 정합성**은
