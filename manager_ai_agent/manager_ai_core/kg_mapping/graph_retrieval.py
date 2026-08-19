@@ -21,7 +21,29 @@ graph_retrieval.py  —  C1: 그래프 조회 (RAG retrieval)
 import os
 from neo4j import GraphDatabase
 
-# --- 접속 정보 (환경변수로 덮어쓸 수 있음. 기본값 = 로컬 Docker Neo4j) ---
+
+def _load_local_env():
+    """
+    Windows에서 setx/시스템 환경변수는 이미 떠 있는 터미널·IDE에는 반영되지 않는다
+    (레지스트리만 갱신되고 살아있는 프로세스는 갱신 전 환경을 그대로 물려받는다).
+    그 문제를 피하려고 이 폴더의 .env(git에 올라가지 않음)를 직접 읽어 채운다.
+    이미 환경변수로 설정된 값은 덮어쓰지 않는다(setdefault).
+    """
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip())
+
+
+_load_local_env()
+
+# --- 접속 정보 (환경변수 또는 이 폴더의 .env로 덮어쓸 수 있음. 기본값 = 로컬 Docker Neo4j) ---
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "livingcare123")
@@ -133,7 +155,13 @@ class GraphRetriever:
 # 단독 실행 데모: 실제 그래프에서 WellBeing 재료가 어떻게 뽑히는지 확인
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
+    import sys
     import json
+
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
     with GraphRetriever() as g:
         print("=== 그래프에 있는 축 목록 ===")

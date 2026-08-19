@@ -1,0 +1,106 @@
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  text-align: left;
+}
+
+header h1 {
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.muted {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.query-form {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+.query-form input[type="text"] {
+  flex: 1;
+}
+
+.hour-input {
+  width: 9rem;
+}
+
+.error-box {
+  background: #3a1f1f;
+  border: 1px solid #a33;
+  color: #f5b8b8;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.axis-card {
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.axis-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.axis-card__header h3 {
+  margin: 0;
+}
+
+.axis-card__section {
+  margin-top: 0.75rem;
+}
+
+.label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #999;
+  margin-bottom: 0.25rem;
+}
+
+.rationale {
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+.intent {
+  font-size: 1rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge--ok {
+  background: #1f3a24;
+  color: #8ee0a0;
+}
+
+.badge--escalate {
+  background: #3a2f1f;
+  color: #e0c08e;
+}
+
+.badge--fail {
+  background: #3a1f1f;
+  color: #e08e8e;
+}

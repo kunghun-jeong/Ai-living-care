@@ -15,7 +15,7 @@ graph TD
         MAMS["Manager AI Mgmt System<br/>Agent Registry"]
         KG["Knowledge Graph<br/>공간·디바이스 관계"]
         IAD["Intent Audit DB<br/>전 계층 감사"]
-        MCLI["mcp_client<br/>A2A Client"]
+        MCLI["a2a_client<br/>A2A Client"]
     end
 
     MAC -->|IF-1| KG
@@ -79,7 +79,7 @@ graph TD
 | `manager_ai_management_system/` | Worker 등록·상태·수명주기 + Agent Registry + Worker 선택 |
 | `knowledge_graph/` | 사용자·공간·디바이스의 관계와 능력 (누가 무엇을 할 수 있는가) |
 | `intent_audit_database/` | intent·policy 이력, 스키마 프롬프트, 검증 규칙. P-5 감사 실현처 |
-| `mcp_client/` | IF-4의 Manager 측 종단점 |
+| `a2a_client/` | IF-4의 Manager 측 종단점 (2026-08-18 `mcp_client/`에서 개명) |
 
 ### Worker AI Agent
 

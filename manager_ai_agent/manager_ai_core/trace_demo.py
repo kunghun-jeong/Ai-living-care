@@ -12,6 +12,7 @@ trace_demo.py  —  파이프라인 한 번을 '단계마다 데이터를 다 �
 """
 
 import sys
+import os
 import json
 
 # Windows 콘솔/Git Bash에서 한글이 깨지지 않게 출력 인코딩을 UTF-8로 고정
@@ -20,6 +21,9 @@ try:
 except Exception:
     pass
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "kg_mapping"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "policy_generation"))
+
 from graph_retrieval import GraphRetriever
 from rule_evaluator import evaluate
 from sequence_generator import generate_sequence, _choose_backend
@@ -27,7 +31,7 @@ from pipeline import (
     determine_active_axes, build_observations,
     pick_escalation_device, safety_gate, AXIS_BY_ID,
 )
-from end_to_end_pipeline import get_axis_scores, THRESHOLD, USING_REAL_EMBEDDINGS
+from axis_routing import get_axis_scores, THRESHOLD, USING_REAL_EMBEDDINGS
 
 
 def _hr(title):

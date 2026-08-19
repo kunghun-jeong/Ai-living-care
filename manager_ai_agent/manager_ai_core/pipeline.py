@@ -13,6 +13,7 @@ pipeline.py  —  전체 통합 (C1 → C2 → C3)
 """
 
 import sys
+import os
 import json
 
 # Windows 콘솔/Git Bash에서 한글이 깨지지 않게 출력 인코딩을 UTF-8로 고정
@@ -21,13 +22,15 @@ try:
 except Exception:
     pass
 
+# kg_mapping/·policy_generation/은 형제 디렉터리라 sys.path에 얹어야 임포트된다
+# (MCP_server.py의 sys.path.append 패턴과 동일한 방식 — worker_ai_agent 쪽 관례를 따름)
+sys.path.append(os.path.join(os.path.dirname(__file__), "kg_mapping"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "policy_generation"))
+
 from graph_retrieval import GraphRetriever          # C1
 from rule_evaluator import evaluate                  # C2
 from sequence_generator import generate_sequence     # C3
-
-# 라우팅은 준상님 코드 재사용 (진짜 임베딩이 있으면 그걸, 없으면 단어겹침 폴백)
-from end_to_end_pipeline import get_axis_scores, THRESHOLD, USING_REAL_EMBEDDINGS
-from onto_axes import ONTO_AXES
+from axis_routing import get_axis_scores, THRESHOLD, USING_REAL_EMBEDDINGS, ONTO_AXES  # 라우팅
 
 AXIS_BY_ID = {a["id"]: a for a in ONTO_AXES}
 

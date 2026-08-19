@@ -51,7 +51,7 @@
 │   │   └── worker_selector/
 │   ├── knowledge_graph/                KG
 │   ├── intent_audit_database/          IAD
-│   └── mcp_client/                     A2A Client — IF-4 Manager 측 종단점
+│   └── a2a_client/                     A2A Client — IF-4 Manager 측 종단점 (2026-08-18 mcp_client/에서 개명, D-20)
 │
 ├── worker_ai_agent/                    Worker AI Agent
 │   ├── worker_ai_core/                 WAC
@@ -98,7 +98,7 @@
 
 | 스펙 §2 정식 명칭 | 약칭 | 디렉터리 | 주 인터페이스 | Phase | 현재 코드 |
 |---|---|---|---|---|---|
-| Manager AI Core | MAC | `manager_ai_agent/manager_ai_core/` | IF-1·IF-2·IF-3·**IF-4** | 0 | 없음 |
+| Manager AI Core | MAC | `manager_ai_agent/manager_ai_core/` | IF-1·IF-2·IF-3·**IF-4** | 0 | 정본 파이프라인 없음 · `pipeline.py`(실험·미승인, D-19) |
 | Manager AI Analyzer | MAA | `manager_ai_agent/manager_ai_analyzer/` | IF-2·IF-1·IF-8 | 0 | 없음 |
 | Manager AI Management System | MAMS | `manager_ai_agent/manager_ai_management_system/` | IF-3·**IF-7** | 0→2 | 없음 |
 | Knowledge Graph | KG | `manager_ai_agent/knowledge_graph/` | IF-1 | 0 | 없음 (G-6) |
@@ -109,7 +109,7 @@
 | Perception Function | PF | `worker_ai_agent/perception/` | IF-5·IF-6 | 0 | `Perceptions.py` |
 | Reasoning Function | RF | `worker_ai_agent/reasoning/` | IF-5·IF-6 | 0 | `Reasonings.py` |
 | Action Function | AF | `worker_ai_agent/action/` | IF-5·IF-6 | 0 | `Actions.py` |
-| A2A Client | — | `manager_ai_agent/mcp_client/` | **IF-4** | 0 | 없음 |
+| A2A Client | — | `manager_ai_agent/a2a_client/` | **IF-4** | 0 | 정본(MCP) 없음 · `a2a_client.py`(실험·미승인, 표준 A2A, D-20) |
 | A2A Server + Agent Executor | — | `worker_ai_agent/mcp_server/` | **IF-4** | 0 | `MCP_server.py` (구현은 `limo-MCP/`) |
 
 > **PF/RF/AF의 정식 명칭은 "…Function"이지만 디렉터리는 `perception/`·`reasoning/`·`action/`으로 한다** (D-11).
@@ -122,7 +122,7 @@
 
 | 그 문서가 정한 위치 | 컴포넌트 | → SOT 디렉터리 |
 |---|---|---|
-| **Manager AI Agent** | A2A Client | `manager_ai_agent/mcp_client/` |
+| **Manager AI Agent** | A2A Client | `manager_ai_agent/a2a_client/` (2026-08-18 `mcp_client/`에서 개명, D-20) |
 | **Worker AI Agent** | A2A Server | `worker_ai_agent/mcp_server/` |
 | **Worker AI Agent** | Agent Executor | `worker_ai_agent/mcp_server/` |
 | **Worker AI Core** | Policy Handler | `worker_ai_agent/worker_ai_core/policy_translator/` |
@@ -205,7 +205,7 @@ python3 anchor.py             # 앵커 누락만 확인 (수 초)
 
 | ID | 결정 | 근거 |
 |---|---|---|
-| **D-9** | A2A 종단점을 **최상위가 아니라 각 에이전트 안에** 둔다. `manager_ai_agent/mcp_client/`, `worker_ai_agent/mcp_server/` | A2A_Core_Context §4가 A2A Client를 Manager AI Agent에, A2A Server·Agent Executor를 Worker AI Agent에 배정. 스펙 §10.1도 `MCP_server.py`를 WAC/A2A 종단점으로 매핑 |
+| **D-9** | A2A 종단점을 **최상위가 아니라 각 에이전트 안에** 둔다. `manager_ai_agent/mcp_client/`(2026-08-18 `a2a_client/`로 개명, D-20), `worker_ai_agent/mcp_server/` | A2A_Core_Context §4가 A2A Client를 Manager AI Agent에, A2A Server·Agent Executor를 Worker AI Agent에 배정. 스펙 §10.1도 `MCP_server.py`를 WAC/A2A 종단점으로 매핑 |
 | **D-10** | `interfaces/`를 **1급 디렉터리**로 둔다 | 스펙 §3 *"각 인터페이스가 곧 표준화 문서의 한 절이 된다"*. 표준화 항목 S-6의 실체 |
 | **D-11** | PF/RF/AF 디렉터리에서 `_function` 접미사를 뺀다 | N-1의 명시적 예외. 상위 `worker_ai_agent/`가 문맥을 주므로 반복이 불필요 |
 | **D-12** | `service_functions/` 중간 계층을 **두지 않는다** | 스펙 §2.2에서 "Service Functions"는 컴포넌트가 아니라 **행 레이블**이다. 실제 컴포넌트는 PF/RF/AF 셋. IF-5·IF-6이 이들을 집합으로 지칭하는 것은 `interfaces/if05_sf_facing/`이 문서로 다룬다 |
@@ -215,6 +215,8 @@ python3 anchor.py             # 앵커 누락만 확인 (수 초)
 | **D-17** | **소유 경계.** `worker_ai_agent/limo-MCP/**` 와 `tools/limo-patrol-viz/**` 의 **코드는 담당 연구원 소유**다. 생태계·하네스 담당은 이 트리의 파일을 **읽고 결함을 기록할 뿐 고치지 않는다.** 각 트리의 `CLAUDE.md`(우리가 만든 규범)만 예외 | 원본 보존(D-14)은 파일 배치 규칙이 아니라 **역할 경계**다. 2026-08-06 에 생태계 담당이 이 경계를 넘어 8개 파일을 수정했고 전부 되돌렸다. 발견한 결함은 `docs/status.md` 에 ID 로 남기고 담당자에게 넘긴다 |
 | **D-18** | **안전 결함의 인계 경로.** 소유 경계(D-17) 때문에 고칠 수 없는 안전 결함은 `docs/safety/` 에 **파일 하나**로 (`# F-NN · 제목` + `> **귀속** `경로``) 적고, 그 컴포넌트 `CLAUDE.md` 의 `> **상태**` 줄에 같은 F-ID 를 박는다. 담당자는 고치고 **실패 경로를 한 번 실행한 뒤** 두 자리를 함께 지운다. 목록은 `make status` 맨 위에 뜬다 | 경계는 「고치지 마라」이지 「묻어라」가 아니다. 기록만 하고 전달 장치가 없으면 F-1~F-3 같은 안전 결함이 조용히 늙는다. 2026-08-08 에 표를 파일로 바꿨다 — 담당자 둘이 각각 결함을 올리면 표가 충돌했다(실측). `상태` 줄은 이미 `make status` 가 수확하므로 **새 장치를 만들지 않고 있는 경로에 얹었다.** `anchor.py` A5 가 두 자리의 짝을 강제한다 — 한쪽만 지우면 커밋이 막힌다 |
 | **D-16** | **`SOT.md` §2 트리 · `sot_audit.py` 검사 대상 · 실제 디렉터리는 항상 집합 일치한다** | 셋 중 하나만 고치면 정본이 파생물보다 낡는다 — 실제로 발생했다 (F-20). 구조를 바꾸면 트리도 같이 고친다 |
+| **D-19** | 옛 `manager_ai_agent/graph_inference/`(Neo4j 추론 실험 코드)를 폐기하고 이미 정본에 있는 `manager_ai_core/kg_mapping/`·`manager_ai_core/policy_generation/`로 역할별 분배한다. §2 트리는 바뀌지 않는다 — 새 디렉터리를 안 만들었다 | 새 컴포넌트를 만들지 않고도 실험 코드를 정본 구조와 정합시킴. 여전히 **실험·미승인**이며 IF-1 위반(HG-5)·Neo4j vs JSON KG(D-6) 정합성은 미해소 (`docs/decisions/2026-08-18-graph-inference-distribution.md`) |
+| **D-20** | `manager_ai_agent/mcp_client/`를 `manager_ai_agent/a2a_client/`로 개명한다(N-2 준수, `A2A_client` 아님) | 이 폴더의 실험 코드가 MCP를 전혀 안 쓰고 **표준 A2A(HTTP+JSON-RPC 2.0)**를 쓰게 되면서 `mcp_client`라는 이름이 내용과 어긋났다. `interfaces/if04_secure_a2a_channel/`이 정의하는 MCP 기반 정본 설계는 그대로 미착수 상태 — 이름만 바꿨을 뿐 정본 방향을 정한 게 아니다. 여전히 **실험·미승인**(`docs/decisions/2026-08-18-rename-mcp-client-to-a2a-client.md`) |
 
 > **spec §0.2 반영 상태** (2026-08-07 실측): `D-9`~`D-14`·`D-17`·`D-18` 반영 완료.
 > **`D-15`·`D-16` 미반영** — 구조 규범 전용이라 spec 에 올릴지는 판단이 필요하다.

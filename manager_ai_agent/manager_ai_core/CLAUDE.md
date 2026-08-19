@@ -1,7 +1,7 @@
 # Manager AI Core (MAC)
 
 > **역할** L0(자연어) → L1(Intent Query) → L2(High-level Policy)
-> **상태** Phase 0 · 미착수 · 작업 `0-3`
+> **상태** Phase 0 · 미착수(정본 파이프라인) · 작업 `0-3` · **`kg_mapping/`·`policy_generation/`에 실험·미승인 Neo4j 추론 코드 있음** (2026-08-18, 옛 `graph_inference/` 분배) · **`api_server.py`로 HTTP 게이트웨이 실험 추가**(2026-08-18, 상급자 승인 대기)
 > **읽을 절** spec **§4.1**(계층 정의) · **§4.2**(L1) · **§4.3**(L2 ECA) — 그 외 절은 열지 않는다
 > **정본** 구조 `SOT.md` · spec §4
 
@@ -14,12 +14,12 @@
 | 디렉터리 | 책임 |
 |---|---|
 | `intent_extraction/` | L0 자연어 → 어구 분해 |
-| `kg_mapping/` | 어구 → KG element=value 바인딩 (IF-1) |
+| `kg_mapping/` | 어구 → KG element=value 바인딩 (IF-1) · **+ 축(axis) 라우팅·Neo4j 조회 실험 코드** |
 | `query_composing/` | 바인딩 → L1 Intent Query JSON |
-| `policy_generation/` | L1 → L2 High-level Policy (ECA) |
+| `policy_generation/` | L1 → L2 High-level Policy (ECA) · **+ 규칙 판단·LLM intent 조립 실험 코드** |
 | `session_key_manager/` | IF-4 세션 키 발급·갱신 (파이프라인과 직교) |
 
-## 파이프라인
+## 파이프라인 (정본 — 미착수)
 
 ```
 "Check if Grandma is okay"
@@ -30,7 +30,7 @@
 ```
 
 `session_key_manager/`는 직교하며 IF-4의 세션 키를 발급·갱신한다.
-생성된 L2는 `../mcp_client/`가 IF-4로 실어 보낸다.
+생성된 L2는 `../a2a_client/`가 IF-4로 실어 보낸다.
 
 ## 반드시 지킬 것
 
@@ -43,3 +43,72 @@
 - [ ] 0-3 L0→L2 파이프라인 전체
 - [ ] LLM 선택 확정 (U-3)
 - [ ] L2 직렬화 형식 확정 (U-2 — 내부 JSON / 표준 문서 XML 양방향 변환 권고)
+
+---
+
+## Neo4j 추론 파이프라인 (실험 · 미승인 — 위 정본 파이프라인과 별개)
+
+준상님의 Neo4j 지식그래프 위에 얹는 **다른 모양의** 추론 계층. 자연어 → 축(axis) 라우팅 →
+그래프 조회(C1) → 규칙 판단(C2) → 로봇 intent 생성(C3). 위 정본 파이프라인(어구 분해 →
+IF-1 바인딩 → L1 JSON → L2 XML)과 **스키마·흐름이 다르다** — 병합 여부는 TODO(확인 필요),
+`kg_mapping/CLAUDE.md`의 「기존 KG와의 관계」참조.
+
+**판단(위험도·에스컬레이션)은 코드가 규칙으로 결정**하고 **LLM(Ollama/Claude)은 조립만** 한다.
+그래프는 **읽기 전용(MATCH)** 으로만 접근한다.
+
+### 파일
+
+| 파일 | 역할 |
+|---|---|
+| `pipeline.py` | 라우팅 → C1 → C2 → 안전 게이트 → C3 통합. 5개 시나리오 데모 포함 |
+| `trace_demo.py` | 한 시나리오가 단계마다 어떤 데이터로 변하는지 펼쳐 보는 학습용 |
+| `call_trace_demo.py` | 어떤 함수가 어떤 순서로 호출되는지 추적 |
+| `kg_mapping/graph_retrieval.py` | C1 — Neo4j 조회 (읽기 전용 Cypher) |
+| `kg_mapping/axis_routing.py` | 자연어 → 축 라우팅 (ko-sroberta 임베딩, 폴백 포함) |
+| `kg_mapping/axis_centroids.json` | 축별 임베딩 중심값 (진짜 임베딩 모드에 필요) |
+| `policy_generation/rule_evaluator.py` | C2 — 규칙 평가(판단, 코드, 결정론적) |
+| `policy_generation/sequence_generator.py` | C3 — 로봇 intent 생성. 백엔드: Ollama(무료) → Claude(유료) → mock |
+| `api_server.py` | **HTTP 게이트웨이(2026-08-18 추가, 별도 실험·미승인)** — `../../frontend/`가 POST하는 자연어를 받아 `pipeline.run()`으로 처리하고 결과를 반환하는 동시에 `../a2a_client/a2a_client.py`(표준 A2A, HTTP+JSON-RPC 2.0)로 Worker에 전달. root `CLAUDE.md`의 "HTTP API 없음"과 충돌 — `../../frontend/CLAUDE.md` 참조 |
+
+### 실행 준비물
+
+1. **Neo4j** — `bolt://localhost:7687`, 계정 `neo4j`, 비밀번호는 `NEO4J_PASSWORD` 환경변수 또는
+   `kg_mapping/.env`(git에 안 올라감, `kg_mapping/CLAUDE.md` 참조)로 주입한다 (코드 기본값
+   `livingcare123`은 예시일 뿐 실제 접속 비밀번호가 아니다 — 절대 커밋하지 않는다).
+   그래프는 `livingcare_graph_v2.cypher`(준상님 소유, 이 저장소 밖)로 구축.
+2. `pip install neo4j` (필수) · `pip install sentence-transformers`(선택 — 없으면 라우팅이
+   단어겹침 폴백으로 내려간다) · `pip install anthropic`(선택 — Claude 백엔드 쓸 때만)
+3. **Ollama**(선택, C3 무료 로컬 LLM) — `ollama pull qwen2.5:7b`. 안 떠 있으면 C3는 자동 mock 폴백.
+
+```bash
+cd manager_ai_agent/manager_ai_core
+python pipeline.py                                    # kg_mapping/.env가 있으면 그대로 인증됨
+python trace_demo.py "할머니 괜찮은지 확인해줘" 15
+python call_trace_demo.py
+
+# HTTP 게이트웨이(실험) — 프론트엔드와 함께 쓸 때
+pip install fastapi "uvicorn[standard]" requests
+python -m uvicorn api_server:app --reload --port 8000
+# 별도 터미널: cd ../../frontend && npm install && npm run dev  (http://localhost:5173)
+```
+
+환경변수: `LLM_BACKEND=mock|ollama|claude` · `OLLAMA_MODEL` · `ANTHROPIC_API_KEY` ·
+`NEO4J_URI` · `NEO4J_USER` · `NEO4J_PASSWORD`.
+
+### 지금 "진짜"인 것 vs "mock/스텁"인 것
+
+| 구성요소 | 현재 |
+|---|---|
+| Neo4j 그래프 조회 | ✅ 진짜 (준상님 데이터, 이 저장소 밖에 있음) |
+| 규칙 판단(C2) / 안전 게이트 | ✅ 진짜 코드 |
+| 센서 관측값 | ⚠️ mock (그래프 State가 비어서) |
+| C3 생성 | ✅ Ollama 무료 로컬 또는 Claude — 둘 다 없으면 mock |
+| 라우팅 임베딩 | ✅ sentence-transformers 설치 시 진짜(ko-sroberta) · 없으면 폴백(단어겹침) |
+| 로봇 실제 실행 | ❌ 없음 (intent까지만) |
+
+### 팀과 정할 것
+
+- **State**: 누가 쓰나 / 원본값 vs 가공값 / key 규약 / 읽기 권한 / 센서별 유무·신선도
+- **에스컬레이션**: `requires_escalation_from` 그래프化 여부 / phase 전환 기준 / 배터리 등 물리조건
+- **아키텍처**: Neo4j vs 기존 JSON KG(D-6) — `kg_mapping/CLAUDE.md` 참조
+- 이 파이프라인의 산출물(intent 자연어 문장)을 정본 L2 ECA XML로 어떻게 승격/변환할지
